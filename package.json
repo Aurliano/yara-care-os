@@ -1,20 +1,23 @@
 {
   "name": "yara-care-os",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Yara Smart Care Platform",
+  "type": "module",
+  "packageManager": "pnpm@11.12.0",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "hub": "echo Hub",
+    "family": "echo Family",
+    "backend": "echo Backend",
+    "lint": "echo Lint",
+    "format": "echo Format"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "devEngines": {
-    "packageManager": {
-      "name": "pnpm",
-      "version": "^11.12.0",
-      "onFail": "download"
-    }
-  },
-  "type": "module"
+  "keywords": [
+    "yara",
+    "elder-care",
+    "android",
+    "healthcare"
+  ],
+  "author": "Sayda",
+  "license": "UNLICENSED"
 }
