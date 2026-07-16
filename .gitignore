@@ -1,0 +1,40 @@
+# Node
+node_modules/
+.pnpm-store/
+
+# Expo
+.expo/
+
+# Android
+.gradle/
+.idea/
+*.iml
+
+# Kotlin
+build/
+
+# Python
+venv/
+__pycache__/
+*.pyc
+
+# Django
+db.sqlite3
+media/
+
+# PlatformIO
+.pio/
+
+# VSCode
+.vscode/
+
+# Logs
+*.log
+
+# Environment
+.env
+.env.*
+
+# OS
+.DS_Store
+Thumbs.db
