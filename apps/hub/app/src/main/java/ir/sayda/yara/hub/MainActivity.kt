@@ -8,7 +8,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.ui.Modifier
-import ir.sayda.yara.hub.features.home.HomeScreen
+import ir.sayda.yara.hub.features.home.TodayScreen
 import ir.sayda.yara.hub.ui.theme.HubTheme
 
 class MainActivity : ComponentActivity() {
@@ -18,7 +18,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             HubTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    HomeScreen(modifier = Modifier.padding(innerPadding))
+                    TodayScreen(modifier = Modifier.padding(innerPadding))
                 }
             }
         }
