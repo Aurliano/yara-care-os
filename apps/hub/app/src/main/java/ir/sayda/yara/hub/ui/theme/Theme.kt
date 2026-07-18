@@ -6,7 +6,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 
 private val YaraColorScheme = lightColorScheme(
-    primary = SoftGreen,
+    primary = YaraGreen,
     onPrimary = Color.White,
     secondary = SoftBlue,
     onSecondary = Color.White,
@@ -14,7 +14,7 @@ private val YaraColorScheme = lightColorScheme(
     onTertiary = Color.White,
     background = WarmWhite,
     onBackground = TextPrimary,
-    surface = LightGray,
+    surface = SurfaceGray,
     onSurface = TextPrimary,
     error = SoftRed,
     onError = Color.White
