@@ -2,30 +2,38 @@ package ir.sayda.yara.hub.features.home
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import ir.sayda.yara.hub.domain.model.Medication
+import ir.sayda.yara.hub.domain.repository.MedicationRepository
 import ir.sayda.yara.hub.ui.components.*
 import ir.sayda.yara.hub.ui.theme.HubTheme
 import ir.sayda.yara.hub.ui.theme.WarmWhite
 
 @Composable
-fun TodayScreen(modifier: Modifier = Modifier) {
-    // Enforce RTL for Persian-first experience
+fun TodayScreen(
+    repository: MedicationRepository,
+    onMedicationClick: (Medication) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val medications by repository.getMedications().collectAsState(initial = emptyList())
+
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
         Scaffold(
             modifier = modifier.fillMaxSize(),
             containerColor = WarmWhite
         ) { innerPadding ->
             Box(modifier = Modifier.fillMaxSize()) {
-                // Organic Background Elements
                 TodayBackground(modifier = Modifier.fillMaxSize())
 
                 Column(
@@ -33,7 +41,6 @@ fun TodayScreen(modifier: Modifier = Modifier) {
                         .fillMaxSize()
                         .padding(innerPadding)
                 ) {
-                    // Header: Time, Date (Left) | Logo, Slogan (Right)
                     BrandHeader(
                         time = "10:30",
                         date = "چهارشنبه، ۲۰ خرداد ۱۴۰۴"
@@ -45,27 +52,25 @@ fun TodayScreen(modifier: Modifier = Modifier) {
                             start = 24.dp,
                             end = 24.dp,
                             top = 32.dp,
-                            bottom = 120.dp // Spacing for bottom wave and settings
+                            bottom = 120.dp
                         ),
                         verticalArrangement = Arrangement.spacedBy(24.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        // Emotional Greeting
                         item {
                             GreetingSection(name = "مریم عزیز")
                             Spacer(modifier = Modifier.height(32.dp))
                         }
 
-                        // Medication Card (High Priority - Green Border)
-                        item {
+                        items(medications) { medication ->
                             MedicationCard(
-                                medicationName = "قرص فشار خون",
-                                time = "ساعت ۱۱:۰۰",
-                                onClick = { /* TODO */ }
+                                medicationName = medication.name,
+                                time = medication.dosageTime,
+                                isCompleted = medication.isCompleted,
+                                onClick = { onMedicationClick(medication) }
                             )
                         }
 
-                        // Voice Message Card
                         item {
                             VoiceMessageCard(
                                 from = "سارا",
@@ -73,7 +78,6 @@ fun TodayScreen(modifier: Modifier = Modifier) {
                             )
                         }
 
-                        // Family Contact Card
                         item {
                             ContactCard(
                                 name = "تماس با سارا",
@@ -83,7 +87,6 @@ fun TodayScreen(modifier: Modifier = Modifier) {
                     }
                 }
 
-                // Settings Button positioned in the bottom organic wave
                 Box(
                     modifier = Modifier
                         .align(Alignment.BottomStart)
@@ -93,13 +96,5 @@ fun TodayScreen(modifier: Modifier = Modifier) {
                 }
             }
         }
-    }
-}
-
-@Preview(showBackground = true, widthDp = 800, heightDp = 1280)
-@Composable
-fun TodayScreenPreview() {
-    HubTheme {
-        TodayScreen()
     }
 }

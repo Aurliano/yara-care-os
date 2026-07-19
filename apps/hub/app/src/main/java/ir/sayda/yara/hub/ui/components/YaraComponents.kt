@@ -192,6 +192,7 @@ private fun YaraBaseCard(
     subtitle: String,
     description: String? = null,
     borderColor: Color = Color.Transparent,
+    trailingIcon: ImageVector = Icons.Rounded.ChevronLeft,
     modifier: Modifier = Modifier
 ) {
     Surface(
@@ -250,9 +251,9 @@ private fun YaraBaseCard(
             
             Spacer(modifier = Modifier.width(16.dp))
             
-            // Navigation Arrow (Left side in RTL)
+            // Trailing Icon (Left side in RTL)
             Icon(
-                imageVector = Icons.Rounded.ChevronLeft,
+                imageVector = trailingIcon,
                 contentDescription = null,
                 tint = TextSecondary.copy(alpha = 0.3f),
                 modifier = Modifier.size(32.dp)
@@ -266,17 +267,29 @@ fun MedicationCard(
     medicationName: String,
     time: String,
     isOverdue: Boolean = false,
+    isCompleted: Boolean = false,
     onClick: () -> Unit
 ) {
+    val borderColor = when {
+        isCompleted -> YaraGreen
+        isOverdue -> SoftOrange
+        else -> YaraGreen.copy(alpha = 0.4f)
+    }
+    
+    val icon = if (isCompleted) Icons.Rounded.CheckCircle else Icons.Rounded.Medication
+    val iconColor = if (isCompleted) YaraGreen else if (isOverdue) SoftOrange else YaraGreen
+    val iconBackground = if (isCompleted) YaraLightGreen else if (isOverdue) SoftOrange.copy(alpha = 0.1f) else YaraLightGreen
+
     YaraBaseCard(
-        onClick = onClick,
-        icon = Icons.Rounded.Medication,
-        iconColor = if (isOverdue) SoftOrange else YaraGreen,
-        iconBackground = if (isOverdue) SoftOrange.copy(alpha = 0.1f) else YaraLightGreen,
-        title = "وقت مصرف دارو",
+        onClick = if (isCompleted) ({}) else onClick,
+        icon = icon,
+        iconColor = iconColor,
+        iconBackground = iconBackground,
+        title = if (isCompleted) "انجام شد" else "وقت مصرف دارو",
         subtitle = medicationName,
-        description = time,
-        borderColor = if (isOverdue) SoftOrange else YaraGreen.copy(alpha = 0.4f)
+        description = if (isCompleted) null else time,
+        borderColor = borderColor,
+        trailingIcon = if (isCompleted) Icons.Rounded.Check else Icons.Rounded.ChevronLeft
     )
 }
 
