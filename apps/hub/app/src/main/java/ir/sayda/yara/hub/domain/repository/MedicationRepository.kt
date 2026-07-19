@@ -8,5 +8,9 @@ import kotlinx.coroutines.flow.Flow
  */
 interface MedicationRepository {
     fun getMedications(): Flow<List<Medication>>
+    suspend fun getMedicationById(id: String): Medication?
     suspend fun markAsCompleted(id: String)
+    suspend fun scheduleMedication(medication: Medication)
+    suspend fun deleteMedication(id: String)
+    suspend fun toggleMedication(id: String, enabled: Boolean)
 }

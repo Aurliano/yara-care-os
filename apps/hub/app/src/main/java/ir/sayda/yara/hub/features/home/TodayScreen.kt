@@ -4,10 +4,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Scaffold
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLayoutDirection
@@ -24,6 +21,7 @@ import ir.sayda.yara.hub.ui.theme.WarmWhite
 fun TodayScreen(
     repository: MedicationRepository,
     onMedicationClick: (Medication) -> Unit,
+    onSettingsClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val medications by repository.getMedications().collectAsState(initial = emptyList())
@@ -62,7 +60,7 @@ fun TodayScreen(
                             Spacer(modifier = Modifier.height(32.dp))
                         }
 
-                        items(medications) { medication ->
+                        items(medications.filter { it.isEnabled }) { medication ->
                             MedicationCard(
                                 medicationName = medication.name,
                                 time = medication.dosageTime,
@@ -92,7 +90,7 @@ fun TodayScreen(
                         .align(Alignment.BottomStart)
                         .padding(24.dp)
                 ) {
-                    SettingsButton(onLongClick = { /* TODO */ })
+                    SettingsButton(onLongClick = onSettingsClick)
                 }
             }
         }
