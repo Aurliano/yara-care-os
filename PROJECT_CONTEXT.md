@@ -1,184 +1,456 @@
-# Project Context
-This document is the single source of truth for every AI agent and developer working on Yara.
+# PROJECT_CONTEXT.md
 
-If any implementation conflicts with this document, this document wins.
-
-## Product
-
-Yara is a smart care platform.
-
-It is NOT just a mobile application.
-
-It is a hardware + software ecosystem.
+Version: 2.0  
+Status: Approved  
+Product: Yara Care Ecosystem  
+Company: SAYDA Technology
 
 ---
 
-## Components
+# Purpose
 
-- Android Hub
-- Family App
-- Backend
-- Smart Pill Box
-- Future Smart Devices
+This document is the single source of truth for the Yara project.
+
+Every architectural decision, implementation detail, roadmap item, backlog task and AI-generated code must align with this document.
+
+If another document conflicts with PROJECT_CONTEXT.md, this document always takes precedence.
 
 ---
+
+# What is Yara?
+
+Yara is an AI-powered elderly care ecosystem.
+
+It combines hardware, software and cloud services into one integrated platform that enables families to care for elderly loved ones remotely.
+
+Yara is built around one simple goal:
+
+> Help elderly people live independently while giving their families peace of mind.
+
+---
+
+# Product Vision
+
+Yara is NOT:
+
+- a medication reminder
+- a tablet application
+- another Android app
+- a hospital management system
+- a social network
+
+Yara IS:
+
+- an elderly care platform
+- a connected hardware ecosystem
+- a trusted daily companion
+- a remote caregiving solution
+- a long-term healthcare platform
+
+---
+
+# Product Philosophy
+
+Technology should remain invisible.
+
+Care should remain visible.
+
+Every feature must satisfy at least one of these goals:
+
+- Reduce caregiver anxiety.
+- Increase elder independence.
+- Improve quality of care.
+- Simplify communication.
+- Reduce caregiving costs.
+
+If a feature does not satisfy any of these goals, it does not belong in Yara.
+
+---
+
+# Design Principles
+
+## Elder First
+
+Technology adapts to the elder.
+
+Never the opposite.
+
+---
+
+## Simplicity First
+
+Every interaction should feel calm and effortless.
+
+---
+
+## Trust Before Intelligence
+
+Reliability is more valuable than advanced AI.
+
+---
+
+## Offline First
+
+The system must continue operating during internet outages.
+
+Medication reminders must never depend on cloud availability.
+
+---
+
+## Privacy by Design
+
+Respecting the elder's dignity is mandatory.
+
+Monitoring capabilities should always be transparent and configurable.
+
+---
+
+## Security by Design
+
+Security is part of the architecture.
+
+Never an afterthought.
+
+---
+
+## Platform Thinking
+
+Every component should strengthen the ecosystem.
+
+Avoid isolated features.
+
+---
+
+# Ecosystem
+
+Yara consists of four logical layers.
+
+```text
+                Care Layer
+         (Caregiver Applications)
+
+                     │
+
+                Cloud Layer
+        (Backend + AI + Services)
+
+                     │
+
+                 Hub Layer
+      (Android Dedicated Device)
+
+                     │
+
+                 IoT Layer
+ (Pill Box + Sensors + Future Devices)
+```
+
+---
+
+# Components
 
 ## Android Hub
 
+Dedicated Android appliance installed in the elder's home.
+
+Responsibilities:
+
+- Medication reminders
+- Daily interaction
+- Offline operation
+- BLE communication
+- Device monitoring
+- Local storage
+- Cloud synchronization
+
 The Hub is NOT a consumer Android application.
 
-It is a dedicated Android device shipped together with the product.
-
-Users are NOT expected to install it on arbitrary Android tablets.
-
-The Hub behaves more like an ATM or POS terminal than a traditional Android tablet.
+It behaves more like an ATM or POS terminal than a traditional mobile app.
 
 ---
 
-## Product Philosophy
+## Caregiver App
 
-The elder should never interact with Android itself.
+A modern mobile application used by family members and caregivers.
 
-The Hub boots directly into Yara.
+Responsibilities:
 
-The launcher is hidden.
+- Dashboard
+- Elder management
+- Medication overview
+- Device monitoring
+- Notifications
+- Communication
+- Subscription management
 
-Settings are hidden.
+This application is a thin client.
 
-The device should always stay online.
-
-Offline functionality is mandatory.
-
-Reliability is more important than visual complexity.
-
----
-
-## UI Philosophy
-
-Simple.
-
-Large buttons.
-
-No animations unless they improve usability.
-
-Minimal navigation.
-
-Designed for elderly users.
+Business logic belongs to the backend.
 
 ---
 
-## Design Philosophy
+## Backend
 
-The Hub is an appliance.
+Central platform responsible for:
 
-Not a tablet.
-
-Not a smartphone.
-
-Not an Android application.
-
-Users should never notice Android.
-
-Users should feel they are using a dedicated care device.
-
-## Hardware
-
-ESP32-C3
-
-BLE
-
-Android Tablet
-
-Future Sensors
+- Authentication
+- Authorization
+- Synchronization
+- Notifications
+- Subscription
+- Device management
+- Caregiver management
+- APIs
+- Future AI services
 
 ---
 
-## Family App
+## Smart Pill Box
 
-Regular mobile application.
+ESP32-C3 based BLE device.
 
-Managed by family members.
+Responsibilities:
 
-Modern UI.
-
-Easy to update.
-
----
-
-## Product Principles
-
-- Offline First
-- Security by Design
-- MVP First
-- Simplicity over Complexity
+- Door detection
+- Battery monitoring
+- BLE communication
+- Medication confirmation
 
 ---
 
-## Constraints
+## Future Devices
 
-- Team size: 1-2 developers
-- MVP deadline: 2 months
-- Simplicity has priority over scalability
-- Hardware is controlled by the project
-- Only officially supported Android tablets are targeted
+Future hardware may include:
 
-## Success Metrics
+- Power Sensor
+- Gas Sensor
+- Smart Camera
+- Wearables
+- Medical Devices
 
-The MVP is successful only if:
+The current architecture must support future expansion without major redesign.
 
-- Elder receives medication reminders.
-- Pill Box reports door events.
-- Family can monitor device status remotely.
-- Hub survives reboot and power loss.
-- Core features continue working without Internet.
+---
 
-## Non Functional Requirements
+# Care Model
 
-- Boot time < 30 seconds
-- BLE reconnect automatically
-- Offline operation is mandatory
-- Recovery after power loss
-- No user interaction required after reboot
-- Support 24/7 operation
-- Simple UI optimized for elderly users
+One Elder
 
+↓
 
+One Subscription
 
-## AI Development Philosophy
+↓
 
-AI assistants are team members.
+One Hub
 
-Every implementation should:
+↓
 
-- Keep architecture simple.
-- Avoid unnecessary abstractions.
-- Minimize dependencies.
-- Prefer proven solutions over clever solutions.
-- Optimize for maintainability by a small team.
+Multiple Caregivers
 
-## Founder Constraints
+Each caregiver has an independent account.
 
-Yara is being built by a very small team with limited resources.
+Permissions are determined by the relationship with the elder.
 
-Every technical decision must optimize for:
+Possible roles include:
 
-- Product quality
-- Development speed
-- Low operational cost
-- Low maintenance cost
-- Long device lifetime
+- Owner
+- Family
+- Nurse
+- Doctor
+- Viewer
 
-Avoid solutions that increase complexity without creating clear user value.
+Roles belong to the membership between a caregiver and an elder.
 
-## Future Vision
+They are not global user roles.
 
-Future versions may include:
+---
+
+# Current Technology Stack
+
+## Android Hub
+
+- Kotlin
+- Jetpack Compose
+- Room
+- WorkManager
+- BLE
+- Device Owner
+- Kiosk Mode
+
+---
+
+## Caregiver App
+
+- Expo
+- React Native
+- TypeScript
+- Zustand
+- TanStack Query
+- Axios
+- React Navigation
+- MMKV
+
+---
+
+## Backend
+
+- Django
+- Django REST Framework
+- PostgreSQL
+
+---
+
+## Firmware
+
+- ESP32-C3
+- Arduino Framework
+- NimBLE
+
+---
+
+# Development Principles
+
+The project prioritizes:
+
+- Reliability
+- Maintainability
+- Fast iteration
+- Clean architecture
+
+Not:
+
+- unnecessary abstractions
+- premature optimization
+- over-engineering
+
+---
+
+# Current Project Status
+
+The Hub project already exists.
+
+Current development focuses on:
+
+- completing remaining Hub features
+- backend implementation
+- firmware implementation
+- Caregiver App development
+- platform integration
+
+The project is no longer in the idea phase.
+
+It is in the product implementation phase.
+
+---
+
+# MVP Scope
+
+The MVP includes:
+
+Android Hub
+
+- Kiosk Mode
+- Medication Reminder
+- BLE
+- Offline Storage
+- Synchronization
+
+Backend
+
+- Authentication
+- Elder Management
+- Hub Management
+- Medication Management
+- Notifications
+
+Caregiver App
+
+- Login
+- Pair with Hub
+- Dashboard
+- Medication Status
+- Hub Status
+- Contacts
+- Push Notifications
+
+Smart Pill Box
+
+- BLE Pairing
+- Door Detection
+- Battery Monitoring
+
+---
+
+# Out of Scope (MVP)
+
+The following features are intentionally excluded:
 
 - AI Assistant
-- Local LLM
-- Speech Recognition
-- Video Calls
-- Medical Devices
+- Camera Streaming
 - Smart Home Integration
+- Medical Device Integration
+- Smart Watch Integration
+- Predictive Analytics
+- Voice Assistant
+- Local LLM
 
-Current architecture should not block these future capabilities.
+These belong to future releases.
+
+---
+
+# Definition of Success
+
+The MVP succeeds when:
+
+- Families trust the system.
+- Medication adherence improves.
+- The Hub operates reliably.
+- Caregivers understand the elder's status within seconds.
+- The platform can scale without architectural redesign.
+
+---
+
+# Definition of Failure
+
+The project fails if:
+
+- Reliability is sacrificed for features.
+- Complexity increases without clear value.
+- The elder becomes confused by the interface.
+- Core medication workflows become dependent on internet connectivity.
+- New features compromise maintainability.
+
+---
+
+# Golden Rules
+
+Before implementing any feature, always ask:
+
+1. Does this reduce caregiver anxiety?
+2. Does this preserve elder independence?
+3. Does this fit the product philosophy?
+4. Can it work offline when required?
+5. Is it simple enough for long-term maintenance by a small team?
+
+If the answer to any of these questions is "No", the implementation should be reconsidered.
+
+---
+
+# Long-Term Vision
+
+Yara aims to become the trusted operating system for elderly care.
+
+One ecosystem.
+
+One platform.
+
+One subscription.
+
+Multiple caregivers.
+
+Connected devices.
+
+Human-centered technology.
+
+Built under the SAYDA brand.
