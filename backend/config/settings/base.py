@@ -34,6 +34,7 @@ INSTALLED_APPS = [
     "common",
     "domains.identity_access",
     "domains.licensing",
+    "domains.event",
 ]
 
 AUTH_USER_MODEL = "identity_access.User"
@@ -149,4 +150,5 @@ LOGGING = {
 DOMAIN_APPS: list[str] = [
     "domains.identity_access",
     "domains.licensing",
+    "domains.event",
 ]

@@ -19,6 +19,7 @@ type = layers
 layers =
     domains.licensing
     domains.identity_access
+    domains.event
 
 [importlinter:contract:identity-access-independence]
 name = Identity & Access must not import other domain apps
@@ -27,3 +28,12 @@ source_modules =
     domains.identity_access
 forbidden_modules =
     domains
+
+[importlinter:contract:event-independence]
+name = Event must not import producer or consumer domain apps
+type = forbidden
+source_modules =
+    domains.event
+forbidden_modules =
+    domains.identity_access
+    domains.licensing
