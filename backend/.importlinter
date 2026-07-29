@@ -13,6 +13,13 @@ source_modules =
 forbidden_modules =
     domains
 
+[importlinter:contract:domain-layers]
+name = Domain dependency direction
+type = layers
+layers =
+    domains.licensing
+    domains.identity_access
+
 [importlinter:contract:identity-access-independence]
 name = Identity & Access must not import other domain apps
 type = forbidden
@@ -20,13 +27,3 @@ source_modules =
     domains.identity_access
 forbidden_modules =
     domains
-
-# Cross-domain import contracts expand in B2+ when additional domains exist.
-# Example:
-#
-# [importlinter:contract:domains-no-cross-import]
-# name = Domains must not import each other directly
-# type = independence
-# modules =
-#     domains.identity_access
-#     domains.care

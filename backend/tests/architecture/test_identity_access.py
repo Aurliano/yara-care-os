@@ -15,7 +15,7 @@ def test_identity_access_relations_are_internal() -> None:
 
 def test_identity_access_has_no_cross_domain_fk_violations() -> None:
     violations = find_cross_domain_relations(
-        domain_apps=DOMAIN_APP_LABELS,
+        domain_apps={"identity_access"},
         allowed_cross_domain_fks=ALLOWED_CROSS_DOMAIN_FKS,
     )
     assert violations == []

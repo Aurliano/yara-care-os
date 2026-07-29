@@ -67,11 +67,15 @@ def test_permission_check_api(authenticated_client, elder):
 def test_invitation_api_flow(authenticated_client, elder, second_user, api_client):
     create_response = authenticated_client.post(
         f"/api/v1/elders/{elder.id}/invitations/",
-        {"expires_at": (timezone.now() + timedelta(days=3)).isoformat()},
+        {
+            "role_code": "CAREGIVER",
+            "expires_at": (timezone.now() + timedelta(days=3)).isoformat(),
+        },
         format="json",
     )
     assert create_response.status_code == 201
     invite_code = create_response.json()["invite_code"]
+    assert create_response.json()["role_code"] == "CAREGIVER"
 
     api_client.force_authenticate(user=second_user)
     accept_response = api_client.post(
@@ -80,4 +84,4 @@ def test_invitation_api_flow(authenticated_client, elder, second_user, api_clien
         format="json",
     )
     assert accept_response.status_code == 201
-    assert accept_response.json()["role_code"] == "VIEWER"
+    assert accept_response.json()["role_code"] == "CAREGIVER"

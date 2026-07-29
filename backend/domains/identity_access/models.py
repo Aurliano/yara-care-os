@@ -201,6 +201,11 @@ class Invitation(models.Model):
         on_delete=models.PROTECT,
         related_name="sent_invitations",
     )
+    role = models.ForeignKey(
+        Role,
+        on_delete=models.PROTECT,
+        related_name="invitations",
+    )
     invite_code = models.CharField(max_length=64, unique=True)
     status = models.CharField(
         max_length=16,

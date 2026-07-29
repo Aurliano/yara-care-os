@@ -69,11 +69,14 @@ class MembershipRoleChangeSerializer(serializers.Serializer):
 
 
 class InvitationSerializer(serializers.ModelSerializer):
+    role_code = serializers.CharField(source="role.code", read_only=True)
+
     class Meta:
         model = Invitation
         fields = [
             "id",
             "elder_id",
+            "role_code",
             "invite_code",
             "status",
             "expires_at",
@@ -84,6 +87,7 @@ class InvitationSerializer(serializers.ModelSerializer):
 
 
 class InvitationCreateSerializer(serializers.Serializer):
+    role_code = serializers.CharField(max_length=64)
     expires_at = serializers.DateTimeField()
 
     def validate_expires_at(self, value):

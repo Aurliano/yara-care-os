@@ -207,6 +207,7 @@ class InvitationListCreateView(APIView):
             invitation = create_invitation(
                 actor=request.user,
                 elder=elder,
+                role_code=serializer.validated_data["role_code"],
                 expires_at=serializer.validated_data["expires_at"],
             )
         except IdentityAccessError as exc:

@@ -39,11 +39,13 @@ For architectural work:
 - PROJECT_CONTEXT.md
 - ARCHITECTURE.md
 - Relevant ADRs
+- docs/Backend-Implementation-Plan.md
 
 For backend domain work:
 - ARCHITECTURE.md
 - ERD V2.1
 - Relevant Domain Contract
+- docs/Backend-Implementation-Plan.md
 
 For planning/scope decisions:
 - BACKLOG.md
@@ -174,11 +176,11 @@ Whenever architecture changes:
 
 Update:
 
-- PROJECT_CONTEXT.md (if affected)
-- ARCHITECTURE.md
-- Relevant ADR
-- BACKLOG.md (if scope changes)
-- ROADMAP.md (if planning changes)
+- docs\PROJECT_CONTEXT.md (if affected)
+- docs\ARCHITECTURE.md
+- docs\Relevant ADR
+- docs\BACKLOG.md (if scope changes)
+- docs\ROADMAP.md (if planning changes)
 
 Documentation is part of the implementation.
 

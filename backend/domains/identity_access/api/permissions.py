@@ -38,3 +38,7 @@ class HasElderPermission(BasePermission):
 
 class CanManageMembers(HasElderPermission):
     permission_code = "MANAGE_MEMBERS"
+
+
+class CanManageSubscription(HasElderPermission):
+    permission_code = "MANAGE_SUBSCRIPTION"

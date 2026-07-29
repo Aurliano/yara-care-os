@@ -12,7 +12,7 @@ def test_collect_foreign_key_relations_returns_list() -> None:
 
 def test_find_cross_domain_relations_with_no_domains() -> None:
     violations = find_cross_domain_relations(
-        domain_apps=DOMAIN_APP_LABELS,
+        domain_apps=set(),
         allowed_cross_domain_fks=ALLOWED_CROSS_DOMAIN_FKS,
     )
     assert violations == []

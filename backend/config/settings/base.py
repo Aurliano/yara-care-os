@@ -33,6 +33,7 @@ INSTALLED_APPS = [
     "rest_framework_simplejwt",
     "common",
     "domains.identity_access",
+    "domains.licensing",
 ]
 
 AUTH_USER_MODEL = "identity_access.User"
@@ -147,4 +148,5 @@ LOGGING = {
 # Domain apps are registered here as they are implemented in B1+.
 DOMAIN_APPS: list[str] = [
     "domains.identity_access",
+    "domains.licensing",
 ]

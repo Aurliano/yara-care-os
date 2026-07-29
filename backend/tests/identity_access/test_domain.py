@@ -3,8 +3,12 @@ from django.utils import timezone
 from datetime import timedelta
 
 from domains.identity_access.enums import MembershipStatus, RoleCode
-from domains.identity_access.exceptions import LastPrimaryCaregiverError
-from domains.identity_access.models import Invitation, Membership
+from domains.identity_access.exceptions import (
+    InvalidInvitationStateError,
+    InvalidMembershipStateError,
+    LastPrimaryCaregiverError,
+)
+from domains.identity_access.models import Invitation, Membership, Role
 from domains.identity_access.services.authorization import can, get_permissions, user_is_associated_with_elder
 from domains.identity_access.services.emergency_recipients import configure_emergency_recipients
 from domains.identity_access.services.invitations import accept_invitation, create_invitation, revoke_invitation
@@ -54,10 +58,11 @@ def test_duplicate_active_membership_blocked(user, elder):
 
 
 @pytest.mark.django_db
-def test_invitation_accept_creates_membership(user, elder, second_user):
+def test_invitation_accept_creates_membership_with_invitation_role(user, elder, second_user):
     invitation = create_invitation(
         actor=user,
         elder=elder,
+        role_code=RoleCode.CAREGIVER,
         expires_at=timezone.now() + timedelta(days=7),
     )
     membership = accept_invitation(user=second_user, invitation=invitation)
@@ -65,21 +70,24 @@ def test_invitation_accept_creates_membership(user, elder, second_user):
 
     assert invitation.status == "ACCEPTED"
     assert invitation.accepted_at is not None
+    assert invitation.role.code == RoleCode.CAREGIVER
     assert membership.user == second_user
     assert membership.elder == elder
     assert membership.status == MembershipStatus.ACTIVE
-    assert membership.role.code == RoleCode.VIEWER
+    assert membership.role.code == RoleCode.CAREGIVER
 
 
 @pytest.mark.django_db
-def test_expired_invitation_cannot_be_accepted(user, elder, second_user):
+def test_expired_invitation_persists_expired_before_reject(user, elder, second_user):
+    caregiver_role = Role.objects.get(code=RoleCode.CAREGIVER)
     invitation = Invitation.objects.create(
         elder=elder,
         invited_by=user,
+        role=caregiver_role,
         invite_code="expired-code-123",
         expires_at=timezone.now() - timedelta(hours=1),
     )
-    with pytest.raises(Exception):
+    with pytest.raises(InvalidInvitationStateError):
         accept_invitation(user=second_user, invitation=invitation)
     invitation.refresh_from_db()
     assert invitation.status == "EXPIRED"
@@ -90,6 +98,7 @@ def test_revoked_invitation_cannot_be_accepted(user, elder, second_user):
     invitation = create_invitation(
         actor=user,
         elder=elder,
+        role_code=RoleCode.VIEWER,
         expires_at=timezone.now() + timedelta(days=1),
     )
     revoke_invitation(actor=user, invitation=invitation)
@@ -102,15 +111,17 @@ def test_accept_invitation_does_not_create_duplicate(user, elder, second_user):
     invitation = create_invitation(
         actor=user,
         elder=elder,
+        role_code=RoleCode.VIEWER,
         expires_at=timezone.now() + timedelta(days=1),
     )
     accept_invitation(user=second_user, invitation=invitation)
     invitation2 = create_invitation(
         actor=user,
         elder=elder,
+        role_code=RoleCode.CAREGIVER,
         expires_at=timezone.now() + timedelta(days=1),
     )
-    with pytest.raises(Exception):
+    with pytest.raises(InvalidMembershipStateError):
         accept_invitation(user=second_user, invitation=invitation2)
 
 
@@ -139,14 +150,11 @@ def test_emergency_recipient_requires_active_membership(user, elder, second_user
 
 
 @pytest.mark.django_db
-def test_emergency_recipient_rejects_invalid_membership(user, elder, second_user):
-    other_membership = create_membership(
-        user=second_user,
-        elder=create_elder(actor=second_user, full_name="Other Elder"),
-        role_code=RoleCode.PRIMARY_CAREGIVER,
-        status=MembershipStatus.ACTIVE,
-    )
-    with pytest.raises(Exception):
+def test_emergency_recipient_rejects_membership_from_other_elder(user, elder, second_user):
+    other_elder = create_elder(actor=second_user, full_name="Other Elder")
+    other_membership = Membership.objects.get(user=second_user, elder=other_elder)
+
+    with pytest.raises(InvalidMembershipStateError):
         configure_emergency_recipients(
             actor=user,
             elder=elder,
