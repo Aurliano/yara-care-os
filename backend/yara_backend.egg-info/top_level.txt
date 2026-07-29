@@ -1,0 +1,4 @@
+architecture
+common
+config
+domains

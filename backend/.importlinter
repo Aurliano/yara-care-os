@@ -1,0 +1,32 @@
+[importlinter]
+root_packages =
+    config
+    common
+    domains
+    architecture
+
+[importlinter:contract:common-isolation]
+name = Common infrastructure must not import domain apps
+type = forbidden
+source_modules =
+    common
+forbidden_modules =
+    domains
+
+[importlinter:contract:identity-access-independence]
+name = Identity & Access must not import other domain apps
+type = forbidden
+source_modules =
+    domains.identity_access
+forbidden_modules =
+    domains
+
+# Cross-domain import contracts expand in B2+ when additional domains exist.
+# Example:
+#
+# [importlinter:contract:domains-no-cross-import]
+# name = Domains must not import each other directly
+# type = independence
+# modules =
+#     domains.identity_access
+#     domains.care

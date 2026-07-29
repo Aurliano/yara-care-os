@@ -1,0 +1,15 @@
+Metadata-Version: 2.4
+Name: yara-backend
+Version: 0.1.0
+Summary: Yara Care Platform — Django backend
+Requires-Python: >=3.12
+Requires-Dist: django<6,>=5.1
+Requires-Dist: djangorestframework<4,>=3.15
+Requires-Dist: django-cors-headers<5,>=4.6
+Requires-Dist: django-environ<1,>=0.11
+Requires-Dist: psycopg[binary]<4,>=3.2
+Requires-Dist: djangorestframework-simplejwt<6,>=5.4
+Provides-Extra: dev
+Requires-Dist: pytest<9,>=8.3; extra == "dev"
+Requires-Dist: pytest-django<5,>=4.9; extra == "dev"
+Requires-Dist: import-linter<3,>=2.1; extra == "dev"

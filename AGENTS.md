@@ -25,20 +25,40 @@ If any instruction conflicts with this document, this document takes precedence 
 
 ---
 
-# Read Order
+# Context Loading
 
-Before generating code, every agent must understand the project by reading the documentation in this order:
+Do not read all project documentation for every task.
 
-1. PROJECT_CONTEXT.md
-2. ARCHITECTURE.md
-3. BACKLOG.md
-4. ROADMAP.md
-5. Relevant ADR documents
-6. Current Sprint tasks
+Always inspect:
+1. AGENTS.md
+2. Current task / sprint instructions
 
-Never start implementation without understanding the product.
+Then read only the documents relevant to the task.
 
----
+For architectural work:
+- PROJECT_CONTEXT.md
+- ARCHITECTURE.md
+- Relevant ADRs
+
+For backend domain work:
+- ARCHITECTURE.md
+- ERD V2.1
+- Relevant Domain Contract
+
+For planning/scope decisions:
+- BACKLOG.md
+- ROADMAP.md
+
+For Hub work:
+- Relevant Hub architecture and sprint documents
+
+For Caregiver App work:
+- Caregiver App Vision
+- Relevant architecture and sprint documents
+
+Frozen Domain Contracts and approved ADRs are authoritative.
+
+Do not load unrelated documents merely for additional context.
 
 # Product Philosophy
 
@@ -274,6 +294,13 @@ AI agents should:
 - preserve consistency across modules
 
 Never invent APIs, database tables, or workflows that are not documented.
+
+Use repository documentation as the source of truth.
+Do not repeat documented architecture in implementation plans or prompts.
+
+When a task references a domain, read its Domain Contract before modifying its models or business rules.
+
+If implementation requirements conflict with a Frozen Domain Contract or ADR, stop and report the conflict instead of silently resolving it.
 
 ---
 
