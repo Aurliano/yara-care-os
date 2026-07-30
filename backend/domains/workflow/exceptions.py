@@ -13,8 +13,8 @@ class ExecutionNotFoundError(WorkflowError):
     """Raised when a workflow execution cannot be found."""
 
 
-class WorkflowBindingNotFoundError(WorkflowError):
-    """Raised when schedule-to-workflow binding is missing."""
+class WorkflowDefinitionConflictError(WorkflowError):
+    """Raised when StartExecution is called with a conflicting workflow definition."""
 
 
 class InvalidExecutionStateError(WorkflowError):

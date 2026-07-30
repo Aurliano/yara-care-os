@@ -347,10 +347,10 @@ def test_schedule_exception_reschedule():
 
 
 @pytest.mark.django_db
-def test_no_workflow_execution_model_exists():
+def test_workflow_domain_is_registered():
     from django.apps import apps
 
-    assert not apps.is_installed("domains.workflow")
+    assert apps.is_installed("domains.workflow")
 
 
 @pytest.mark.django_db

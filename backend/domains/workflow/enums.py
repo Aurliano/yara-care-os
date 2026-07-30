@@ -39,12 +39,6 @@ class EvidenceSourceType(models.TextChoices):
     DIRECT_INTERACTION = "DIRECT_INTERACTION", "Direct Interaction"
 
 
-class EvidenceType(models.TextChoices):
-    HUB_CONFIRMATION = "HUB_CONFIRMATION", "Hub Confirmation"
-    COMPARTMENT_CLOSED = "COMPARTMENT_CLOSED", "Compartment Closed"
-    COMMUNICATION_SESSION_ENDED = "COMMUNICATION_SESSION_ENDED", "Communication Session Ended"
-
-
 class ActionResultStatus(models.TextChoices):
     SUCCEEDED = "SUCCEEDED", "Succeeded"
     FAILED = "FAILED", "Failed"

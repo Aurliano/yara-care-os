@@ -21,8 +21,13 @@ def publish_workflow_fact(
     subject_id: uuid.UUID,
     occurred_at: datetime,
     payload: dict[str, Any],
+    discriminator: str = "",
 ) -> None:
-    event_id = compute_workflow_event_id(event_type=event_type, subject_id=subject_id)
+    event_id = compute_workflow_event_id(
+        event_type=event_type,
+        subject_id=subject_id,
+        discriminator=discriminator,
+    )
     event = record_event(
         EventInput(
             event_id=event_id,
@@ -72,6 +77,7 @@ def emit_execution_postponed(*, execution_id: uuid.UUID, postpone_count: int) ->
         event_type="ExecutionPostponed",
         subject_id=execution_id,
         occurred_at=timezone.now(),
+        discriminator=str(postpone_count),
         payload={
             "workflow_execution_id": str(execution_id),
             "postpone_count": postpone_count,
@@ -105,6 +111,7 @@ def emit_escalation_triggered(*, execution_id: uuid.UUID, escalation_index: int,
         event_type="EscalationTriggered",
         subject_id=execution_id,
         occurred_at=timezone.now(),
+        discriminator=str(escalation_index),
         payload={
             "workflow_execution_id": str(execution_id),
             "escalation_index": escalation_index,

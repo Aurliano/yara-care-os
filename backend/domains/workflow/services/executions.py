@@ -12,7 +12,6 @@ from django.utils import timezone
 from domains.scheduling.enums import OccurrenceStatus
 from domains.scheduling.services.occurrences import get_occurrence
 from domains.workflow.definition_schema import (
-    get_escalation_steps,
     get_initial_action,
     get_step_timeout_seconds,
     validate_workflow_definition,
@@ -21,11 +20,11 @@ from domains.workflow.enums import TERMINAL_EXECUTION_STATUSES, ExecutionStatus
 from domains.workflow.exceptions import (
     ExecutionNotFoundError,
     InvalidExecutionStateError,
-    WorkflowBindingNotFoundError,
+    WorkflowDefinitionConflictError,
     WorkflowNotFoundError,
 )
 from domains.workflow.identity import compute_execution_id
-from domains.workflow.models import WorkflowDefinition, WorkflowExecution, WorkflowScheduleBinding
+from domains.workflow.models import WorkflowDefinition, WorkflowExecution
 from domains.workflow.services.events import emit_execution_started
 
 
@@ -41,26 +40,6 @@ def get_workflow_definition_by_code(code: str) -> WorkflowDefinition:
         return WorkflowDefinition.objects.get(code=code)
     except WorkflowDefinition.DoesNotExist as exc:
         raise WorkflowNotFoundError("Workflow definition not found.") from exc
-
-
-def resolve_workflow_definition_for_occurrence(
-    *,
-    occurrence_id: uuid.UUID,
-    workflow_definition_id: uuid.UUID | None = None,
-) -> WorkflowDefinition:
-    if workflow_definition_id is not None:
-        return get_workflow_definition(workflow_definition_id)
-
-    occurrence = get_occurrence(occurrence_id)
-    binding = WorkflowScheduleBinding.objects.filter(
-        schedule_definition_id=occurrence.schedule_definition_id,
-    ).first()
-    if binding is None:
-        raise WorkflowBindingNotFoundError(
-            "No workflow binding exists for the occurrence schedule. "
-            "CareActivity owns this mapping in the frozen contract."
-        )
-    return binding.workflow_definition
 
 
 def get_execution(execution_id: uuid.UUID) -> WorkflowExecution:
@@ -86,6 +65,16 @@ def get_active_executions() -> list[WorkflowExecution]:
 def _ensure_not_terminal(execution: WorkflowExecution) -> None:
     if execution.status in TERMINAL_EXECUTION_STATUSES:
         raise InvalidExecutionStateError("Terminal executions cannot be modified.")
+
+
+def _ensure_matching_workflow_definition(
+    execution: WorkflowExecution,
+    workflow_definition_id: uuid.UUID,
+) -> None:
+    if execution.workflow_definition_id != workflow_definition_id:
+        raise WorkflowDefinitionConflictError(
+            "An execution already exists for this occurrence with a different workflow definition."
+        )
 
 
 def _set_active_action(
@@ -120,22 +109,24 @@ def _set_active_action(
 def start_execution(
     *,
     occurrence_id: uuid.UUID,
-    workflow_definition_id: uuid.UUID | None = None,
+    workflow_definition_id: uuid.UUID,
 ) -> WorkflowExecution:
-    """Start or return the WorkflowExecution for an OccurrenceDue input."""
+    """Start or return the WorkflowExecution for an Occurrence.
+
+    Caller must supply workflow_definition_id explicitly until Care owns
+    schedule/workflow association in B6.
+    """
     occurrence = get_occurrence(occurrence_id)
     if occurrence.status != OccurrenceStatus.DUE:
         raise InvalidExecutionStateError("Execution can only start for DUE occurrences.")
 
-    workflow_definition = resolve_workflow_definition_for_occurrence(
-        occurrence_id=occurrence_id,
-        workflow_definition_id=workflow_definition_id,
-    )
+    workflow_definition = get_workflow_definition(workflow_definition_id)
     validate_workflow_definition(workflow_definition.definition)
 
     execution_id = compute_execution_id(occurrence_id=occurrence_id)
     existing = WorkflowExecution.objects.select_for_update().filter(pk=execution_id).first()
     if existing is not None:
+        _ensure_matching_workflow_definition(existing, workflow_definition_id)
         if existing.status in TERMINAL_EXECUTION_STATUSES:
             return existing
         if existing.status == ExecutionStatus.ACTIVE:
@@ -154,6 +145,7 @@ def start_execution(
         )
     except IntegrityError:
         execution = WorkflowExecution.objects.select_for_update().get(pk=execution_id)
+        _ensure_matching_workflow_definition(execution, workflow_definition_id)
         if execution.status in TERMINAL_EXECUTION_STATUSES or execution.status == ExecutionStatus.ACTIVE:
             return execution
 
@@ -194,19 +186,6 @@ def cancel_execution(*, execution_id: uuid.UUID) -> WorkflowExecution:
 
     emit_execution_cancelled(execution_id=execution.id)
     return execution
-
-
-def bind_schedule_to_workflow(
-    *,
-    schedule_definition_id: uuid.UUID,
-    workflow_definition_id: uuid.UUID,
-) -> WorkflowScheduleBinding:
-    workflow_definition = get_workflow_definition(workflow_definition_id)
-    binding, _ = WorkflowScheduleBinding.objects.update_or_create(
-        schedule_definition_id=schedule_definition_id,
-        defaults={"workflow_definition": workflow_definition},
-    )
-    return binding
 
 
 def create_workflow_definition(

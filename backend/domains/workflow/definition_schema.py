@@ -4,7 +4,8 @@ from __future__ import annotations
 
 from typing import Any
 
-from domains.workflow.enums import ActionType, EvidenceType
+from domains.workflow.enums import ActionType
+from domains.workflow.evidence_types import APPROVED_EVIDENCE_TYPES, is_approved_evidence_type
 from domains.workflow.exceptions import InvalidDefinitionError
 
 
@@ -25,7 +26,7 @@ def validate_workflow_definition(definition: dict[str, Any]) -> dict[str, Any]:
     if not isinstance(accepted, list) or not accepted:
         raise InvalidDefinitionError("confirmation_policy.accepted_evidence_types is required.")
     for evidence_type in accepted:
-        if evidence_type not in EvidenceType.values:
+        if not is_approved_evidence_type(evidence_type):
             raise InvalidDefinitionError(f"Unsupported evidence type: {evidence_type}")
 
     if "step_timeout_seconds" not in definition:

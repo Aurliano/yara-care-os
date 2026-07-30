@@ -9,7 +9,6 @@ from django.db import models
 from domains.workflow.enums import (
     ActionResultStatus,
     EvidenceSourceType,
-    EvidenceType,
     ExecutionStatus,
     WorkflowDefinitionStatus,
 )
@@ -33,26 +32,6 @@ class WorkflowDefinition(models.Model):
 
     def __str__(self) -> str:
         return self.code
-
-
-class WorkflowScheduleBinding(models.Model):
-    """Interim schedule→workflow link mirroring CareActivity references until B6.
-
-    Frozen Care Contract: CareActivity owns schedule_definition_id and
-    workflow_definition_id. Until Care is implemented, Workflow stores this
-    binding without importing Care internals.
-    """
-
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    schedule_definition_id = models.UUIDField(unique=True)
-    workflow_definition = models.ForeignKey(
-        WorkflowDefinition,
-        on_delete=models.CASCADE,
-        related_name="schedule_bindings",
-    )
-
-    class Meta:
-        db_table = "workflow_schedule_binding"
 
 
 class WorkflowExecution(models.Model):
@@ -100,7 +79,7 @@ class ConfirmationEvidence(models.Model):
         on_delete=models.CASCADE,
         related_name="evidence_records",
     )
-    evidence_type = models.CharField(max_length=64, choices=EvidenceType.choices)
+    evidence_type = models.CharField(max_length=64)
     source_type = models.CharField(max_length=32, choices=EvidenceSourceType.choices)
     source_reference = models.CharField(max_length=255)
     actor_user_id = models.UUIDField(null=True, blank=True)
