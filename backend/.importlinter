@@ -19,6 +19,7 @@ type = layers
 layers =
     domains.licensing
     domains.identity_access
+    domains.scheduling
     domains.event
 
 [importlinter:contract:identity-access-independence]
@@ -34,6 +35,16 @@ name = Event must not import producer or consumer domain apps
 type = forbidden
 source_modules =
     domains.event
+forbidden_modules =
+    domains.identity_access
+    domains.licensing
+    domains.scheduling
+
+[importlinter:contract:scheduling-independence]
+name = Scheduling must not import Care, Workflow, Device, Communication, or Synchronization
+type = forbidden
+source_modules =
+    domains.scheduling
 forbidden_modules =
     domains.identity_access
     domains.licensing

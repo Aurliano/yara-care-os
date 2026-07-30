@@ -8,4 +8,5 @@ DOMAIN_APP_LABELS: set[str] = {
     "identity_access",
     "licensing",
     "event",
+    "scheduling",
 }
