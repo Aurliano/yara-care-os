@@ -47,6 +47,13 @@ def test_device_model_capabilities_not_duplicated_on_device(hub_model, hub_devic
 
 
 @pytest.mark.django_db
+def test_device_aggregate_version_owned_by_device(hub_device):
+    assert hub_device.aggregate_version == 1
+    updated = update_device_state(device_id=hub_device.id, current_state={"online": True}, is_online=True)
+    assert updated.aggregate_version == 2
+
+
+@pytest.mark.django_db
 def test_capability_override_requires_model_capability(hub_device, care_user):
     with pytest.raises(CapabilityNotFoundError):
         add_capability_override(
@@ -283,7 +290,7 @@ def test_offline_first_current_state_only(hub_device):
 @pytest.mark.django_db
 def test_no_monitoring_or_synchronization_domains():
     assert not apps.is_installed("domains.monitoring")
-    assert not apps.is_installed("domains.synchronization")
+    assert apps.is_installed("domains.synchronization")
 
 
 @pytest.mark.django_db

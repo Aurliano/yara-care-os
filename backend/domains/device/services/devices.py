@@ -22,6 +22,7 @@ from domains.device.exceptions import (
 from domains.device.models import Device, DeviceCapability, DeviceCapabilityOverride
 from domains.device.services.device_models import get_device_model, get_model_capability_codes
 from domains.device.services.events import emit_device_offline, emit_device_online
+from domains.device.versioning import bump_device_version
 
 
 def get_device(device_id: uuid.UUID) -> Device:
@@ -70,7 +71,9 @@ def update_device_state(
     device = Device.objects.select_for_update().get(pk=device_id)
     device.current_state = current_state
     device.last_seen_at = timezone.now()
-    device.save(update_fields=["current_state", "last_seen_at", "updated_at"])
+    update_fields = ["current_state", "last_seen_at", "updated_at"]
+    bump_device_version(device, update_fields)
+    device.save(update_fields=update_fields)
     if is_online is True:
         emit_device_online(device_id=device.id)
     elif is_online is False:

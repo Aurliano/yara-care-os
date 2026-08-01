@@ -37,6 +37,7 @@ class CareActivity(models.Model):
     display_icon = models.CharField(max_length=64, blank=True, default="")
     confirmation_requirement = models.JSONField(default=dict)
     compartment_assignment_reference = models.CharField(max_length=255, blank=True, default="")
+    aggregate_version = models.PositiveBigIntegerField(default=1)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

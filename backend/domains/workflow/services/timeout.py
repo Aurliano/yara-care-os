@@ -13,6 +13,7 @@ from domains.workflow.exceptions import EscalationNotAllowedError, RetryNotAllow
 from domains.workflow.models import WorkflowExecution
 from domains.workflow.services.actions import _advance_escalation_step, apply_retry_for_timeout
 from domains.workflow.services.events import emit_execution_missed
+from domains.workflow.versioning import bump_workflow_execution_version
 
 
 @transaction.atomic
@@ -24,7 +25,9 @@ def mark_execution_missed(execution: WorkflowExecution, *, occurred_at: datetime
     occurred_at = occurred_at or timezone.now()
     execution.status = ExecutionStatus.MISSED
     execution.completed_at = occurred_at
-    execution.save(update_fields=["status", "completed_at", "updated_at"])
+    update_fields = ["status", "completed_at", "updated_at"]
+    bump_workflow_execution_version(execution, update_fields)
+    execution.save(update_fields=update_fields)
     emit_execution_missed(execution_id=execution.id, occurred_at=occurred_at)
     return execution
 

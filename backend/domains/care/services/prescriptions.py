@@ -10,7 +10,8 @@ from django.db import transaction
 
 from domains.care.enums import CareActivityStatus, CareActivityType
 from domains.care.exceptions import PrescriptionNotFoundError
-from domains.care.models import Prescription
+from domains.care.models import CareActivity, Prescription
+from domains.care.versioning import bump_care_activity_version
 from domains.care.services.activities import create_care_activity, get_care_activity, update_care_activity
 from domains.care.services.events import emit_prescription_created, emit_prescription_updated
 
@@ -127,6 +128,10 @@ def update_prescription(
         update_fields.append("media_reference")
     if update_fields:
         prescription.save(update_fields=update_fields)
+        activity = CareActivity.objects.select_for_update().get(pk=prescription.care_activity_id)
+        activity_fields = ["updated_at"]
+        bump_care_activity_version(activity, activity_fields)
+        activity.save(update_fields=activity_fields)
 
     update_care_activity(
         prescription.care_activity_id,

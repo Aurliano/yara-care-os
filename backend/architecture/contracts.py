@@ -20,4 +20,5 @@ DOMAIN_APP_LABELS: set[str] = {
     "care",
     "device",
     "communication",
+    "synchronization",
 }

@@ -46,6 +46,7 @@ class DeviceSerializer(serializers.ModelSerializer):
             "current_state",
             "configuration",
             "last_seen_at",
+            "aggregate_version",
             "created_at",
             "updated_at",
         ]

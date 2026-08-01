@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     "domains.care",
     "domains.device",
     "domains.communication",
+    "domains.synchronization",
 ]
 
 AUTH_USER_MODEL = "identity_access.User"

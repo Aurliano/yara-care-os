@@ -70,6 +70,7 @@ class CommunicationSession(models.Model):
     connected_at = models.DateTimeField(null=True, blank=True)
     ended_at = models.DateTimeField(null=True, blank=True)
     external_execution_reference = models.UUIDField(null=True, blank=True)
+    aggregate_version = models.PositiveBigIntegerField(default=1)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

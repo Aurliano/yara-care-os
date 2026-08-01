@@ -10,7 +10,7 @@ from django.utils import timezone
 from domains.device.enums import AssignmentStatus, AssignmentType, DeviceOperationalStatus
 from domains.device.exceptions import AssignmentNotFoundError, EntitlementDeniedError, InvalidDeviceStateError
 from domains.device.models import Device, DeviceAssignment
-from domains.device.services.devices import get_device
+from domains.device.versioning import bump_device_version
 from domains.identity_access.models import Elder
 from domains.licensing.enums import EntitlementKey
 from domains.licensing.services.entitlements import get_limit
@@ -74,7 +74,9 @@ def assign_device(
         assigned_at=now,
     )
     device.operational_status = DeviceOperationalStatus.ACTIVE
-    device.save(update_fields=["operational_status", "updated_at"])
+    device_fields = ["operational_status", "updated_at"]
+    bump_device_version(device, device_fields)
+    device.save(update_fields=device_fields)
     return assignment
 
 
@@ -94,7 +96,9 @@ def return_device(*, device_id: uuid.UUID) -> DeviceAssignment:
     assignment.save(update_fields=["status", "unassigned_at"])
 
     device.operational_status = DeviceOperationalStatus.INVENTORY
-    device.save(update_fields=["operational_status", "updated_at"])
+    device_fields = ["operational_status", "updated_at"]
+    bump_device_version(device, device_fields)
+    device.save(update_fields=device_fields)
     return assignment
 
 
@@ -123,5 +127,7 @@ def refurbish_device(*, device_id: uuid.UUID) -> DeviceAssignment:
         unassigned_at=timezone.now(),
     )
     device.operational_status = DeviceOperationalStatus.INVENTORY
-    device.save(update_fields=["operational_status", "updated_at"])
+    device_fields = ["operational_status", "updated_at"]
+    bump_device_version(device, device_fields)
+    device.save(update_fields=device_fields)
     return refurbishment

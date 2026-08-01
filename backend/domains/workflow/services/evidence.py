@@ -14,7 +14,8 @@ from domains.workflow.evidence_types import is_approved_evidence_type
 from domains.workflow.exceptions import InvalidEvidenceError, InvalidExecutionStateError
 from domains.workflow.models import ConfirmationEvidence, WorkflowExecution
 from domains.workflow.services.events import emit_execution_confirmed
-from domains.workflow.services.executions import _ensure_not_terminal, get_execution
+from domains.workflow.services.executions import _ensure_not_terminal
+from domains.workflow.versioning import bump_workflow_execution_version
 
 
 @transaction.atomic
@@ -69,7 +70,9 @@ def submit_confirmation_evidence(
     now = timezone.now()
     execution.status = ExecutionStatus.CONFIRMED
     execution.completed_at = now
-    execution.save(update_fields=["status", "completed_at", "updated_at"])
+    update_fields = ["status", "completed_at", "updated_at"]
+    bump_workflow_execution_version(execution, update_fields)
+    execution.save(update_fields=update_fields)
     emit_execution_confirmed(execution_id=execution.id, occurred_at=now)
     return execution
 

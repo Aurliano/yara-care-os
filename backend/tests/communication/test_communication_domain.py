@@ -103,6 +103,26 @@ def test_session_lifecycle(licensed_elder, comm_user):
 
 
 @pytest.mark.django_db
+def test_communication_session_aggregate_version_owned_by_communication(licensed_elder, comm_user):
+    recipient = create_contact(
+        elder_id=licensed_elder.id,
+        display_name="Version callee",
+        preferred_channel=CommunicationChannel.VOICE,
+    )
+    session = initiate_session(
+        elder_id=licensed_elder.id,
+        channel=CommunicationChannel.VOICE,
+        initiator_user_id=comm_user.id,
+        recipient_contact_id=recipient.id,
+    )
+    assert session.aggregate_version == 1
+
+    record_call_attempt(session_id=session.id)
+    session.refresh_from_db()
+    assert session.aggregate_version == 2
+
+
+@pytest.mark.django_db
 def test_terminal_session_immutable(licensed_elder, comm_user):
     recipient = create_contact(
         elder_id=licensed_elder.id,

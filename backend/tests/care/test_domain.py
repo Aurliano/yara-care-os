@@ -79,6 +79,25 @@ def test_care_activity_lifecycle(elder, workflow_definition, recurrence_definiti
 
 
 @pytest.mark.django_db
+def test_care_activity_aggregate_version_owned_by_care(
+    elder, workflow_definition, recurrence_definition, schedule_start_at
+):
+    activity = create_care_activity(
+        elder_id=elder.id,
+        activity_type=CareActivityType.GENERAL,
+        workflow_definition_id=workflow_definition.id,
+        recurrence_definition=recurrence_definition,
+        timezone_name="UTC",
+        start_at=schedule_start_at,
+        display_title="Versioned activity",
+    )
+    assert activity.aggregate_version == 1
+
+    updated = update_care_activity(activity.id, display_title="Updated title")
+    assert updated.aggregate_version == 2
+
+
+@pytest.mark.django_db
 def test_prescription_shared_primary_key(elder, workflow_definition, recurrence_definition, schedule_start_at):
     prescription = create_prescription(
         elder_id=elder.id,

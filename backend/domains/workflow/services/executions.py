@@ -26,6 +26,7 @@ from domains.workflow.exceptions import (
 from domains.workflow.identity import compute_execution_id
 from domains.workflow.models import WorkflowDefinition, WorkflowExecution
 from domains.workflow.services.events import emit_execution_started
+from domains.workflow.versioning import bump_workflow_execution_version
 
 
 def get_workflow_definition(workflow_definition_id: uuid.UUID) -> WorkflowDefinition:
@@ -92,17 +93,17 @@ def _set_active_action(
     execution.active_until = now + timedelta(seconds=timeout_seconds)
     execution.started_at = execution.started_at or now
     execution.completed_at = None
-    execution.save(
-        update_fields=[
-            "status",
-            "current_action",
-            "current_step",
-            "active_until",
-            "started_at",
-            "completed_at",
-            "updated_at",
-        ]
-    )
+    update_fields = [
+        "status",
+        "current_action",
+        "current_step",
+        "active_until",
+        "started_at",
+        "completed_at",
+        "updated_at",
+    ]
+    bump_workflow_execution_version(execution, update_fields)
+    execution.save(update_fields=update_fields)
 
 
 @transaction.atomic
@@ -180,7 +181,9 @@ def cancel_execution(*, execution_id: uuid.UUID) -> WorkflowExecution:
     now = timezone.now()
     execution.status = ExecutionStatus.CANCELLED
     execution.completed_at = now
-    execution.save(update_fields=["status", "completed_at", "updated_at"])
+    update_fields = ["status", "completed_at", "updated_at"]
+    bump_workflow_execution_version(execution, update_fields)
+    execution.save(update_fields=update_fields)
 
     from domains.workflow.services.events import emit_execution_cancelled
 

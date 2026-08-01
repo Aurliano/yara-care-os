@@ -18,6 +18,7 @@ from domains.care.services.events import (
     emit_care_activity_resumed,
     emit_care_activity_updated,
 )
+from domains.care.versioning import bump_care_activity_version
 from domains.identity_access.models import Elder
 from domains.scheduling.services.schedules import (
     cancel_schedule,
@@ -165,6 +166,7 @@ def update_care_activity(
         update_fields.append("compartment_assignment_reference")
 
     if update_fields:
+        bump_care_activity_version(activity, update_fields)
         update_fields.append("updated_at")
         activity.save(update_fields=update_fields)
 
@@ -187,7 +189,9 @@ def pause_care_activity(*, care_activity_id: uuid.UUID) -> CareActivity:
     if activity.status != CareActivityStatus.ACTIVE:
         raise InvalidCareActivityStateError("Only active care activities can be paused.")
     activity.status = CareActivityStatus.PAUSED
-    activity.save(update_fields=["status", "updated_at"])
+    update_fields = ["status", "updated_at"]
+    bump_care_activity_version(activity, update_fields)
+    activity.save(update_fields=update_fields)
     pause_schedule(activity.schedule_definition_id)
     emit_care_activity_paused(care_activity_id=activity.id)
     return activity
@@ -199,7 +203,9 @@ def resume_care_activity(*, care_activity_id: uuid.UUID) -> CareActivity:
     if activity.status != CareActivityStatus.PAUSED:
         raise InvalidCareActivityStateError("Only paused care activities can be resumed.")
     activity.status = CareActivityStatus.ACTIVE
-    activity.save(update_fields=["status", "updated_at"])
+    update_fields = ["status", "updated_at"]
+    bump_care_activity_version(activity, update_fields)
+    activity.save(update_fields=update_fields)
     resume_schedule(activity.schedule_definition_id)
     emit_care_activity_resumed(care_activity_id=activity.id)
     return activity
@@ -211,7 +217,9 @@ def end_care_activity(*, care_activity_id: uuid.UUID) -> CareActivity:
     if activity.status in {CareActivityStatus.ENDED, CareActivityStatus.CANCELLED}:
         return activity
     activity.status = CareActivityStatus.ENDED
-    activity.save(update_fields=["status", "updated_at"])
+    update_fields = ["status", "updated_at"]
+    bump_care_activity_version(activity, update_fields)
+    activity.save(update_fields=update_fields)
     cancel_schedule(activity.schedule_definition_id)
     emit_care_activity_ended(care_activity_id=activity.id)
     return activity

@@ -33,6 +33,7 @@ from domains.communication.services.events import (
     emit_session_initiated,
     emit_session_missed,
 )
+from domains.communication.versioning import bump_communication_session_version
 from domains.licensing.enums import EntitlementKey
 from domains.licensing.services.entitlements import can_use_feature
 
@@ -82,7 +83,9 @@ def _set_terminal(
     session.status = status
     session.outcome = outcome
     session.ended_at = now
-    session.save(update_fields=["status", "outcome", "ended_at", "updated_at"])
+    update_fields = ["status", "outcome", "ended_at", "updated_at"]
+    bump_communication_session_version(session, update_fields)
+    session.save(update_fields=update_fields)
     return session
 
 
@@ -149,7 +152,9 @@ def accept_session(*, session_id: uuid.UUID) -> CommunicationSession:
     if session.status in {SessionStatus.INITIATED, SessionStatus.CONNECTING}:
         session.status = SessionStatus.CONNECTED
         session.connected_at = now
-        session.save(update_fields=["status", "connected_at", "updated_at"])
+        update_fields = ["status", "connected_at", "updated_at"]
+        bump_communication_session_version(session, update_fields)
+        session.save(update_fields=update_fields)
         emit_session_connected(session_id=session.id)
     return session
 
@@ -237,7 +242,9 @@ def record_call_attempt(*, session_id: uuid.UUID) -> CallAttempt:
 
     if session.status == SessionStatus.INITIATED:
         session.status = SessionStatus.CONNECTING
-        session.save(update_fields=["status", "updated_at"])
+        update_fields = ["status", "updated_at"]
+        bump_communication_session_version(session, update_fields)
+        session.save(update_fields=update_fields)
 
     emit_call_attempt_started(
         attempt_id=attempt.id,

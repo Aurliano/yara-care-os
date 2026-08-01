@@ -12,8 +12,9 @@ from domains.workflow.definition_schema import get_postpone_policy, validate_wor
 from domains.workflow.enums import ExecutionStatus
 from domains.workflow.exceptions import InvalidExecutionStateError, PostponeNotAllowedError
 from domains.workflow.models import WorkflowExecution
+from domains.workflow.services.executions import _ensure_not_terminal
 from domains.workflow.services.events import emit_execution_postponed
-from domains.workflow.services.executions import _ensure_not_terminal, get_execution
+from domains.workflow.versioning import bump_workflow_execution_version
 
 
 @transaction.atomic
@@ -41,6 +42,8 @@ def postpone_execution(*, execution_id: uuid.UUID) -> WorkflowExecution:
     now = timezone.now()
     execution.postpone_count += 1
     execution.active_until = now + timedelta(seconds=delay_seconds)
-    execution.save(update_fields=["postpone_count", "active_until", "updated_at"])
+    update_fields = ["postpone_count", "active_until", "updated_at"]
+    bump_workflow_execution_version(execution, update_fields)
+    execution.save(update_fields=update_fields)
     emit_execution_postponed(execution_id=execution.id, postpone_count=execution.postpone_count)
     return execution

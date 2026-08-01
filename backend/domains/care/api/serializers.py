@@ -24,6 +24,7 @@ class CareActivitySerializer(serializers.ModelSerializer):
             "display_icon",
             "confirmation_requirement",
             "compartment_assignment_reference",
+            "aggregate_version",
             "created_at",
             "updated_at",
         ]

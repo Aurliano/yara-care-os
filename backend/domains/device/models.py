@@ -90,6 +90,7 @@ class Device(models.Model):
     current_state = models.JSONField(default=dict)
     configuration = models.JSONField(default=dict)
     last_seen_at = models.DateTimeField(null=True, blank=True)
+    aggregate_version = models.PositiveBigIntegerField(default=1)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

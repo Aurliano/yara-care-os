@@ -44,6 +44,16 @@ def test_start_execution_creates_active_execution(due_occurrence, workflow_defin
 
 
 @pytest.mark.django_db
+def test_workflow_execution_aggregate_version_owned_by_workflow(due_occurrence, workflow_definition):
+    execution = start_due_execution(due_occurrence, workflow_definition)
+    assert execution.aggregate_version == 2
+
+    postpone_execution(execution_id=execution.id)
+    execution.refresh_from_db()
+    assert execution.aggregate_version == 3
+
+
+@pytest.mark.django_db
 def test_duplicate_start_execution_is_idempotent(due_occurrence, workflow_definition):
     first = start_due_execution(due_occurrence, workflow_definition)
     second = start_due_execution(due_occurrence, workflow_definition)

@@ -31,6 +31,7 @@ class WorkflowExecutionSerializer(serializers.ModelSerializer):
             "active_until",
             "started_at",
             "completed_at",
+            "aggregate_version",
             "created_at",
             "updated_at",
         ]

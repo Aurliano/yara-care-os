@@ -78,6 +78,7 @@ class CommunicationSessionSerializer(serializers.ModelSerializer):
             "connected_at",
             "ended_at",
             "external_execution_reference",
+            "aggregate_version",
             "created_at",
             "updated_at",
         ]

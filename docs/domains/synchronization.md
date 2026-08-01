@@ -72,10 +72,14 @@ Checkpoint دیگر Aggregate مستقل نیست.
 ## 7. Entities
 SynchronizationOperation
 هر Upload یا Download انجام‌شده.
+SynchronizationOperation یک رکورد Audit غیرقابل‌تغییر از تلاش‌های Replication است.
+این Entity صف Transport نیست و پیام‌ها را Queue نمی‌کند.
 SynchronizationConflict
 Conflict کشف‌شده.
 ReplicaVersion
 نسخه Aggregate روی Replica.
+ReplicaVersion یک Entity زیرمجموعه ReplicaState است، نه Aggregate Root مستقل.
+ReplicaVersion lifecycle مستقل ندارد و فقط توسط ReplicaState مالکیت می‌شود.
 ## 8. Value Objects
 AggregateReference
 SynchronizationToken
@@ -173,6 +177,11 @@ Synchronization نسخه تولید نمی‌کند.
 Synchronization نسخه را افزایش نمی‌دهد.
 Owner هر Aggregate مسئول تولید و افزایش Version است.
 نوع Version (Integer، RowVersion، Revision و...) به Owner همان Domain تعلق دارد.
+Aggregateهای Synchronizable در MVP:
+CareActivity (`aggregate_version` — مالک Care)
+WorkflowExecution (`aggregate_version` — مالک Workflow)
+Device (`aggregate_version` — مالک Device)
+CommunicationSession (`aggregate_version` — مالک Communication)
 ## 16. Conflict Detection
 Conflict زمانی رخ می‌دهد که:
 هر دو Replica تغییر مستقل ثبت کرده باشند.
@@ -244,6 +253,9 @@ MarkReplicaHealthy
 MarkReplicaOutdated
 Submit* توسط Business Domainها فراخوانی می‌شود.
 Apply* فقط داخل Synchronization استفاده می‌شود.
+AdvanceCheckpoint یک Public Domain Command است، نه HTTP Endpoint.
+Checkpoint فقط پس از Apply موفق (ApplyDelta یا ApplySnapshot) از داخل Synchronization فراخوانی می‌شود.
+فراخوانی مستقیم AdvanceCheckpoint از بیرون Domain مجاز نیست مگر از طریق Service API داخلی/Domain-to-Domain.
 ## 22. Public Queries
 GetSynchronizationSession
 
@@ -258,6 +270,10 @@ GetSynchronizationStatistics
 GetConflicts
 
 GetSynchronizationHistory
+GetPendingOperations از طریق REST به‌صورت Read-only Query در دسترس است:
+`GET /api/v1/synchronization/sessions/{session_id}/pending-operations/`
+این Query عملیات Replication با وضعیت PENDING یا VALIDATED را برمی‌گرداند.
+ApplyDelta و ApplySnapshot از طریق REST در دسترس نیستند.
 ## 23. Published Events
 SynchronizationStarted
 
