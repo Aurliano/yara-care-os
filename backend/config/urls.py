@@ -9,4 +9,5 @@ urlpatterns = [
     path("api/v1/", include("domains.event.api.urls")),
     path("api/v1/", include("domains.scheduling.api.urls")),
     path("api/v1/", include("domains.workflow.api.urls")),
+    path("api/v1/", include("domains.care.api.urls")),
 ]

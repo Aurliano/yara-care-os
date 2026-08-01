@@ -23,7 +23,7 @@ def test_find_cross_domain_relations_respects_allowlist() -> None:
     violations = find_cross_domain_relations(
         domain_apps={"care", "identity_access"},
         allowed_cross_domain_fks={
-            ("care", "CarePlan", "elder_id", "identity_access"),
+            ("care", "CareActivity", "elder", "identity_access"),
         },
     )
     assert violations == []

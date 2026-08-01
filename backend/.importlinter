@@ -18,6 +18,7 @@ name = Domain dependency direction
 type = layers
 layers =
     domains.licensing
+    domains.care
     domains.identity_access
     domains.workflow
     domains.scheduling
@@ -51,6 +52,7 @@ forbidden_modules =
     domains.identity_access
     domains.licensing
     domains.workflow
+    domains.care
 
 [importlinter:contract:workflow-independence]
 name = Workflow must not import Care, Device, Communication, Notification, or Synchronization internals
@@ -60,3 +62,20 @@ source_modules =
 forbidden_modules =
     domains.identity_access
     domains.licensing
+    domains.care
+    domains.device
+    domains.communication
+    domains.notification
+    domains.synchronization
+
+[importlinter:contract:care-independence]
+name = Care must not import Licensing, Device, Communication, Notification, or Synchronization
+type = forbidden
+source_modules =
+    domains.care
+forbidden_modules =
+    domains.licensing
+    domains.device
+    domains.communication
+    domains.notification
+    domains.synchronization

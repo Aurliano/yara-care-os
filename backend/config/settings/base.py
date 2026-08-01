@@ -37,6 +37,7 @@ INSTALLED_APPS = [
     "domains.event",
     "domains.scheduling",
     "domains.workflow",
+    "domains.care",
 ]
 
 AUTH_USER_MODEL = "identity_access.User"
@@ -155,4 +156,5 @@ DOMAIN_APPS: list[str] = [
     "domains.event",
     "domains.scheduling",
     "domains.workflow",
+    "domains.care",
 ]

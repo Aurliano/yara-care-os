@@ -1,0 +1,67 @@
+from django.urls import path
+
+from domains.care.api.views import (
+    CareActivityCompletionHistoryView,
+    CareActivityDetailView,
+    CareActivityEndView,
+    CareActivityPauseView,
+    CareActivityResumeView,
+    CareActivityStatusView,
+    ElderCareActivityListCreateView,
+    ElderPrescriptionListCreateView,
+    InterpretExecutionResultView,
+    PrescriptionDetailView,
+)
+
+urlpatterns = [
+    path(
+        "elders/<uuid:elder_id>/care-activities/",
+        ElderCareActivityListCreateView.as_view(),
+        name="care-elder-activity-list-create",
+    ),
+    path(
+        "care-activities/<uuid:care_activity_id>/",
+        CareActivityDetailView.as_view(),
+        name="care-activity-detail",
+    ),
+    path(
+        "care-activities/<uuid:care_activity_id>/status/",
+        CareActivityStatusView.as_view(),
+        name="care-activity-status",
+    ),
+    path(
+        "care-activities/<uuid:care_activity_id>/pause/",
+        CareActivityPauseView.as_view(),
+        name="care-activity-pause",
+    ),
+    path(
+        "care-activities/<uuid:care_activity_id>/resume/",
+        CareActivityResumeView.as_view(),
+        name="care-activity-resume",
+    ),
+    path(
+        "care-activities/<uuid:care_activity_id>/end/",
+        CareActivityEndView.as_view(),
+        name="care-activity-end",
+    ),
+    path(
+        "care-activities/<uuid:care_activity_id>/completions/",
+        CareActivityCompletionHistoryView.as_view(),
+        name="care-activity-completion-history",
+    ),
+    path(
+        "elders/<uuid:elder_id>/prescriptions/",
+        ElderPrescriptionListCreateView.as_view(),
+        name="care-elder-prescription-list-create",
+    ),
+    path(
+        "prescriptions/<uuid:prescription_id>/",
+        PrescriptionDetailView.as_view(),
+        name="care-prescription-detail",
+    ),
+    path(
+        "care/interpret-execution-result/",
+        InterpretExecutionResultView.as_view(),
+        name="care-interpret-execution-result",
+    ),
+]
