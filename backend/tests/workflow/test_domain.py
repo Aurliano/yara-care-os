@@ -302,11 +302,10 @@ def test_postpone_does_not_modify_scheduling(due_occurrence, workflow_definition
 
 
 @pytest.mark.django_db
-def test_no_device_or_communication_models():
+def test_communication_domain_is_registered():
     from django.apps import apps
 
-    assert not apps.is_installed("domains.device")
-    assert not apps.is_installed("domains.communication")
+    assert apps.is_installed("domains.communication")
 
 
 @pytest.mark.django_db

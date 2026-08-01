@@ -38,6 +38,8 @@ INSTALLED_APPS = [
     "domains.scheduling",
     "domains.workflow",
     "domains.care",
+    "domains.device",
+    "domains.communication",
 ]
 
 AUTH_USER_MODEL = "identity_access.User"
@@ -157,4 +159,6 @@ DOMAIN_APPS: list[str] = [
     "domains.scheduling",
     "domains.workflow",
     "domains.care",
+    "domains.device",
+    "domains.communication",
 ]

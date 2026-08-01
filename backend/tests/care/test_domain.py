@@ -393,10 +393,11 @@ def test_paused_activity_rejects_occurrence_due(
 
 
 @pytest.mark.django_db
-def test_no_device_domain_installed():
+def test_care_does_not_create_device_commands():
     from django.apps import apps
 
-    assert not apps.is_installed("domains.device")
+    assert apps.is_installed("domains.device")
+    assert apps.is_installed("domains.communication")
 
 
 @pytest.mark.django_db

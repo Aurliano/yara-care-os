@@ -1,0 +1,39 @@
+from django.urls import path
+
+from domains.device.api.views import (
+    CommandCancelView,
+    CommandCompleteView,
+    CommandDeliverView,
+    CommandDetailView,
+    CommandFailView,
+    CommandStartView,
+    CommandStatusView,
+    DeviceAssignmentsView,
+    DeviceCommandsView,
+    DeviceCompartmentsView,
+    DeviceDetailView,
+    DeviceListCreateView,
+    DevicePairingsView,
+    DeviceReturnView,
+    DeviceStateView,
+    PairingRevokeView,
+)
+
+urlpatterns = [
+    path("devices/", DeviceListCreateView.as_view(), name="device-list-create"),
+    path("devices/<uuid:device_id>/", DeviceDetailView.as_view(), name="device-detail"),
+    path("devices/<uuid:device_id>/state/", DeviceStateView.as_view(), name="device-state"),
+    path("devices/<uuid:device_id>/assignments/", DeviceAssignmentsView.as_view(), name="device-assignments"),
+    path("devices/<uuid:device_id>/return/", DeviceReturnView.as_view(), name="device-return"),
+    path("devices/<uuid:device_id>/pairings/", DevicePairingsView.as_view(), name="device-pairings"),
+    path("devices/<uuid:device_id>/compartments/", DeviceCompartmentsView.as_view(), name="device-compartments"),
+    path("devices/<uuid:device_id>/commands/", DeviceCommandsView.as_view(), name="device-commands"),
+    path("pairings/<uuid:pairing_id>/revoke/", PairingRevokeView.as_view(), name="device-pairing-revoke"),
+    path("commands/<uuid:command_id>/", CommandDetailView.as_view(), name="device-command-detail"),
+    path("commands/<uuid:command_id>/status/", CommandStatusView.as_view(), name="device-command-status"),
+    path("commands/<uuid:command_id>/deliver/", CommandDeliverView.as_view(), name="device-command-deliver"),
+    path("commands/<uuid:command_id>/start/", CommandStartView.as_view(), name="device-command-start"),
+    path("commands/<uuid:command_id>/complete/", CommandCompleteView.as_view(), name="device-command-complete"),
+    path("commands/<uuid:command_id>/fail/", CommandFailView.as_view(), name="device-command-fail"),
+    path("commands/<uuid:command_id>/cancel/", CommandCancelView.as_view(), name="device-command-cancel"),
+]
