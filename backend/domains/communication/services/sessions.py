@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
+import logging
 import uuid
 from datetime import datetime
 
 from django.db import transaction
 from django.utils import timezone
 
+from common.observability.logging import log_structured
+from common.observability.metrics import increment
 from domains.communication.enums import (
     TERMINAL_SESSION_STATUSES,
     CallAttemptOutcome,
@@ -36,6 +39,8 @@ from domains.communication.services.events import (
 from domains.communication.versioning import bump_communication_session_version
 from domains.licensing.enums import EntitlementKey
 from domains.licensing.services.entitlements import can_use_feature
+
+logger = logging.getLogger("yara.communication")
 
 
 def get_session(session_id: uuid.UUID) -> CommunicationSession:
@@ -137,6 +142,13 @@ def initiate_session(
     )
 
     emit_session_initiated(session_id=session.id, elder_id=elder_id, channel=channel)
+    increment("communication.session.started")
+    log_structured(
+        logger,
+        "communication.session.started",
+        session_id=session.id,
+        execution_id=external_execution_reference,
+    )
     return session
 
 
@@ -207,6 +219,12 @@ def end_session(*, session_id: uuid.UUID) -> CommunicationSession:
         outcome=SessionOutcome.ANSWERED,
         elder_id=session.elder_id,
         external_execution_reference=session.external_execution_reference,
+    )
+    log_structured(
+        logger,
+        "communication.session.ended",
+        session_id=session.id,
+        execution_id=session.external_execution_reference,
     )
     return session
 

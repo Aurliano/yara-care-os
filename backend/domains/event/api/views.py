@@ -13,6 +13,7 @@ from rest_framework.views import APIView
 from domains.event.api.serializers import EventRecordSerializer
 from domains.event.models import EventRecord
 from domains.event.services.queries import (
+    MAX_EVENT_QUERY_LIMIT,
     get_events_by_correlation,
     get_events_by_producer,
     get_events_since,
@@ -28,16 +29,25 @@ class EventRecordListView(APIView):
         correlation_id = request.query_params.get("correlation_id")
         producer = request.query_params.get("producer")
         since = request.query_params.get("since")
+        try:
+            limit = int(request.query_params.get("limit", 100))
+        except (TypeError, ValueError):
+            return Response({"detail": "Invalid limit."}, status=status.HTTP_400_BAD_REQUEST)
+        if limit < 1 or limit > MAX_EVENT_QUERY_LIMIT:
+            return Response(
+                {"detail": f"limit must be between 1 and {MAX_EVENT_QUERY_LIMIT}."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         if correlation_id:
-            events = get_events_by_correlation(correlation_id)
+            events = get_events_by_correlation(correlation_id, limit=limit)
         elif producer:
-            events = get_events_by_producer(producer)
+            events = get_events_by_producer(producer, limit=limit)
         elif since:
             parsed = parse_datetime(since)
             if parsed is None:
                 return Response({"detail": "Invalid since timestamp."}, status=status.HTTP_400_BAD_REQUEST)
-            events = get_events_since(since=parsed)
+            events = get_events_since(since=parsed, limit=limit)
         else:
             return Response(
                 {"detail": "Provide one of: correlation_id, producer, since."},

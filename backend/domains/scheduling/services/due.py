@@ -45,14 +45,11 @@ def process_due_occurrences(*, now: datetime | None = None) -> int:
     """Transition eligible SCHEDULED occurrences to DUE. Idempotent."""
     now = now or timezone.now()
     processed = 0
-    due_candidate_ids = list(
-        Occurrence.objects.filter(
-            status=OccurrenceStatus.SCHEDULED,
-            scheduled_for__lte=now,
-        ).values_list("pk", flat=True)
-    )
-    for occurrence_id in due_candidate_ids:
-        occurrence = Occurrence.objects.get(pk=occurrence_id)
+    due_candidates = Occurrence.objects.filter(
+        status=OccurrenceStatus.SCHEDULED,
+        scheduled_for__lte=now,
+    ).iterator()
+    for occurrence in due_candidates:
         if occurrence.status != OccurrenceStatus.SCHEDULED:
             continue
         mark_occurrence_due(occurrence, occurred_at=now)

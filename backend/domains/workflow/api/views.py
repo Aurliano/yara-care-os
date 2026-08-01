@@ -8,6 +8,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from common.api.errors import domain_error_response
 from domains.workflow.api.serializers import (
     ActionResultSubmitSerializer,
     ConfirmationEvidenceSubmitSerializer,
@@ -16,11 +17,13 @@ from domains.workflow.api.serializers import (
 )
 from domains.workflow.exceptions import (
     EscalationNotAllowedError,
+    ExecutionNotFoundError,
     InvalidEvidenceError,
     InvalidExecutionStateError,
     PostponeNotAllowedError,
     WorkflowDefinitionConflictError,
     WorkflowError,
+    WorkflowNotFoundError,
 )
 from domains.workflow.services.actions import advance_escalation, report_action_result
 from domains.workflow.services.evidence import submit_confirmation_evidence
@@ -36,27 +39,28 @@ from domains.workflow.services.postpone import postpone_execution
 
 
 def _workflow_error_response(exc: WorkflowError) -> Response:
-    if isinstance(
+    return domain_error_response(
         exc,
-        (
+        base_type=WorkflowError,
+        not_found=(WorkflowNotFoundError, ExecutionNotFoundError),
+        conflict=(
             InvalidExecutionStateError,
             InvalidEvidenceError,
             PostponeNotAllowedError,
             EscalationNotAllowedError,
             WorkflowDefinitionConflictError,
         ),
-    ):
-        code = status.HTTP_409_CONFLICT
-    else:
-        code = status.HTTP_400_BAD_REQUEST
-    return Response({"detail": str(exc)}, status=code)
+    )
 
 
 class WorkflowDefinitionDetailView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request: Request, definition_id: uuid.UUID) -> Response:
-        definition = get_workflow_definition(definition_id)
+        try:
+            definition = get_workflow_definition(definition_id)
+        except WorkflowError as exc:
+            return _workflow_error_response(exc)
         return Response(WorkflowDefinitionSerializer(definition).data)
 
 
@@ -64,7 +68,10 @@ class WorkflowDefinitionByCodeView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request: Request, code: str) -> Response:
-        definition = get_workflow_definition_by_code(code)
+        try:
+            definition = get_workflow_definition_by_code(code)
+        except WorkflowError as exc:
+            return _workflow_error_response(exc)
         return Response(WorkflowDefinitionSerializer(definition).data)
 
 
@@ -72,7 +79,10 @@ class ExecutionDetailView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request: Request, execution_id: uuid.UUID) -> Response:
-        execution = get_execution(execution_id)
+        try:
+            execution = get_execution(execution_id)
+        except WorkflowError as exc:
+            return _workflow_error_response(exc)
         return Response(WorkflowExecutionSerializer(execution).data)
 
 

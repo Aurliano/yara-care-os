@@ -8,6 +8,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from domains.identity_access.api.permissions import CanManageSubscription, HasElderAccess
+from common.api.errors import domain_error_response
 from domains.licensing.api.serializers import (
     EntitlementCheckResponseSerializer,
     EntitlementCheckSerializer,
@@ -19,7 +20,7 @@ from domains.licensing.api.serializers import (
     PlanCreateSerializer,
     PlanSerializer,
 )
-from domains.licensing.exceptions import InvalidEntitlementError, LicensingError
+from domains.licensing.exceptions import InvalidEntitlementError, LicenseNotFoundError, LicensingError
 from domains.licensing.models import License, Plan
 from domains.licensing.services.entitlements import (
     can_use_feature,
@@ -39,10 +40,12 @@ from domains.licensing.services.plans import create_plan, get_plan
 
 
 def _licensing_error_response(exc: LicensingError) -> Response:
-    code = status.HTTP_400_BAD_REQUEST
-    if isinstance(exc, InvalidEntitlementError):
-        code = status.HTTP_400_BAD_REQUEST
-    return Response({"detail": str(exc)}, status=code)
+    return domain_error_response(
+        exc,
+        base_type=LicensingError,
+        not_found=(LicenseNotFoundError,),
+        bad_request=(InvalidEntitlementError,),
+    )
 
 
 class PlanListCreateView(APIView):
@@ -63,7 +66,7 @@ class PlanDetailView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request: Request, plan_code: str) -> Response:
-        plan = get_plan(plan_code)
+        plan = get_object_or_404(Plan, code=plan_code)
         return Response(PlanSerializer(plan).data)
 
 

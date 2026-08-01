@@ -63,6 +63,7 @@ def process_event(ctx: IntegrationContext, event_id: uuid.UUID) -> bool:
         "event_dispatch",
         event_type=event.event_type,
         handler_name=handler_name,
+        event_id=str(event.id),
     )
     handler(ctx, payload)
     _mark_processed(event_id=event_id, handler_name=handler_name)
@@ -77,12 +78,19 @@ def process_pending_events(
     max_iterations: int = MAX_DISPATCH_ITERATIONS,
 ) -> int:
     total = 0
-    for iteration in range(max_iterations):
+    for _iteration in range(max_iterations):
+        recent_events = list_recent_events(limit=limit)
+        if not recent_events:
+            break
+        event_ids = [event.id for event in recent_events]
         processed_keys = set(
-            ProcessedIntegrationEvent.objects.values_list("event_id", "handler_name")
+            ProcessedIntegrationEvent.objects.filter(event_id__in=event_ids).values_list(
+                "event_id",
+                "handler_name",
+            )
         )
         batch = 0
-        for event in list_recent_events(limit=limit):
+        for event in recent_events:
             handler_name = _handler_name(event.event_type)
             if (event.id, handler_name) in processed_keys:
                 continue

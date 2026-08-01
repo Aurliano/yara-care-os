@@ -12,32 +12,55 @@ Django + DRF modular monolith for the Yara Care Platform.
 ```bash
 cd backend
 
-# Create and activate a virtual environment
 python -m venv .venv
 # Windows
 .venv\Scripts\activate
 # macOS/Linux
 source .venv/bin/activate
 
-# Install dependencies
 pip install -e ".[dev]"
 
-# Configure environment
 cp .env.example .env
-# Edit .env with your local PostgreSQL credentials
 
-# Create the database (PostgreSQL shell or createdb)
 createdb yara
 createdb yara_test
 
-# Run migrations
 python manage.py migrate
-
-# Start the development server
+python manage.py seed_identity_access
+python manage.py seed_licensing
 python manage.py runserver
 ```
 
-Health check: `GET http://127.0.0.1:8000/api/v1/health/`
+## Health & Readiness
+
+| Endpoint | Auth | Purpose |
+|----------|------|---------|
+| `GET /api/v1/health/` | None | Database, event outbox, integration dispatcher, synchronization session checks |
+| `GET /api/v1/hub/runtime/health/` | JWT | Hub runtime metrics + shared readiness checks |
+
+Top-level `status`: `ok`, `degraded`, or `error` (database failure returns HTTP 503).
+
+## Operational Commands
+
+| Command | Purpose |
+|---------|---------|
+| `run_integration_cycle` | **Primary production cycle** — due occurrences, workflow timeouts, event dispatch |
+| `process_due_occurrences` | Scheduling-only due scan |
+| `process_workflow_timeouts` | Workflow-only timeout scan |
+| `process_occurrence_due_events` | **Deprecated** — use `run_integration_cycle` |
+| `seed_identity_access` | Seed roles and permissions |
+| `seed_licensing` | Seed plans and entitlements |
+
+Recommended cron (example):
+
+```bash
+python manage.py run_integration_cycle --event-limit=200
+```
+
+Options:
+
+- `--event-limit` — cap events processed per dispatch batch (default 100)
+- `--dry-run` — print planned cycle without side effects
 
 ## Settings
 
@@ -49,53 +72,50 @@ Health check: `GET http://127.0.0.1:8000/api/v1/health/`
 
 Set `DJANGO_SETTINGS_MODULE` to override the default.
 
+Production requires `SECRET_KEY`, `DATABASE_URL`, `ALLOWED_HOSTS`, and `CORS_ALLOWED_ORIGINS`.
+
+## Verification
+
+```bash
+python manage.py makemigrations --check
+python manage.py migrate
+python manage.py check
+python -m pytest
+python -c "from importlinter.cli import lint_imports_command; lint_imports_command()"
+```
+
 ## Testing
 
-```bash
-pytest
-python manage.py check
-lint-imports
-python manage.py seed_identity_access
-```
-
-Domain tests require PostgreSQL. Configure `TEST_DATABASE_URL` in `.env` before running `pytest tests/identity_access/`.
-
-## Identity & Access API (B1)
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/api/v1/auth/register/` | Create user account |
-| POST | `/api/v1/auth/token/` | Obtain JWT (phone + password) |
-| POST | `/api/v1/auth/token/refresh/` | Refresh JWT |
-| GET/PATCH | `/api/v1/users/me/` | Current user profile |
-| GET/POST | `/api/v1/elders/` | List/create elders |
-| GET/PATCH | `/api/v1/elders/{id}/` | Elder detail/update |
-| GET | `/api/v1/elders/{id}/members/` | List memberships |
-| POST | `/api/v1/invitations/accept/` | Accept invitation |
-| GET/PUT | `/api/v1/elders/{id}/emergency-recipients/` | Emergency recipients |
-| POST | `/api/v1/elders/{id}/permissions/check/` | Permission check (`Can`) |
-
-After migrations, seed roles and permissions:
-
-```bash
-python manage.py seed_identity_access
-```
+Domain tests require PostgreSQL. Configure `TEST_DATABASE_URL` in `.env` before running `pytest`.
 
 ## Project Layout
 
 ```text
 backend/
   config/          # Django project (settings, URLs, WSGI)
-  common/          # Shared infrastructure (health, etc.)
-  domains/         # Domain Django apps (B1+)
+  common/          # Shared infrastructure (health, API errors, observability)
+  domains/         # Domain Django apps (B1–B9)
+  integration/     # Integration runtime + Hub APIs (B10)
   architecture/    # Architecture check helpers
   tests/           # Test suite
 ```
 
-Domain apps are added under `domains/` as Frozen Domain Contracts are implemented.
-
 ## Architecture Guardrails
 
-- **import-linter** — `.importlinter` enforces import boundaries (expanded in B1).
-- **model_relations** — helper for cross-domain FK checks in pytest.
-- **contracts.py** — allowlist for permitted cross-domain FKs per Frozen Contracts.
+- **import-linter** — `.importlinter` enforces import boundaries (11 contracts).
+- **Frozen Domain Contracts** — business rules are not changed in hardening stages.
+- **Integration isolation** — `integration/` imports only `domains.<x>.services` and Event query APIs.
+
+## Observability Hooks (B11)
+
+In-process metrics (no external platform integration):
+
+- `workflow.started`, `workflow.confirmed`, `workflow.missed`
+- `sync.started`, `sync.completed`
+- `device.command.completed`
+- `communication.session.started`
+- `integration.event.*`, `integration.action.*`
+
+Structured logging loggers: `yara.workflow`, `yara.device`, `yara.communication`, `yara.synchronization`, `yara.integration`.
+
+Pass `X-Correlation-ID`, `X-Replica-ID`, and `X-Device-ID` on Hub requests for trace propagation.

@@ -66,14 +66,15 @@ def process_timed_out_execution(execution: WorkflowExecution, *, now: datetime |
 def process_workflow_timeouts(*, now: datetime | None = None) -> int:
     now = now or timezone.now()
     processed = 0
-    timed_out_ids = list(
+    timed_out = (
         WorkflowExecution.objects.filter(
             status=ExecutionStatus.ACTIVE,
             active_until__lte=now,
-        ).values_list("pk", flat=True)
+        )
+        .select_related("workflow_definition")
+        .iterator()
     )
-    for execution_id in timed_out_ids:
-        execution = WorkflowExecution.objects.get(pk=execution_id)
+    for execution in timed_out:
         before_status = execution.status
         process_timed_out_execution(execution, now=now)
         execution.refresh_from_db()

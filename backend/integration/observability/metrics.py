@@ -1,15 +1,5 @@
-"""Runtime metrics for integration orchestration."""
+"""In-process metrics hooks (delegates to shared registry)."""
 
-from __future__ import annotations
+from common.observability.metrics import METRICS, increment, snapshot
 
-from collections import Counter
-
-METRICS: Counter[str] = Counter()
-
-
-def increment(metric: str, value: int = 1) -> None:
-    METRICS[metric] += value
-
-
-def snapshot() -> dict[str, int]:
-    return dict(METRICS)
+__all__ = ["METRICS", "increment", "snapshot"]

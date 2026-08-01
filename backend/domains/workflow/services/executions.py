@@ -59,7 +59,9 @@ def get_execution_status(execution_id: uuid.UUID) -> str:
 
 def get_active_executions() -> list[WorkflowExecution]:
     return list(
-        WorkflowExecution.objects.filter(status=ExecutionStatus.ACTIVE).order_by("-started_at")
+        WorkflowExecution.objects.filter(status=ExecutionStatus.ACTIVE)
+        .select_related("workflow_definition", "occurrence")
+        .order_by("-started_at")
     )
 
 

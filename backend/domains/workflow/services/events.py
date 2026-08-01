@@ -2,17 +2,27 @@
 
 from __future__ import annotations
 
+import logging
 import uuid
 from datetime import datetime
 from typing import Any
 
 from django.utils import timezone
 
+from common.observability.logging import log_structured
+from common.observability.metrics import increment
 from domains.event.services.recording import EventInput, publish_event, record_event
 from domains.workflow.identity import compute_workflow_event_id
 
 EVENT_VERSION = 1
 PRODUCER = "workflow"
+logger = logging.getLogger("yara.workflow")
+
+_WORKFLOW_METRICS = {
+    "ExecutionStarted": "workflow.started",
+    "ExecutionConfirmed": "workflow.confirmed",
+    "ExecutionMissed": "workflow.missed",
+}
 
 
 def publish_workflow_fact(
@@ -39,6 +49,17 @@ def publish_workflow_fact(
         )
     )
     publish_event(event_id=event.id)
+    metric = _WORKFLOW_METRICS.get(event_type)
+    if metric:
+        increment(metric)
+    log_structured(
+        logger,
+        "workflow.event.published",
+        event_id=event.id,
+        execution_id=subject_id if event_type.startswith("Execution") else None,
+        correlation_id=event.correlation_id or None,
+        event_type=event_type,
+    )
 
 
 def emit_execution_started(

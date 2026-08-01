@@ -11,11 +11,13 @@ from integration.api.views import (
     HubSyncDeltaView,
     HubSyncSnapshotView,
     HubSyncStartView,
+    PlatformHealthView,
     RuntimeHealthView,
     RuntimeProcessView,
 )
 
 urlpatterns = [
+    path("health/", PlatformHealthView.as_view(), name="platform-health"),
     path("hub/runtime/health/", RuntimeHealthView.as_view(), name="hub-runtime-health"),
     path("hub/runtime/process/", RuntimeProcessView.as_view(), name="hub-runtime-process"),
     path("hub/confirmations/", HubConfirmationView.as_view(), name="hub-confirmations"),

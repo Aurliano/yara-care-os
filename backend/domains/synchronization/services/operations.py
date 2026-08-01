@@ -42,7 +42,9 @@ def get_pending_operations(*, session_id: uuid.UUID) -> list[SynchronizationOper
         SynchronizationOperation.objects.filter(
             synchronization_session_id=session_id,
             status__in=[OperationStatus.PENDING, OperationStatus.VALIDATED],
-        ).order_by("started_at")
+        )
+        .select_related("synchronization_session__replica_state")
+        .order_by("started_at")
     )
 
 

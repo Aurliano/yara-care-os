@@ -10,15 +10,14 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from domains.event.services.queries import get_pending_outbox_count
+from integration.health import collect_health_status
 from domains.synchronization.services.operations import submit_aggregate_delta, submit_aggregate_snapshot
+from integration.api.errors import hub_error_response
 from integration.context import IntegrationContext
 from integration.observability.metrics import snapshot
 from integration.runtime.adapters.communication import (
     accept_hub_session,
     end_hub_session,
-    record_hub_call_attempt,
-    report_hub_attempt_result,
 )
 from integration.runtime.adapters.confirmations import submit_hub_confirmation
 from integration.runtime.adapters.device import (
@@ -46,17 +45,25 @@ def _ctx_from_request(request: Request) -> IntegrationContext:
     return ctx
 
 
+class PlatformHealthView(APIView):
+    """Public readiness probe (database, outbox, integration, synchronization)."""
+
+    authentication_classes: list = []
+    permission_classes: list = []
+
+    def get(self, request: Request) -> Response:
+        payload = collect_health_status()
+        status_code = 200 if payload["status"] != "error" else 503
+        return Response(payload, status=status_code)
+
+
 class RuntimeHealthView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request: Request) -> Response:
-        return Response(
-            {
-                "status": "ok",
-                "pending_outbox": get_pending_outbox_count(),
-                "metrics": snapshot(),
-            }
-        )
+        payload = collect_health_status()
+        payload["integration_metrics"] = snapshot()
+        return Response(payload)
 
 
 class RuntimeProcessView(APIView):
@@ -64,7 +71,10 @@ class RuntimeProcessView(APIView):
 
     def post(self, request: Request) -> Response:
         ctx = _ctx_from_request(request)
-        result = run_integration_cycle(ctx)
+        try:
+            result = run_integration_cycle(ctx)
+        except Exception as exc:  # noqa: BLE001 — map domain errors consistently
+            return hub_error_response(exc)
         return Response(result)
 
 
@@ -74,12 +84,15 @@ class HubConfirmationView(APIView):
     def post(self, request: Request) -> Response:
         ctx = _ctx_from_request(request)
         data = request.data
-        result = submit_hub_confirmation(
-            ctx,
-            execution_id=uuid.UUID(data["workflow_execution_id"]),
-            interaction_reference=data["interaction_reference"],
-            evidence_type=data.get("evidence_type", "HUB_CONFIRMATION"),
-        )
+        try:
+            result = submit_hub_confirmation(
+                ctx,
+                execution_id=uuid.UUID(data["workflow_execution_id"]),
+                interaction_reference=data["interaction_reference"],
+                evidence_type=data.get("evidence_type", "HUB_CONFIRMATION"),
+            )
+        except Exception as exc:  # noqa: BLE001
+            return hub_error_response(exc)
         return Response(result, status=status.HTTP_200_OK)
 
 
@@ -89,12 +102,15 @@ class HubDeviceStateView(APIView):
     def post(self, request: Request) -> Response:
         ctx = _ctx_from_request(request)
         data = request.data
-        result = update_hub_device_state(
-            ctx,
-            device_id=uuid.UUID(data["device_id"]),
-            current_state=data["current_state"],
-            is_online=data.get("is_online"),
-        )
+        try:
+            result = update_hub_device_state(
+                ctx,
+                device_id=uuid.UUID(data["device_id"]),
+                current_state=data["current_state"],
+                is_online=data.get("is_online"),
+            )
+        except Exception as exc:  # noqa: BLE001
+            return hub_error_response(exc)
         return Response(result)
 
 
@@ -103,7 +119,11 @@ class HubCommandDeliverView(APIView):
 
     def post(self, request: Request, command_id: uuid.UUID) -> Response:
         ctx = _ctx_from_request(request)
-        return Response(deliver_hub_command(ctx, command_id=command_id))
+        try:
+            result = deliver_hub_command(ctx, command_id=command_id)
+        except Exception as exc:  # noqa: BLE001
+            return hub_error_response(exc)
+        return Response(result)
 
 
 class HubCommandCompleteView(APIView):
@@ -111,7 +131,11 @@ class HubCommandCompleteView(APIView):
 
     def post(self, request: Request, command_id: uuid.UUID) -> Response:
         ctx = _ctx_from_request(request)
-        return Response(complete_hub_command(ctx, command_id=command_id, result=request.data.get("result")))
+        try:
+            result = complete_hub_command(ctx, command_id=command_id, result=request.data.get("result"))
+        except Exception as exc:  # noqa: BLE001
+            return hub_error_response(exc)
+        return Response(result)
 
 
 class HubCommandFailView(APIView):
@@ -119,7 +143,11 @@ class HubCommandFailView(APIView):
 
     def post(self, request: Request, command_id: uuid.UUID) -> Response:
         ctx = _ctx_from_request(request)
-        return Response(fail_hub_command(ctx, command_id=command_id, reason=request.data.get("reason", "")))
+        try:
+            result = fail_hub_command(ctx, command_id=command_id, reason=request.data.get("reason", ""))
+        except Exception as exc:  # noqa: BLE001
+            return hub_error_response(exc)
+        return Response(result)
 
 
 class HubSyncStartView(APIView):
@@ -129,10 +157,13 @@ class HubSyncStartView(APIView):
         ctx = _ctx_from_request(request)
         direction = request.data.get("direction", "UPLOAD")
         idempotency_key = request.data.get("idempotency_key", str(uuid.uuid4()))
-        if direction == "DOWNLOAD":
-            session = start_download_session(ctx, idempotency_key=idempotency_key)
-        else:
-            session = start_upload_session(ctx, idempotency_key=idempotency_key)
+        try:
+            if direction == "DOWNLOAD":
+                session = start_download_session(ctx, idempotency_key=idempotency_key)
+            else:
+                session = start_upload_session(ctx, idempotency_key=idempotency_key)
+        except Exception as exc:  # noqa: BLE001
+            return hub_error_response(exc)
         return Response(
             {
                 "session_id": str(session.id),
@@ -148,15 +179,18 @@ class HubSyncDeltaView(APIView):
 
     def post(self, request: Request, session_id: uuid.UUID) -> Response:
         data = request.data
-        operation = submit_aggregate_delta(
-            session_id=session_id,
-            aggregate_reference=uuid.UUID(data["aggregate_reference"]),
-            aggregate_version=data["aggregate_version"],
-            payload=data["payload"],
-            payload_type=data["payload_type"],
-            payload_hash=data["payload_hash"],
-            idempotency_key=data["idempotency_key"],
-        )
+        try:
+            operation = submit_aggregate_delta(
+                session_id=session_id,
+                aggregate_reference=uuid.UUID(data["aggregate_reference"]),
+                aggregate_version=data["aggregate_version"],
+                payload=data["payload"],
+                payload_type=data["payload_type"],
+                payload_hash=data["payload_hash"],
+                idempotency_key=data["idempotency_key"],
+            )
+        except Exception as exc:  # noqa: BLE001
+            return hub_error_response(exc)
         return Response({"operation_id": str(operation.id), "status": operation.status}, status=status.HTTP_201_CREATED)
 
 
@@ -165,15 +199,18 @@ class HubSyncSnapshotView(APIView):
 
     def post(self, request: Request, session_id: uuid.UUID) -> Response:
         data = request.data
-        operation = submit_aggregate_snapshot(
-            session_id=session_id,
-            aggregate_reference=uuid.UUID(data["aggregate_reference"]),
-            aggregate_version=data["aggregate_version"],
-            payload=data["payload"],
-            payload_type=data["payload_type"],
-            payload_hash=data["payload_hash"],
-            idempotency_key=data["idempotency_key"],
-        )
+        try:
+            operation = submit_aggregate_snapshot(
+                session_id=session_id,
+                aggregate_reference=uuid.UUID(data["aggregate_reference"]),
+                aggregate_version=data["aggregate_version"],
+                payload=data["payload"],
+                payload_type=data["payload_type"],
+                payload_hash=data["payload_hash"],
+                idempotency_key=data["idempotency_key"],
+            )
+        except Exception as exc:  # noqa: BLE001
+            return hub_error_response(exc)
         return Response({"operation_id": str(operation.id), "status": operation.status}, status=status.HTTP_201_CREATED)
 
 
@@ -182,7 +219,11 @@ class HubSessionAcceptView(APIView):
 
     def post(self, request: Request, session_id: uuid.UUID) -> Response:
         ctx = _ctx_from_request(request)
-        return Response(accept_hub_session(ctx, session_id=session_id))
+        try:
+            result = accept_hub_session(ctx, session_id=session_id)
+        except Exception as exc:  # noqa: BLE001
+            return hub_error_response(exc)
+        return Response(result)
 
 
 class HubSessionEndView(APIView):
@@ -190,4 +231,8 @@ class HubSessionEndView(APIView):
 
     def post(self, request: Request, session_id: uuid.UUID) -> Response:
         ctx = _ctx_from_request(request)
-        return Response(end_hub_session(ctx, session_id=session_id))
+        try:
+            result = end_hub_session(ctx, session_id=session_id)
+        except Exception as exc:  # noqa: BLE001
+            return hub_error_response(exc)
+        return Response(result)

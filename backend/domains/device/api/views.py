@@ -8,6 +8,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from common.api.errors import domain_error_response
 from domains.device.api.serializers import (
     AssignDeviceSerializer,
     DeviceAssignmentSerializer,
@@ -22,8 +23,12 @@ from domains.device.api.serializers import (
     CompartmentSerializer,
 )
 from domains.device.exceptions import (
+    AssignmentNotFoundError,
+    CapabilityNotFoundError,
+    CompartmentNotFoundError,
     DeviceCommandNotFoundError,
     DeviceError,
+    DeviceModelNotFoundError,
     DeviceNotFoundError,
     InvalidCommandStateError,
     InvalidDeviceStateError,
@@ -47,13 +52,20 @@ from domains.device.services.pairing import create_pairing, get_pairings, revoke
 
 
 def _device_error_response(exc: DeviceError) -> Response:
-    if isinstance(exc, (InvalidDeviceStateError, InvalidCommandStateError)):
-        code = status.HTTP_409_CONFLICT
-    elif isinstance(exc, (DeviceNotFoundError, DeviceCommandNotFoundError, PairingNotFoundError)):
-        code = status.HTTP_404_NOT_FOUND
-    else:
-        code = status.HTTP_400_BAD_REQUEST
-    return Response({"detail": str(exc)}, status=code)
+    return domain_error_response(
+        exc,
+        base_type=DeviceError,
+        not_found=(
+            DeviceNotFoundError,
+            DeviceCommandNotFoundError,
+            PairingNotFoundError,
+            CompartmentNotFoundError,
+            AssignmentNotFoundError,
+            DeviceModelNotFoundError,
+            CapabilityNotFoundError,
+        ),
+        conflict=(InvalidDeviceStateError, InvalidCommandStateError),
+    )
 
 
 class DeviceListCreateView(APIView):

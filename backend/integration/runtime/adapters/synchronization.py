@@ -9,6 +9,7 @@ from domains.synchronization.enums import ReplicaType, SyncDirection
 from domains.synchronization.services.operations import submit_aggregate_delta
 from domains.synchronization.services.sessions import start_synchronization
 from integration.context import IntegrationContext
+from integration.exceptions import ReplicaContextRequiredError
 from integration.observability import logging as integration_logging
 
 
@@ -45,7 +46,7 @@ def submit_care_delta_for_replica(
 
 def start_upload_session(ctx: IntegrationContext, *, idempotency_key: str):
     if ctx.replica_id is None:
-        raise ValueError("replica_id is required")
+        raise ReplicaContextRequiredError("replica_id is required")
     return start_synchronization(
         replica_identifier=ctx.replica_id,
         replica_type=ReplicaType.HUB,
@@ -56,7 +57,7 @@ def start_upload_session(ctx: IntegrationContext, *, idempotency_key: str):
 
 def start_download_session(ctx: IntegrationContext, *, idempotency_key: str):
     if ctx.replica_id is None:
-        raise ValueError("replica_id is required")
+        raise ReplicaContextRequiredError("replica_id is required")
     return start_synchronization(
         replica_identifier=ctx.replica_id,
         replica_type=ReplicaType.BACKEND,

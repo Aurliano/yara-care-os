@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import uuid
 from datetime import datetime
 from typing import Any
@@ -9,12 +10,16 @@ from typing import Any
 from django.db import IntegrityError, transaction
 from django.utils import timezone
 
+from common.observability.logging import log_structured
+from common.observability.metrics import increment
 from domains.device.enums import TERMINAL_COMMAND_STATUSES, CommandStatus, CommandType
 from domains.device.exceptions import DeviceCommandNotFoundError, InvalidCommandStateError
 from domains.device.identity import compute_command_id
 from domains.device.models import DeviceCommand
 from domains.device.services.devices import ensure_device_accepts_commands, get_device
 from domains.device.services.events import emit_device_command_completed, emit_device_command_failed
+
+logger = logging.getLogger("yara.device")
 
 
 def get_command(command_id: uuid.UUID) -> DeviceCommand:
@@ -169,6 +174,14 @@ def complete_command(
         device_id=command.target_device_id,
         command_type=command.command_type,
         execution_reference=command.execution_reference,
+    )
+    increment("device.command.completed")
+    log_structured(
+        logger,
+        "device.command.completed",
+        command_id=command.id,
+        device_id=command.target_device_id,
+        execution_id=command.execution_reference,
     )
     return command
 

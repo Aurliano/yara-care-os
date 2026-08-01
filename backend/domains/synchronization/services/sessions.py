@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
+import logging
 import uuid
 
 from django.db import transaction
 from django.utils import timezone
 
+from common.observability.logging import log_structured
+from common.observability.metrics import increment
 from domains.synchronization.enums import (
     RESUMABLE_SESSION_STATUSES,
     SessionStatus,
@@ -29,6 +32,8 @@ from domains.synchronization.services.replicas import (
     set_replica_idle,
     set_replica_synchronizing,
 )
+
+logger = logging.getLogger("yara.synchronization")
 
 
 def get_synchronization_session(session_id: uuid.UUID) -> SynchronizationSession:
@@ -68,6 +73,8 @@ def _complete_session(session: SynchronizationSession) -> SynchronizationSession
     session.save(update_fields=["status", "completed_at", "updated_at"])
     set_replica_idle(session.replica_state)
     emit_synchronization_completed(session_id=session.id)
+    increment("sync.completed")
+    log_structured(logger, "sync.session.completed", session_id=session.id, replica_id=session.replica_state.replica_identifier)
     return session
 
 
@@ -102,6 +109,8 @@ def start_synchronization(
     )
     _transition_session(session, SessionStatus.SESSION_STARTED)
     emit_synchronization_started(session_id=session.id, replica_identifier=replica_identifier)
+    increment("sync.started")
+    log_structured(logger, "sync.session.started", session_id=session.id, replica_id=replica_identifier)
     return session
 
 

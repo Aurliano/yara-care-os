@@ -10,6 +10,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from common.api.errors import domain_error_response
 from domains.scheduling.api.serializers import (
     OccurrenceSerializer,
     ScheduleCreateSerializer,
@@ -21,7 +22,9 @@ from domains.scheduling.api.serializers import (
 from domains.scheduling.exceptions import (
     InvalidOccurrenceStateError,
     InvalidScheduleStateError,
+    OccurrenceNotFoundError,
     RescheduleCollisionError,
+    ScheduleNotFoundError,
     SchedulingError,
 )
 from domains.scheduling.models import ScheduleDefinition
@@ -45,11 +48,12 @@ from domains.scheduling.services.schedules import (
 
 
 def _scheduling_error_response(exc: SchedulingError) -> Response:
-    if isinstance(exc, (InvalidScheduleStateError, InvalidOccurrenceStateError, RescheduleCollisionError)):
-        code = status.HTTP_409_CONFLICT
-    else:
-        code = status.HTTP_400_BAD_REQUEST
-    return Response({"detail": str(exc)}, status=code)
+    return domain_error_response(
+        exc,
+        base_type=SchedulingError,
+        not_found=(ScheduleNotFoundError, OccurrenceNotFoundError),
+        conflict=(InvalidScheduleStateError, InvalidOccurrenceStateError, RescheduleCollisionError),
+    )
 
 
 class ScheduleListCreateView(APIView):
@@ -76,7 +80,10 @@ class ScheduleDetailView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request: Request, schedule_id: uuid.UUID) -> Response:
-        schedule = get_schedule(schedule_id)
+        try:
+            schedule = get_schedule(schedule_id)
+        except SchedulingError as exc:
+            return _scheduling_error_response(exc)
         return Response(ScheduleDefinitionSerializer(schedule).data)
 
     def patch(self, request: Request, schedule_id: uuid.UUID) -> Response:
@@ -149,7 +156,10 @@ class OccurrenceDetailView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request: Request, occurrence_id: uuid.UUID) -> Response:
-        occurrence = get_occurrence(occurrence_id)
+        try:
+            occurrence = get_occurrence(occurrence_id)
+        except SchedulingError as exc:
+            return _scheduling_error_response(exc)
         return Response(OccurrenceSerializer(occurrence).data)
 
 

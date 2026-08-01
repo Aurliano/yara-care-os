@@ -9,6 +9,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from common.api.errors import domain_error_response
 from domains.care.api.serializers import (
     CareActivityCreateSerializer,
     CareActivitySerializer,
@@ -22,6 +23,7 @@ from domains.care.api.serializers import (
 from domains.care.exceptions import (
     CareActivityNotFoundError,
     CareError,
+    ElderNotFoundError,
     InvalidCareActivityStateError,
     InvalidExecutionResultError,
     PrescriptionNotFoundError,
@@ -44,13 +46,12 @@ from domains.identity_access.services.authorization import can
 
 
 def _care_error_response(exc: CareError) -> Response:
-    if isinstance(exc, (InvalidCareActivityStateError, InvalidExecutionResultError)):
-        code = status.HTTP_409_CONFLICT
-    elif isinstance(exc, (CareActivityNotFoundError, PrescriptionNotFoundError)):
-        code = status.HTTP_404_NOT_FOUND
-    else:
-        code = status.HTTP_400_BAD_REQUEST
-    return Response({"detail": str(exc)}, status=code)
+    return domain_error_response(
+        exc,
+        base_type=CareError,
+        not_found=(CareActivityNotFoundError, PrescriptionNotFoundError, ElderNotFoundError),
+        conflict=(InvalidCareActivityStateError, InvalidExecutionResultError),
+    )
 
 
 class ElderCareActivityListCreateView(APIView):

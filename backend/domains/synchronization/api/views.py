@@ -8,6 +8,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from common.api.errors import domain_error_response
 from domains.synchronization.api.serializers import (
     CheckpointSerializer,
     ReplicaStateSerializer,
@@ -21,6 +22,7 @@ from domains.synchronization.api.serializers import (
 )
 from domains.synchronization.exceptions import (
     ConflictNotFoundError,
+    IdempotencyConflictError,
     InvalidDeltaError,
     InvalidReplicaStateError,
     InvalidSessionStateError,
@@ -51,15 +53,18 @@ from domains.synchronization.services.sessions import (
 
 
 def _sync_error_response(exc: SynchronizationError) -> Response:
-    if isinstance(exc, (InvalidSessionStateError, SynchronizationConflictError, VersionMismatchError)):
-        code = status.HTTP_409_CONFLICT
-    elif isinstance(exc, (SessionNotFoundError, ReplicaNotFoundError, ConflictNotFoundError)):
-        code = status.HTTP_404_NOT_FOUND
-    elif isinstance(exc, (InvalidDeltaError, SnapshotCorruptedError, InvalidReplicaStateError)):
-        code = status.HTTP_400_BAD_REQUEST
-    else:
-        code = status.HTTP_400_BAD_REQUEST
-    return Response({"detail": str(exc)}, status=code)
+    return domain_error_response(
+        exc,
+        base_type=SynchronizationError,
+        not_found=(SessionNotFoundError, ReplicaNotFoundError, ConflictNotFoundError),
+        conflict=(
+            InvalidSessionStateError,
+            SynchronizationConflictError,
+            VersionMismatchError,
+            IdempotencyConflictError,
+        ),
+        bad_request=(InvalidDeltaError, SnapshotCorruptedError, InvalidReplicaStateError),
+    )
 
 
 class StartSynchronizationView(APIView):

@@ -1,6 +1,6 @@
 # ARCHITECTURE.md
 
-Version: 2.0
+Version: 3.0
 Status: Approved
 Product: Yara Care Ecosystem
 
@@ -10,9 +10,19 @@ Product: Yara Care Ecosystem
 
 This document defines the software architecture of the Yara ecosystem.
 
-It establishes the responsibilities of each component, communication flows, data ownership, synchronization strategy, and architectural constraints.
+It establishes:
+
+- System architecture
+- Domain ownership
+- Integration boundaries
+- Synchronization strategy
+- Communication flows
+- Offline-first behavior
+- Architectural constraints
 
 All implementation decisions must conform to this document.
+
+The detailed business behavior of each domain is defined by its Frozen Contract.
 
 ---
 
@@ -22,9 +32,11 @@ All implementation decisions must conform to this document.
 - API First
 - Security by Design
 - Thin Clients
-- Modular Components
+- Domain Driven Design
+- Event Driven Architecture
 - Clean Architecture
 - Single Responsibility
+- Modular Components
 - Future Ready
 - MVP First
 
@@ -32,7 +44,6 @@ All implementation decisions must conform to this document.
 
 # High-Level Architecture
 
-```text
                  Care Layer
         ┌──────────────────────────┐
         │  Caregiver App (Expo RN) │
@@ -44,8 +55,8 @@ All implementation decisions must conform to this document.
         │     Cloud Layer          │
         │ Django + DRF             │
         │ PostgreSQL               │
-        │ Notification Services    │
-        │ Authentication           │
+        │ Integration Runtime      │
+        │ Event Engine             │
         │ Synchronization          │
         └─────────────┬────────────┘
                       │ HTTPS
@@ -54,8 +65,8 @@ All implementation decisions must conform to this document.
         │       Hub Layer          │
         │ Kotlin + Compose         │
         │ Room                     │
-        │ BLE                      │
         │ Offline Engine           │
+        │ BLE                      │
         └─────────────┬────────────┘
                       │ BLE
                       ▼
@@ -64,17 +75,141 @@ All implementation decisions must conform to this document.
         │ ESP32 Smart Pill Box     │
         │ Future Sensors           │
         └──────────────────────────┘
-```
+
+---
+
+# Backend Domain Architecture
+
+The backend is composed of independent domains.
+
+Current domains:
+
+- Identity & Access
+- Licensing
+- Event
+- Scheduling
+- Workflow
+- Care
+- Device
+- Communication
+- Synchronization
+- Integration
+
+Each domain owns:
+
+- its data
+- its business rules
+- its public services
+
+Domains communicate only through:
+
+- Public Services
+- Published Events
+- Integration Orchestration
+
+Direct cross-domain ORM access is prohibited.
+
+---
+
+# Integration Layer
+
+Integration coordinates domains.
+
+Responsibilities:
+
+- Consume domain events
+- Call public services
+- Route Hub callbacks
+- Dispatch workflow actions
+- Submit synchronization payloads
+- Runtime orchestration
+
+Integration owns no business rules.
+
+Business meaning remains inside domain services.
+
+---
+
+# Event Architecture
+
+Events represent immutable facts.
+
+The Event domain:
+
+- stores facts
+- provides querying
+- supports transactional outbox
+
+It never:
+
+- executes workflows
+- performs business logic
+- routes notifications
+- synchronizes replicas
+
+Event consumers live outside the Event domain.
+
+---
+
+# Synchronization Architecture
+
+Synchronization owns replication only.
+
+Responsibilities:
+
+- replica management
+- checkpoint management
+- delta application
+- conflict detection
+- synchronization sessions
+
+Business domains generate synchronization payloads.
+
+Synchronization never reads business aggregates directly.
+
+Synchronization never interprets business meaning.
+
+---
+
+# Runtime Flow
+
+Typical medication reminder flow:
+
+Scheduling
+
+↓
+
+Workflow
+
+↓
+
+Care
+
+↓
+
+Integration
+
+↓
+
+Device / Communication
+
+↓
+
+Workflow Confirmation
+
+↓
+
+Care Interpretation
+
+↓
+
+Synchronization
 
 ---
 
 # System Components
 
 ## Caregiver App
-
-Purpose:
-
-Provide caregivers with remote visibility and management.
 
 Responsibilities:
 
@@ -87,52 +222,41 @@ Responsibilities:
 - Contact management
 - Subscription management
 
-The Caregiver App must remain a **thin client**.
-
 Business rules belong to the backend.
 
 ---
 
 ## Backend
 
-The backend is the central source of truth.
+The backend is the single source of truth.
 
 Responsibilities:
 
 - Authentication
 - Authorization
-- Elder management
-- Caregiver management
-- Membership & Roles
-- Subscription
-- Hub management
-- Medication management
-- Notification engine
+- Care Management
+- Scheduling
+- Workflow Execution
+- Device Management
+- Communication
 - Synchronization
-- Audit logging
-- Future AI services
-
-No business logic should be duplicated in clients.
+- Integration Runtime
+- Future AI Services
 
 ---
 
 ## Android Hub
 
-Purpose:
-
-Operate independently inside the elder's home.
-
 Responsibilities:
 
-- Medication reminders
-- Local scheduling
+- Reminder execution
+- Offline scheduling
+- Local workflow execution
 - BLE communication
-- Offline storage
-- Sync with backend
 - Device monitoring
+- Synchronization
+- Local persistence
 - Kiosk mode
-- Device Owner
-- Background services
 
 The Hub must continue operating without internet connectivity.
 
@@ -152,27 +276,25 @@ Responsibilities:
 
 # Domain Ownership
 
-| Domain | Owner |
-|---------|-------|
-| Authentication | Backend |
-| Users | Backend |
-| Elder | Backend |
-| Membership | Backend |
-| Subscription | Backend |
-| Medication | Backend |
-| Hub Configuration | Backend |
-| Reminder Execution | Hub |
-| BLE State | Hub |
-| Pill Box State | Hub |
-| Sensor Events | Hub |
+| Capability | Owner |
+|------------|-------|
+| Identity | Identity & Access |
+| Permissions | Identity & Access |
+| Licensing | Licensing |
+| Scheduling | Scheduling |
+| Workflow Execution | Workflow |
+| Care Meaning | Care |
+| Device State | Device |
+| Communication | Communication |
+| Replication | Synchronization |
+| Orchestration | Integration |
+| Immutable Facts | Event |
 
 ---
 
 # Communication
 
 ## Caregiver App ↔ Backend
-
-Protocol:
 
 - HTTPS
 - REST API
@@ -182,152 +304,116 @@ Protocol:
 
 ## Hub ↔ Backend
 
-Protocol:
-
 - HTTPS
 - REST API
 - JWT
 
 Synchronization:
 
-- Incremental Sync
-- Retry Queue
-- Conflict Resolution
+- Incremental Delta Sync
+- Checkpoints
+- Conflict Detection
+- Retry
+- Resume
 
 ---
 
 ## Hub ↔ Pill Box
 
-Protocol:
+BLE only.
 
-- BLE
-
-Communication is local only.
+No cloud communication.
 
 ---
 
 # Offline Strategy
 
-The Hub is fully offline capable.
+Backend remains the source of truth.
 
-The Caregiver App is online-first with local caching.
+Hub is capable of autonomous operation.
 
-Backend is the single source of truth after synchronization.
+Workflow execution must continue offline.
 
-Medication reminders must never depend on internet connectivity.
-
----
-
-# Synchronization Strategy
-
-Hub:
-
-Local Room Database
-
-↓
-
-Sync Queue
-
-↓
-
-Backend
-
-↓
-
-Conflict Resolution
-
-↓
-
-Acknowledgement
-
-Synchronization should always be resilient to intermittent connectivity.
+Synchronization reconciles changes after connectivity returns.
 
 ---
 
 # Security
 
-Authentication:
+Authentication
 
 JWT
 
-Transport:
+Authorization
+
+Permission-based Membership model
+
+Transport
 
 TLS
 
-Storage:
+Storage
 
-Encrypted local storage where appropriate.
-
-Sensitive operations require authenticated backend APIs.
+Encrypted where appropriate
 
 ---
 
-# Role Model
+# Architectural Constraints
 
-One Elder
+Allowed domain communication:
 
-↓
+- Public Services
+- Domain Events
+- Integration Layer
 
-Many Caregivers
+Forbidden:
 
-↓
-
-Membership
-
-↓
-
-Role
-
-Possible roles:
-
-- Owner
-- Family
-- Nurse
-- Doctor
-- Viewer
-
-Permissions are assigned through Membership, not User.
+- Cross-domain ORM access
+- Cross-domain foreign keys unless explicitly approved
+- Business logic inside Integration
+- Business logic inside Synchronization
+- Business logic inside Event
 
 ---
 
 # Future Expansion
 
-The architecture intentionally supports:
+Designed to support:
 
 - AI Assistant
-- Video Communication
+- Video Calls
 - Smart Home
 - Medical Devices
-- Camera Integration
 - Wearables
-- OTA Updates
+- OTA
 - MQTT
 - Web Portal
+- Multi-Hub
 
-without requiring major architectural changes.
+without major architectural redesign.
 
 ---
 
 # Non Goals
 
-The architecture is not optimized for:
+The architecture is intentionally not optimized for:
 
 - Microservices
-- Event sourcing
+- Event Sourcing
 - Kubernetes
-- Massive scale
-- Premature optimization
-
-These may be introduced only when justified by product growth.
+- Massive Scale
+- Premature Optimization
 
 ---
 
 # Definition of Good Architecture
 
-A successful architecture is one that:
+A successful architecture:
 
-- remains understandable by a 1–2 person team,
-- supports future expansion,
-- minimizes coupling,
-- maximizes reliability,
-- and allows rapid MVP delivery without sacrificing long-term maintainability.
+- is understandable by a small team
+- supports future expansion
+- minimizes coupling
+- maximizes reliability
+- keeps domains independent
+- supports offline-first operation
+- enables rapid MVP delivery

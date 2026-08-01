@@ -49,7 +49,7 @@ def test_create_elder_and_list(authenticated_client):
 def test_health_endpoint_still_works(api_client):
     response = api_client.get("/api/v1/health/")
     assert response.status_code == 200
-    assert response.json() == {"status": "ok"}
+    assert response.json()["status"] in {"ok", "degraded"}
 
 
 @pytest.mark.django_db
