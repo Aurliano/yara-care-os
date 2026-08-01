@@ -92,6 +92,11 @@ def _advance_escalation_step(execution: WorkflowExecution) -> WorkflowExecution:
         execution_id=execution.id,
         escalation_index=next_index,
         action_type=action["type"],
+        action=action,
+        dispatch_context={
+            "workflow_execution_id": str(execution.id),
+            "occurrence_id": str(execution.occurrence_id),
+        },
     )
     return execution
 

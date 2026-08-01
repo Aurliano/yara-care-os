@@ -111,6 +111,7 @@ def start_execution(
     *,
     occurrence_id: uuid.UUID,
     workflow_definition_id: uuid.UUID,
+    dispatch_context: dict[str, Any] | None = None,
 ) -> WorkflowExecution:
     """Start or return the WorkflowExecution for an Occurrence.
 
@@ -133,7 +134,7 @@ def start_execution(
         if existing.status == ExecutionStatus.ACTIVE:
             return existing
         if existing.status == ExecutionStatus.PENDING:
-            _activate_pending_execution(existing, workflow_definition)
+            _activate_pending_execution(existing, workflow_definition, dispatch_context=dispatch_context)
             return existing
         return existing
 
@@ -150,11 +151,16 @@ def start_execution(
         if execution.status in TERMINAL_EXECUTION_STATUSES or execution.status == ExecutionStatus.ACTIVE:
             return execution
 
-    _activate_pending_execution(execution, workflow_definition)
+    _activate_pending_execution(execution, workflow_definition, dispatch_context=dispatch_context)
     return execution
 
 
-def _activate_pending_execution(execution: WorkflowExecution, workflow_definition: WorkflowDefinition) -> None:
+def _activate_pending_execution(
+    execution: WorkflowExecution,
+    workflow_definition: WorkflowDefinition,
+    *,
+    dispatch_context: dict[str, Any] | None = None,
+) -> None:
     definition = validate_workflow_definition(workflow_definition.definition)
     initial_action = get_initial_action(definition)
     timeout_seconds = get_step_timeout_seconds(definition)
@@ -168,6 +174,10 @@ def _activate_pending_execution(execution: WorkflowExecution, workflow_definitio
         execution_id=execution.id,
         occurrence_id=execution.occurrence_id,
         workflow_definition_id=workflow_definition.id,
+        schedule_definition_id=execution.occurrence.schedule_definition_id,
+        current_action=execution.current_action,
+        current_step=execution.current_step,
+        dispatch_context=dispatch_context,
     )
 
 

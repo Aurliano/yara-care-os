@@ -181,7 +181,12 @@ def cancel_session(*, session_id: uuid.UUID) -> CommunicationSession:
         raise InvalidSessionStateError("Terminal sessions cannot be cancelled.")
 
     _set_terminal(session, status=SessionStatus.CANCELLED, outcome=SessionOutcome.CANCELLED)
-    emit_session_ended(session_id=session.id, outcome=SessionOutcome.CANCELLED)
+    emit_session_ended(
+        session_id=session.id,
+        outcome=SessionOutcome.CANCELLED,
+        elder_id=session.elder_id,
+        external_execution_reference=session.external_execution_reference,
+    )
     return session
 
 
@@ -197,7 +202,12 @@ def end_session(*, session_id: uuid.UUID) -> CommunicationSession:
         raise InvalidSessionStateError("Only connected sessions can be ended with ANSWERED outcome.")
 
     _set_terminal(session, status=SessionStatus.ENDED, outcome=SessionOutcome.ANSWERED)
-    emit_session_ended(session_id=session.id, outcome=SessionOutcome.ANSWERED)
+    emit_session_ended(
+        session_id=session.id,
+        outcome=SessionOutcome.ANSWERED,
+        elder_id=session.elder_id,
+        external_execution_reference=session.external_execution_reference,
+    )
     return session
 
 

@@ -34,8 +34,10 @@ from domains.care.services.activities import (
 from domains.care.services.interpretation import get_care_completion_history, interpret_execution_result
 from domains.care.services.occurrence_due import handle_occurrence_due_event
 from domains.care.services.prescriptions import create_prescription, get_active_prescriptions, get_prescription, update_prescription
+from domains.care.services.sync_export import build_care_activity_sync_delta
 
 __all__ = [
+    "build_care_activity_sync_delta",
     "create_care_activity",
     "create_prescription",
     "end_care_activity",

@@ -31,5 +31,9 @@ def get_events_since(*, since: datetime) -> list[EventRecord]:
     )
 
 
+def list_recent_events(*, limit: int = 100) -> list[EventRecord]:
+    return list(EventRecord.objects.order_by("recorded_at")[:limit])
+
+
 def get_pending_outbox_count() -> int:
     return EventOutbox.objects.filter(status=OutboxStatus.PENDING).count()

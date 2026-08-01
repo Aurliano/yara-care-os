@@ -96,7 +96,13 @@ def emit_compartment_closed(*, compartment_id: uuid.UUID, device_id: uuid.UUID) 
     )
 
 
-def emit_device_command_completed(*, command_id: uuid.UUID, device_id: uuid.UUID) -> None:
+def emit_device_command_completed(
+    *,
+    command_id: uuid.UUID,
+    device_id: uuid.UUID,
+    command_type: str = "",
+    execution_reference: uuid.UUID | None = None,
+) -> None:
     publish_device_fact(
         event_type="DeviceCommandCompleted",
         subject_id=command_id,
@@ -104,6 +110,8 @@ def emit_device_command_completed(*, command_id: uuid.UUID, device_id: uuid.UUID
         payload={
             "command_id": str(command_id),
             "device_id": str(device_id),
+            "command_type": command_type,
+            "execution_reference": str(execution_reference) if execution_reference else None,
         },
     )
 

@@ -1,14 +1,8 @@
 """
-Temporary operational shim.
+Deprecated operational shim.
 
-This management command exists only to exercise
-the Scheduling → Care → Workflow pipeline
-before Synchronization/Event consumers are implemented.
-
-Not production event processing.
-
-Planned replacement:
-B9 Synchronization.
+Use ``python manage.py run_integration_cycle`` instead, which processes due
+occurrences, workflow timeouts, and integration event dispatch in one cycle.
 """
 from django.core.management.base import BaseCommand
 

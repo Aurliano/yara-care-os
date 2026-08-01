@@ -34,4 +34,10 @@ def handle_occurrence_due_event(*, event_id: uuid.UUID) -> WorkflowExecution:
     return start_execution(
         occurrence_id=occurrence_id,
         workflow_definition_id=activity.workflow_definition_id,
+        dispatch_context={
+            "elder_id": str(activity.elder_id),
+            "care_activity_id": str(activity.id),
+            "activity_type": activity.activity_type,
+            "schedule_definition_id": str(schedule_definition_id),
+        },
     )

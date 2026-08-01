@@ -41,7 +41,16 @@ def publish_workflow_fact(
     publish_event(event_id=event.id)
 
 
-def emit_execution_started(*, execution_id: uuid.UUID, occurrence_id: uuid.UUID, workflow_definition_id: uuid.UUID) -> None:
+def emit_execution_started(
+    *,
+    execution_id: uuid.UUID,
+    occurrence_id: uuid.UUID,
+    workflow_definition_id: uuid.UUID,
+    schedule_definition_id: uuid.UUID,
+    current_action: dict[str, Any],
+    current_step: str,
+    dispatch_context: dict[str, Any] | None = None,
+) -> None:
     publish_workflow_fact(
         event_type="ExecutionStarted",
         subject_id=execution_id,
@@ -50,6 +59,10 @@ def emit_execution_started(*, execution_id: uuid.UUID, occurrence_id: uuid.UUID,
             "workflow_execution_id": str(execution_id),
             "occurrence_id": str(occurrence_id),
             "workflow_definition_id": str(workflow_definition_id),
+            "schedule_definition_id": str(schedule_definition_id),
+            "current_action": current_action,
+            "current_step": current_step,
+            "dispatch_context": dispatch_context or {},
         },
     )
 
@@ -106,7 +119,14 @@ def emit_execution_failed(*, execution_id: uuid.UUID, reason: str = "") -> None:
     )
 
 
-def emit_escalation_triggered(*, execution_id: uuid.UUID, escalation_index: int, action_type: str) -> None:
+def emit_escalation_triggered(
+    *,
+    execution_id: uuid.UUID,
+    escalation_index: int,
+    action_type: str,
+    action: dict[str, Any],
+    dispatch_context: dict[str, Any] | None = None,
+) -> None:
     publish_workflow_fact(
         event_type="EscalationTriggered",
         subject_id=execution_id,
@@ -116,5 +136,7 @@ def emit_escalation_triggered(*, execution_id: uuid.UUID, escalation_index: int,
             "workflow_execution_id": str(execution_id),
             "escalation_index": escalation_index,
             "action_type": action_type,
+            "action": action,
+            "dispatch_context": dispatch_context or {},
         },
     )

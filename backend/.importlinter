@@ -4,6 +4,7 @@ root_packages =
     common
     domains
     architecture
+    integration
 
 [importlinter:contract:common-isolation]
 name = Common infrastructure must not import domain apps
@@ -17,6 +18,7 @@ forbidden_modules =
 name = Domain dependency direction
 type = layers
 layers =
+    integration
     domains.synchronization
     domains.device
     domains.communication
@@ -116,6 +118,22 @@ forbidden_modules =
     domains.device
     domains.communication
     domains.notification
+
+[importlinter:contract:integration-isolation]
+name = Integration must not import domain models
+type = forbidden
+source_modules =
+    integration
+forbidden_modules =
+    domains.identity_access.models
+    domains.licensing.models
+    domains.event.models
+    domains.scheduling.models
+    domains.workflow.models
+    domains.care.models
+    domains.device.models
+    domains.communication.models
+    domains.synchronization.models
 
 [importlinter:contract:care-independence]
 name = Care must not import Licensing, Device, Communication, Notification, or Synchronization

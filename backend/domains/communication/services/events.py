@@ -91,7 +91,13 @@ def emit_session_connected(*, session_id: uuid.UUID) -> None:
     )
 
 
-def emit_session_ended(*, session_id: uuid.UUID, outcome: str) -> None:
+def emit_session_ended(
+    *,
+    session_id: uuid.UUID,
+    outcome: str,
+    elder_id: uuid.UUID | None = None,
+    external_execution_reference: uuid.UUID | None = None,
+) -> None:
     publish_communication_fact(
         event_type="CommunicationSessionEnded",
         subject_id=session_id,
@@ -100,6 +106,10 @@ def emit_session_ended(*, session_id: uuid.UUID, outcome: str) -> None:
         payload={
             "communication_session_id": str(session_id),
             "outcome": outcome,
+            "elder_id": str(elder_id) if elder_id else None,
+            "external_execution_reference": (
+                str(external_execution_reference) if external_execution_reference else None
+            ),
         },
     )
 

@@ -164,7 +164,12 @@ def complete_command(
     command.result = result or {}
     command.completed_at = now
     command.save(update_fields=["status", "result", "completed_at"])
-    emit_device_command_completed(command_id=command.id, device_id=command.target_device_id)
+    emit_device_command_completed(
+        command_id=command.id,
+        device_id=command.target_device_id,
+        command_type=command.command_type,
+        execution_reference=command.execution_reference,
+    )
     return command
 
 

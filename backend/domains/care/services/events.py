@@ -138,6 +138,9 @@ def emit_medication_taken(
     care_completion_id: uuid.UUID,
     workflow_execution_id: uuid.UUID,
 ) -> None:
+    from domains.care.services.activities import get_care_activity
+
+    activity = get_care_activity(care_activity_id)
     publish_care_fact(
         event_type="MedicationTaken",
         subject_id=care_completion_id,
@@ -146,6 +149,8 @@ def emit_medication_taken(
             "care_activity_id": str(care_activity_id),
             "care_completion_id": str(care_completion_id),
             "workflow_execution_id": str(workflow_execution_id),
+            "elder_id": str(activity.elder_id),
+            "aggregate_version": activity.aggregate_version,
         },
     )
 
@@ -156,6 +161,9 @@ def emit_medication_missed(
     care_completion_id: uuid.UUID,
     workflow_execution_id: uuid.UUID,
 ) -> None:
+    from domains.care.services.activities import get_care_activity
+
+    activity = get_care_activity(care_activity_id)
     publish_care_fact(
         event_type="MedicationMissed",
         subject_id=care_completion_id,
@@ -164,5 +172,7 @@ def emit_medication_missed(
             "care_activity_id": str(care_activity_id),
             "care_completion_id": str(care_completion_id),
             "workflow_execution_id": str(workflow_execution_id),
+            "elder_id": str(activity.elder_id),
+            "aggregate_version": activity.aggregate_version,
         },
     )
