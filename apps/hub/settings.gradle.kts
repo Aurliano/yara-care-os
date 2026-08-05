@@ -20,4 +20,14 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "hub"
-include(":app")
+include(
+    ":app",
+    ":core",
+    ":database",
+    ":network",
+    ":data",
+    ":sync",
+    ":runtime",
+    ":ui",
+    ":feature-home",
+)

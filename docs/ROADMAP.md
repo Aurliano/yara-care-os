@@ -45,7 +45,7 @@ Priority order:
 
 ---
 
-# Sprint 0 — Product Foundation
+# Sprint 0 — Product Foundation ✅ Completed
 
 Goal
 
@@ -84,7 +84,7 @@ Exit Criteria
 
 ---
 
-# Sprint 1 — Platform Foundation
+# Sprint 1 — Platform Foundation  ✅ Completed
 
 Goal
 
@@ -119,36 +119,109 @@ Exit Criteria
 
 ---
 
-# Sprint 2 — Android Hub MVP
+# Sprint 2 — Android Hub Runtime (Revised)
+Goal
+
+Transform the current Android prototype into the production Hub runtime that implements the frozen Backend architecture while remaining fully offline-first.
+
+Sprint II-A — Foundation & Runtime
 
 Goal
 
-Complete the dedicated Hub application.
-
+Replace the prototype architecture with the production Hub architecture.
 Objectives
-
-- Device Owner
-- Kiosk Mode
-- Auto Boot
-- Room Database
-- Medication Engine
-- Offline Scheduler
-- BLE Manager
-- Sync Queue
-- Device Monitoring
-
+Platform Foundation
+Multi-module architecture
+Dependency Injection
+ViewModel architecture
+Navigation architecture
+Configuration management
+Persistence
+Room Database
+Replica storage
+Outbox storage
+Replica metadata
+Checkpoint persistence
+Networking
+Retrofit
+JWT Authentication
+Device Registration
+Correlation IDs
+Replica IDs
+Synchronization
+Sync Session client
+Delta download
+Delta upload
+Snapshot support
+Checkpoint management
+Runtime
+Integration Runtime
+WorkManager jobs
+Boot recovery
+Alarm recovery
+Runtime lifecycle
+Refactoring
+Remove Medication aggregate
+Remove InMemory repository
+Remove Medication CRUD
+Preserve UI Design System
 Deliverables
-
-- Stable Hub application
-- Offline medication reminders
-- BLE service
-- Local persistence
-
+Stable Hub architecture
+Local replica database
+Sync infrastructure
+Runtime foundation
+Backend connectivity
 Exit Criteria
+Hub authenticates with Backend.
+Replica database survives reboot.
+Synchronization session works.
+Outbox persists offline.
+Integration Runtime runs locally.
+Prototype domain removed.
 
-- Hub works without internet.
-- Medication reminders are reliable.
-- BLE layer is stable.
+Sprint II-B — Reminder Runtime
+
+Goal
+
+Implement the complete offline reminder runtime using replicated backend domains.
+Objectives
+Scheduling Runtime
+ScheduleDefinition replicas
+Local occurrence generation
+Alarm scheduling
+Boot rescheduling
+Workflow Runtime
+WorkflowExecution replicas
+Action dispatcher
+Reminder lifecycle
+Retry
+Timeout
+Escalation
+Reminder UI
+Today screen from replicas
+Reminder screen from WorkflowExecution
+Confirmation UI
+Active execution UI
+Offline Confirmation
+Pending evidence queue
+Confirmation upload
+Idempotent replay
+Integration
+Hub Confirmation API
+Runtime processing
+Sync after confirmation
+Deliverables
+Complete reminder runtime
+Offline reminder execution
+Workflow confirmations
+Evidence queue
+End-to-end backend integration
+Exit Criteria
+Reminder works without internet.
+Workflow executes locally.
+Confirmation syncs after reconnect.
+No local medication logic remains.
+Backend reminder flow is fully mirrored.
 
 ---
 

@@ -1,17 +1,39 @@
 package ir.sayda.yara.hub
 
 import android.app.Application
-import ir.sayda.yara.hub.data.repository.InMemoryMedicationRepository
-import ir.sayda.yara.hub.domain.repository.MedicationRepository
+import androidx.hilt.work.HiltWorkerFactory
+import androidx.work.Configuration
+import dagger.hilt.android.HiltAndroidApp
+import ir.sayda.yara.hub.data.identity.DataStoreReplicaIdentityProvider
+import ir.sayda.yara.hub.core.runtime.RuntimeScheduler
+import ir.sayda.yara.hub.runtime.HubRuntimeOrchestrator
+import javax.inject.Inject
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 
-class YaraApplication : Application() {
-    
-    // Simple manual DI for MVP
-    lateinit var medicationRepository: MedicationRepository
-        private set
+@HiltAndroidApp
+class YaraApplication : Application(), Configuration.Provider {
+
+    @Inject lateinit var workerFactory: HiltWorkerFactory
+    @Inject lateinit var identityProvider: DataStoreReplicaIdentityProvider
+    @Inject lateinit var runtimeOrchestrator: HubRuntimeOrchestrator
+    @Inject lateinit var runtimeScheduler: RuntimeScheduler
+
+    private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     override fun onCreate() {
         super.onCreate()
-        medicationRepository = InMemoryMedicationRepository(this)
+        applicationScope.launch {
+            identityProvider.hydrateFromStore()
+            runtimeOrchestrator.recover()
+            runtimeScheduler.schedulePeriodicRuntimeWork()
+        }
     }
+
+    override val workManagerConfiguration: Configuration
+        get() = Configuration.Builder()
+            .setWorkerFactory(workerFactory)
+            .build()
 }
