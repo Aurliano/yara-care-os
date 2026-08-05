@@ -8,6 +8,7 @@ import ir.sayda.yara.hub.core.runtime.RuntimeEventBus
 import ir.sayda.yara.hub.core.runtime.RuntimeOccurrenceDue
 import ir.sayda.yara.hub.core.scheduling.OccurrenceStatus
 import ir.sayda.yara.hub.core.scheduling.ScheduleStatus
+import ir.sayda.yara.hub.runtime.alarm.RuntimeAlarmCoordinator
 import ir.sayda.yara.hub.runtime.identity.computeOccurrenceId
 import kotlinx.coroutines.flow.first
 import javax.inject.Inject
@@ -17,6 +18,7 @@ import javax.inject.Singleton
 class SchedulingReplicaRuntime @Inject constructor(
     private val schedulingRepository: SchedulingReplicaRepository,
     private val eventBus: RuntimeEventBus,
+    private val runtimeAlarmCoordinator: RuntimeAlarmCoordinator,
 ) {
 
     suspend fun hydrateAndEvaluate(nowEpochMillis: Long = System.currentTimeMillis()): SchedulingCycleResult {
@@ -38,6 +40,7 @@ class SchedulingReplicaRuntime @Inject constructor(
                 updatedAtEpochMillis = nowEpochMillis,
             )
             schedulingRepository.upsertOccurrence(updated)
+            runtimeAlarmCoordinator.cancelAlarmForOccurrence(updated.id)
             eventBus.publish(
                 RuntimeEvent.OccurrenceDue(
                     RuntimeOccurrenceDue(
@@ -82,6 +85,11 @@ class SchedulingReplicaRuntime @Inject constructor(
                     status = OccurrenceStatus.SCHEDULED.name,
                     updatedAtEpochMillis = nowEpochMillis,
                 ),
+            )
+            runtimeAlarmCoordinator.registerAlarmForOccurrence(
+                occurrenceId = occurrenceId,
+                triggerAtEpochMillis = slot.originalTimeEpochMillis,
+                nowEpochMillis = nowEpochMillis,
             )
             created++
         }

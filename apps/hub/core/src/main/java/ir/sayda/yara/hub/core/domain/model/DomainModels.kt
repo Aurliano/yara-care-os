@@ -196,4 +196,8 @@ data class HomeRuntimeSnapshot(
     val runtimeHealth: String,
     val lastSyncEpochMillis: Long?,
     val isOnline: Boolean,
+    val nextReminderEpochMillis: Long? = null,
+    val pendingEvidenceCount: Int = 0,
+    val synchronizationAvailable: Boolean = false,
+    val registeredAlarmCount: Int = 0,
 )

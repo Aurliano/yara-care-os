@@ -44,8 +44,6 @@ class SchedulingReplicaRuntimeComponent : BaseRuntimeComponent("scheduling_repli
 
 class WorkflowReplicaRuntimeComponent : BaseRuntimeComponent("workflow_replica_runtime")
 
-class SynchronizationReplicaRuntimeComponent : BaseRuntimeComponent("synchronization_replica_runtime")
-
 class DeviceReplicaRuntimeComponent : BaseRuntimeComponent("device_replica_runtime")
 
 class CommunicationReplicaRuntimeComponent : BaseRuntimeComponent("communication_replica_runtime")

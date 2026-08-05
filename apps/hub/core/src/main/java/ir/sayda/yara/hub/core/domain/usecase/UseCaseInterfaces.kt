@@ -24,6 +24,10 @@ interface RunIntegrationCycleUseCase {
     suspend operator fun invoke(): AppResult<Map<String, Int>>
 }
 
+interface RunSynchronizationCycleUseCase {
+    suspend operator fun invoke(idempotencyKey: String): AppResult<ir.sayda.yara.hub.core.sync.ApplySummary>
+}
+
 interface StartSynchronizationUseCase {
     suspend operator fun invoke(direction: SyncDirection, idempotencyKey: String): AppResult<Unit>
 }

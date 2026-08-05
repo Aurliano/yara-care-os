@@ -71,6 +71,37 @@ data class HubRuntimeProcessResponseDto(
 )
 
 @Serializable
+data class SyncOperationDto(
+    val id: String,
+    @SerialName("operation_type") val operationType: String,
+    @SerialName("aggregate_reference") val aggregateReference: String,
+    @SerialName("aggregate_version") val aggregateVersion: String,
+    @SerialName("payload_type") val payloadType: String,
+    @SerialName("payload_hash") val payloadHash: String,
+    val payload: JsonObject? = null,
+    val status: String,
+    @SerialName("failure_reason") val failureReason: String? = null,
+    @SerialName("started_at") val startedAt: String? = null,
+    @SerialName("applied_at") val appliedAt: String? = null,
+)
+
+@Serializable
+data class SyncSessionResponseDto(
+    val id: String,
+    @SerialName("replica_identifier") val replicaIdentifier: String,
+    val direction: String,
+    val status: String,
+    @SerialName("synchronization_token") val synchronizationToken: String,
+)
+
+@Serializable
+data class SyncCheckpointResponseDto(
+    @SerialName("replica_identifier") val replicaIdentifier: String,
+    @SerialName("checkpoint_sequence") val checkpointSequence: Long,
+    @SerialName("checkpoint_token") val checkpointToken: String? = null,
+)
+
+@Serializable
 data class ApiErrorDto(
     val detail: String? = null,
     val code: String? = null,

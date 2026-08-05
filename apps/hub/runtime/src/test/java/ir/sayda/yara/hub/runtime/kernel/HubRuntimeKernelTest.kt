@@ -79,4 +79,17 @@ class HubRuntimeKernelTest {
         assertEquals(RuntimeKernelState.STOPPED, kernel.kernelState)
         assertFalse(kernel.health().healthy)
     }
+
+    @Test
+    fun restoreFromPersistenceRestoresKernelState() = runBlocking {
+        persisted += RuntimeStateRecord(
+            componentId = HubRuntimeKernel.KERNEL_COMPONENT_ID,
+            lifecycleState = RuntimeKernelState.RUNNING.name,
+            statePayloadJson = "{}",
+            updatedAtEpochMillis = 1L,
+        )
+        val kernel = HubRuntimeKernel(repository)
+        kernel.restoreFromPersistence()
+        assertEquals(RuntimeKernelState.RUNNING, kernel.kernelState)
+    }
 }

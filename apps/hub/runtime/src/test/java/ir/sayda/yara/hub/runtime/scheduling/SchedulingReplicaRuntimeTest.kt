@@ -2,8 +2,10 @@ package ir.sayda.yara.hub.runtime.scheduling
 
 import ir.sayda.yara.hub.core.scheduling.OccurrenceStatus
 import ir.sayda.yara.hub.runtime.event.RuntimeEventBusImpl
+import ir.sayda.yara.hub.runtime.support.InMemoryOccurrenceAlarmRegistry
 import ir.sayda.yara.hub.runtime.support.InMemorySchedulingRepository
 import ir.sayda.yara.hub.runtime.support.sampleSchedule
+import ir.sayda.yara.hub.runtime.alarm.RuntimeAlarmCoordinator
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -17,7 +19,9 @@ class SchedulingReplicaRuntimeTest {
         val schedulingRepository = InMemorySchedulingRepository()
         schedulingRepository.seedSchedule(sampleSchedule(startAtEpochMillis = scheduleStart))
         val eventBus = RuntimeEventBusImpl()
-        val runtime = SchedulingReplicaRuntime(schedulingRepository, eventBus)
+        val alarmRegistry = InMemoryOccurrenceAlarmRegistry()
+        val alarmCoordinator = RuntimeAlarmCoordinator(schedulingRepository, alarmRegistry)
+        val runtime = SchedulingReplicaRuntime(schedulingRepository, eventBus, alarmCoordinator)
 
         val result = runtime.hydrateAndEvaluate(now)
 
@@ -34,7 +38,15 @@ class SchedulingReplicaRuntimeTest {
         val scheduleStart = now - 60_000L
         val schedulingRepository = InMemorySchedulingRepository()
         schedulingRepository.seedSchedule(sampleSchedule(startAtEpochMillis = scheduleStart))
-        val runtime = SchedulingReplicaRuntime(schedulingRepository, RuntimeEventBusImpl())
+        val alarmCoordinator = RuntimeAlarmCoordinator(
+            schedulingRepository,
+            InMemoryOccurrenceAlarmRegistry(),
+        )
+        val runtime = SchedulingReplicaRuntime(
+            schedulingRepository,
+            RuntimeEventBusImpl(),
+            alarmCoordinator,
+        )
 
         runtime.hydrateAndEvaluate(now)
         val firstId = schedulingRepository.allOccurrences().single().id

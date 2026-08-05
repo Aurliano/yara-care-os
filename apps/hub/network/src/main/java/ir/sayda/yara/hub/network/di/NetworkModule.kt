@@ -78,6 +78,11 @@ object NetworkModule {
 
     @Provides
     @Singleton
+    fun provideSynchronizationDomainApi(retrofit: Retrofit): ir.sayda.yara.hub.network.api.SynchronizationDomainApi =
+        retrofit.create(ir.sayda.yara.hub.network.api.SynchronizationDomainApi::class.java)
+
+    @Provides
+    @Singleton
     fun provideAuthInterceptor(identityProvider: ReplicaIdentityProvider): AuthInterceptor =
         AuthInterceptor(identityProvider)
 

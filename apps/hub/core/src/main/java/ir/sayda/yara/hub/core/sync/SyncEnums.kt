@@ -22,6 +22,7 @@ enum class OutboxEntryStatus {
 
 enum class PendingEvidenceStatus {
     PENDING,
+    IN_FLIGHT,
     SUBMITTED,
     FAILED,
 }

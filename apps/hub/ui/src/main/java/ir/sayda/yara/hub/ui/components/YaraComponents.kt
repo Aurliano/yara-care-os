@@ -257,17 +257,26 @@ fun RuntimeStatusCard(
     isOnline: Boolean,
     activeExecutionCount: Int,
     todayReminderCount: Int,
+    nextReminderEpochMillis: Long? = null,
+    pendingEvidenceCount: Int = 0,
+    synchronizationAvailable: Boolean = false,
+    registeredAlarmCount: Int = 0,
     modifier: Modifier = Modifier,
 ) {
     val lastSyncLabel = lastSyncEpochMillis?.let { formatEpoch(it) } ?: "هرگز"
+    val nextReminderLabel = nextReminderEpochMillis?.let { formatEpoch(it) } ?: "نامشخص"
+    val syncLabel = if (synchronizationAvailable) "همگام‌سازی در دسترس" else "همگام‌سازی غیرفعال"
     YaraBaseCard(
         onClick = {},
         icon = Icons.Rounded.Medication,
         iconColor = YaraGreen,
         iconBackground = YaraLightGreen,
         title = if (isOnline) "متصل به سرور" else "حالت آفلاین",
-        subtitle = "یادآورهای امروز: $todayReminderCount",
-        description = "Runtime: $runtimeHealth | Replica: $replicaHealth | آخرین همگام‌سازی: $lastSyncLabel",
+        subtitle = "یادآور بعدی: $nextReminderLabel · امروز: $todayReminderCount",
+        description = "Runtime: $runtimeHealth | Replica: $replicaHealth | " +
+            "آخرین همگام‌سازی: $lastSyncLabel | " +
+            "شواهد در صف: $pendingEvidenceCount | " +
+            "آلارم‌ها: $registeredAlarmCount | $syncLabel",
         modifier = modifier,
     )
 }

@@ -14,6 +14,7 @@ import ir.sayda.yara.hub.database.dao.PrescriptionDao
 import ir.sayda.yara.hub.database.dao.ReplicaStateDao
 import ir.sayda.yara.hub.database.dao.RuntimeStateDao
 import ir.sayda.yara.hub.database.dao.ScheduleDefinitionDao
+import ir.sayda.yara.hub.database.dao.SyncConflictDao
 import ir.sayda.yara.hub.database.dao.SyncSessionLocalDao
 import ir.sayda.yara.hub.database.dao.WorkflowDefinitionDao
 import ir.sayda.yara.hub.database.dao.WorkflowExecutionDao
@@ -29,6 +30,7 @@ import ir.sayda.yara.hub.database.entity.PrescriptionEntity
 import ir.sayda.yara.hub.database.entity.ReplicaStateEntity
 import ir.sayda.yara.hub.database.entity.RuntimeStateEntity
 import ir.sayda.yara.hub.database.entity.ScheduleDefinitionEntity
+import ir.sayda.yara.hub.database.entity.SyncConflictEntity
 import ir.sayda.yara.hub.database.entity.SyncSessionLocalEntity
 import ir.sayda.yara.hub.database.entity.WorkflowDefinitionEntity
 import ir.sayda.yara.hub.database.entity.WorkflowExecutionEntity
@@ -50,8 +52,9 @@ import ir.sayda.yara.hub.database.entity.WorkflowExecutionEntity
         OutboxEntryEntity::class,
         RuntimeStateEntity::class,
         SyncSessionLocalEntity::class,
+        SyncConflictEntity::class,
     ],
-    version = 2,
+    version = 3,
     exportSchema = true,
     autoMigrations = [],
 )
@@ -71,4 +74,5 @@ abstract class HubDatabase : RoomDatabase() {
     abstract fun outboxDao(): OutboxDao
     abstract fun runtimeStateDao(): RuntimeStateDao
     abstract fun syncSessionLocalDao(): SyncSessionLocalDao
+    abstract fun syncConflictDao(): SyncConflictDao
 }

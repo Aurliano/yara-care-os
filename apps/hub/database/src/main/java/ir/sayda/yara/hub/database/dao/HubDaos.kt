@@ -34,6 +34,9 @@ interface CareActivityDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(entity: CareActivityEntity)
+
+    @Query("DELETE FROM care_activity")
+    suspend fun deleteAll()
 }
 
 @Dao
@@ -46,6 +49,9 @@ interface PrescriptionDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(entity: PrescriptionEntity)
+
+    @Query("DELETE FROM prescription")
+    suspend fun deleteAll()
 }
 
 @Dao
@@ -58,6 +64,9 @@ interface WorkflowDefinitionDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(entity: WorkflowDefinitionEntity)
+
+    @Query("DELETE FROM workflow_definition")
+    suspend fun deleteAll()
 }
 
 @Dao
@@ -73,6 +82,9 @@ interface WorkflowExecutionDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(entity: WorkflowExecutionEntity)
+
+    @Query("DELETE FROM workflow_execution")
+    suspend fun deleteAll()
 }
 
 @Dao
@@ -82,6 +94,9 @@ interface ScheduleDefinitionDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(entity: ScheduleDefinitionEntity)
+
+    @Query("DELETE FROM schedule_definition")
+    suspend fun deleteAll()
 }
 
 @Dao
@@ -121,12 +136,37 @@ interface OccurrenceDao {
         """,
     )
     suspend fun getScheduledDueBefore(epochMillis: Long): List<OccurrenceEntity>
+
+    @Query(
+        """
+        SELECT * FROM occurrence
+        WHERE status = 'SCHEDULED' AND scheduled_for_epoch_millis > :epochMillis
+        ORDER BY scheduled_for_epoch_millis
+        """,
+    )
+    suspend fun getScheduledAfter(epochMillis: Long): List<OccurrenceEntity>
+
+    @Query(
+        """
+        SELECT * FROM occurrence
+        WHERE status = 'SCHEDULED' AND scheduled_for_epoch_millis > :epochMillis
+        ORDER BY scheduled_for_epoch_millis
+        LIMIT 1
+        """,
+    )
+    fun observeNextScheduledAfter(epochMillis: Long): Flow<OccurrenceEntity?>
+
+    @Query("DELETE FROM occurrence")
+    suspend fun deleteAll()
 }
 
 @Dao
 interface DeviceDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(entity: DeviceEntity)
+
+    @Query("DELETE FROM device")
+    suspend fun deleteAll()
 }
 
 @Dao
@@ -136,6 +176,9 @@ interface DeviceCommandDao {
 
     @Query("SELECT * FROM device_command WHERE status = 'QUEUED' ORDER BY expires_at_epoch_millis")
     suspend fun getQueued(): List<DeviceCommandEntity>
+
+    @Query("DELETE FROM device_command")
+    suspend fun deleteAll()
 }
 
 @Dao
@@ -151,12 +194,18 @@ interface ContactDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(entity: ContactEntity)
+
+    @Query("DELETE FROM contact")
+    suspend fun deleteAll()
 }
 
 @Dao
 interface CommunicationSessionDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(entity: CommunicationSessionEntity)
+
+    @Query("DELETE FROM communication_session")
+    suspend fun deleteAll()
 }
 
 @Dao
@@ -182,6 +231,9 @@ interface PendingEvidenceDao {
     @Query("SELECT * FROM pending_evidence WHERE status = 'PENDING' ORDER BY created_at_epoch_millis LIMIT :limit")
     suspend fun getPending(limit: Int): List<PendingEvidenceEntity>
 
+    @Query("SELECT * FROM pending_evidence WHERE status = 'IN_FLIGHT' ORDER BY created_at_epoch_millis LIMIT :limit")
+    suspend fun getInFlight(limit: Int): List<PendingEvidenceEntity>
+
     @Query(
         """
         SELECT * FROM pending_evidence
@@ -201,6 +253,9 @@ interface PendingEvidenceDao {
         """,
     )
     fun observeHubConfirmationEvidence(): kotlinx.coroutines.flow.Flow<List<PendingEvidenceEntity>>
+
+    @Query("SELECT COUNT(*) FROM pending_evidence WHERE status = 'PENDING'")
+    fun observePendingCount(): Flow<Int>
 
     @Query(
         """
@@ -281,4 +336,32 @@ interface RuntimeStateDao {
 interface SyncSessionLocalDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(entity: SyncSessionLocalEntity)
+
+    @Query(
+        """
+        SELECT * FROM sync_session_local
+        WHERE status NOT IN ('SESSION_COMPLETED', 'SESSION_CANCELLED')
+        ORDER BY started_at_epoch_millis DESC
+        LIMIT 1
+        """,
+    )
+    suspend fun getActive(): SyncSessionLocalEntity?
+
+    @Query("SELECT * FROM sync_session_local WHERE session_id = :sessionId LIMIT 1")
+    suspend fun getById(sessionId: String): SyncSessionLocalEntity?
+
+    @Query("UPDATE sync_session_local SET status = :status WHERE session_id = :sessionId")
+    suspend fun updateStatus(sessionId: String, status: String)
+
+    @Query("DELETE FROM sync_session_local WHERE session_id = :sessionId")
+    suspend fun delete(sessionId: String)
+}
+
+@Dao
+interface SyncConflictDao {
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insert(entity: ir.sayda.yara.hub.database.entity.SyncConflictEntity)
+
+    @Query("SELECT * FROM sync_conflict ORDER BY detected_at_epoch_millis DESC")
+    suspend fun getAll(): List<ir.sayda.yara.hub.database.entity.SyncConflictEntity>
 }

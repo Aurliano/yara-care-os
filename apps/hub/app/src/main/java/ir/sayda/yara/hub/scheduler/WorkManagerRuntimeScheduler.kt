@@ -1,6 +1,7 @@
 package ir.sayda.yara.hub.scheduler
 
 import android.content.Context
+import androidx.work.Data
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.ExistingWorkPolicy
 import androidx.work.OneTimeWorkRequestBuilder
@@ -27,8 +28,17 @@ class WorkManagerRuntimeScheduler @Inject constructor(
         )
     }
 
-    override fun scheduleOneTimeRuntimeWork() {
-        val request = OneTimeWorkRequestBuilder<IntegrationRuntimeWorker>().build()
+    override fun scheduleOneTimeRuntimeWork(occurrenceId: String?) {
+        val input = if (occurrenceId.isNullOrBlank()) {
+            Data.EMPTY
+        } else {
+            Data.Builder()
+                .putString(IntegrationRuntimeWorker.INPUT_OCCURRENCE_ID, occurrenceId)
+                .build()
+        }
+        val request = OneTimeWorkRequestBuilder<IntegrationRuntimeWorker>()
+            .setInputData(input)
+            .build()
         WorkManager.getInstance(context).enqueueUniqueWork(
             IntegrationRuntimeWorker.UNIQUE_WORK_NAME,
             ExistingWorkPolicy.REPLACE,

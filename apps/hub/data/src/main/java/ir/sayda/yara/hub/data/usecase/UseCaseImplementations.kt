@@ -13,11 +13,11 @@ import ir.sayda.yara.hub.core.domain.usecase.ObserveHomeSnapshotUseCase
 import ir.sayda.yara.hub.core.domain.usecase.ObserveHubIdentityUseCase
 import ir.sayda.yara.hub.core.domain.usecase.ObserveReminderPresentationUseCase
 import ir.sayda.yara.hub.core.domain.usecase.ObserveReplicaStateUseCase
+import ir.sayda.yara.hub.core.domain.usecase.RunSynchronizationCycleUseCase
 import ir.sayda.yara.hub.core.domain.usecase.StartSynchronizationUseCase
 import ir.sayda.yara.hub.core.result.AppResult
 import ir.sayda.yara.hub.core.sync.OutboxOperationType
 import ir.sayda.yara.hub.core.sync.SyncDirection
-import ir.sayda.yara.hub.core.sync.SynchronizationClient
 import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
 
@@ -46,7 +46,7 @@ class ObserveReminderPresentationUseCaseImpl @Inject constructor(
 }
 
 class StartSynchronizationUseCaseImpl @Inject constructor(
-    private val synchronizationClient: SynchronizationClient,
+    private val runSynchronizationCycleUseCase: RunSynchronizationCycleUseCase,
     private val outboxRepository: OutboxRepository,
     private val connectivityRepository: ConnectivityRepository,
 ) : StartSynchronizationUseCase {
@@ -59,9 +59,9 @@ class StartSynchronizationUseCaseImpl @Inject constructor(
             )
             return AppResult.Success(Unit)
         }
-        return when (val session = synchronizationClient.beginSession(direction, idempotencyKey)) {
-            is AppResult.Success -> synchronizationClient.complete()
-            is AppResult.Error -> session
+        return when (val result = runSynchronizationCycleUseCase(idempotencyKey)) {
+            is AppResult.Success -> AppResult.Success(Unit)
+            is AppResult.Error -> result
         }
     }
 }

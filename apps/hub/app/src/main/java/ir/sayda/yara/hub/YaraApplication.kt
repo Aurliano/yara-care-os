@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
 import dagger.hilt.android.HiltAndroidApp
+import ir.sayda.yara.hub.connectivity.ConnectivitySyncTrigger
 import ir.sayda.yara.hub.data.identity.DataStoreReplicaIdentityProvider
 import ir.sayda.yara.hub.core.runtime.RuntimeScheduler
 import ir.sayda.yara.hub.runtime.HubRuntimeOrchestrator
@@ -20,6 +21,7 @@ class YaraApplication : Application(), Configuration.Provider {
     @Inject lateinit var identityProvider: DataStoreReplicaIdentityProvider
     @Inject lateinit var runtimeOrchestrator: HubRuntimeOrchestrator
     @Inject lateinit var runtimeScheduler: RuntimeScheduler
+    @Inject lateinit var connectivitySyncTrigger: ConnectivitySyncTrigger
 
     private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
@@ -29,6 +31,7 @@ class YaraApplication : Application(), Configuration.Provider {
             identityProvider.hydrateFromStore()
             runtimeOrchestrator.recover()
             runtimeScheduler.schedulePeriodicRuntimeWork()
+            connectivitySyncTrigger.register()
         }
     }
 

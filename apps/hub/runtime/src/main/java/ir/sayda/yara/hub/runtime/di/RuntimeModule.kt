@@ -30,6 +30,8 @@ import ir.sayda.yara.hub.runtime.kernel.HubRuntimeKernel
 import ir.sayda.yara.hub.runtime.usecase.ConfirmReminderUseCaseImpl
 import ir.sayda.yara.hub.runtime.usecase.RecoverRuntimeUseCaseImpl
 import ir.sayda.yara.hub.runtime.usecase.RunIntegrationCycleUseCaseImpl
+import ir.sayda.yara.hub.core.runtime.RuntimeRefreshPort
+import ir.sayda.yara.hub.runtime.RuntimeRefreshCoordinator
 import javax.inject.Singleton
 
 @Module
@@ -42,6 +44,7 @@ abstract class RuntimeModule {
     @Binds abstract fun bindRunIntegrationCycleUseCase(impl: RunIntegrationCycleUseCaseImpl): RunIntegrationCycleUseCase
     @Binds abstract fun bindRecoverRuntimeUseCase(impl: RecoverRuntimeUseCaseImpl): RecoverRuntimeUseCase
     @Binds abstract fun bindConfirmReminderUseCase(impl: ConfirmReminderUseCaseImpl): ConfirmReminderUseCase
+    @Binds @Singleton abstract fun bindRuntimeRefreshPort(impl: RuntimeRefreshCoordinator): RuntimeRefreshPort
 
     @Binds @IntoSet abstract fun bindReminderHandler(handler: ShowReminderActionHandler): RuntimeActionHandler
     @Binds @IntoSet abstract fun bindDeviceHandler(handler: DeferredDeviceActionHandler): RuntimeActionHandler
@@ -56,9 +59,6 @@ object RuntimeComponentModule {
 
     @Provides @Singleton fun provideWorkflowRuntime(): WorkflowReplicaRuntimeComponent =
         WorkflowReplicaRuntimeComponent()
-
-    @Provides @Singleton fun provideSynchronizationRuntime(): SynchronizationReplicaRuntimeComponent =
-        SynchronizationReplicaRuntimeComponent()
 
     @Provides @Singleton fun provideDeviceRuntime(): DeviceReplicaRuntimeComponent =
         DeviceReplicaRuntimeComponent()

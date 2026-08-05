@@ -49,6 +49,8 @@ interface RuntimeKernel {
 
     suspend fun stop()
 
+    suspend fun restoreFromPersistence()
+
     suspend fun health(): RuntimeHealth
 
     fun componentHealth(componentId: String): RuntimeHealth?
@@ -79,7 +81,7 @@ interface ActionRegistry {
 
 interface RuntimeScheduler {
     fun schedulePeriodicRuntimeWork()
-    fun scheduleOneTimeRuntimeWork()
+    fun scheduleOneTimeRuntimeWork(occurrenceId: String? = null)
 }
 
 const val RUNTIME_KERNEL_COMPONENT_ID = "__kernel__"

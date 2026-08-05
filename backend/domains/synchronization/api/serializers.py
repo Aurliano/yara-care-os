@@ -81,6 +81,7 @@ class SynchronizationOperationSerializer(serializers.ModelSerializer):
             "operation_type",
             "aggregate_reference",
             "aggregate_version",
+            "payload",
             "payload_type",
             "payload_hash",
             "status",

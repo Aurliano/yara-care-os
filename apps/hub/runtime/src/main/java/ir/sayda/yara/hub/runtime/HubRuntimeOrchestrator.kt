@@ -10,6 +10,7 @@ import ir.sayda.yara.hub.runtime.component.IntegrationRuntimeComponent
 import ir.sayda.yara.hub.runtime.component.SchedulingReplicaRuntimeComponent
 import ir.sayda.yara.hub.runtime.component.SynchronizationReplicaRuntimeComponent
 import ir.sayda.yara.hub.runtime.component.WorkflowReplicaRuntimeComponent
+import ir.sayda.yara.hub.runtime.alarm.RuntimeAlarmCoordinator
 import ir.sayda.yara.hub.runtime.scheduling.SchedulingReplicaRuntime
 import ir.sayda.yara.hub.runtime.workflow.WorkflowReplicaRuntime
 import javax.inject.Inject
@@ -26,6 +27,7 @@ class HubRuntimeOrchestrator @Inject constructor(
     private val deviceRuntime: DeviceReplicaRuntimeComponent,
     private val communicationRuntime: CommunicationReplicaRuntimeComponent,
     private val integrationRuntime: IntegrationRuntimeComponent,
+    private val runtimeAlarmCoordinator: RuntimeAlarmCoordinator,
 ) {
 
     private var componentsRegistered = false
@@ -43,7 +45,11 @@ class HubRuntimeOrchestrator @Inject constructor(
 
     suspend fun recover(): AppResult<Unit> {
         return try {
+            registerComponentsIfNeeded()
+            runtimeKernel.restoreFromPersistence()
             ensureRunningKernel()
+            runtimeAlarmCoordinator.syncAlarmsFromReplicas()
+            workflowReplicaRuntime.dispatchActiveReminders()
             AppResult.Success(Unit)
         } catch (exception: IllegalRuntimeTransitionException) {
             AppResult.Error(exception)

@@ -20,7 +20,11 @@ import ir.sayda.yara.hub.database.HubDatabase
 import ir.sayda.yara.hub.core.runtime.RUNTIME_KERNEL_COMPONENT_ID
 import ir.sayda.yara.hub.database.mapper.toDomain
 import ir.sayda.yara.hub.database.mapper.toEntity
+import ir.sayda.yara.hub.core.domain.repository.ReplicaCheckpoint
+import ir.sayda.yara.hub.core.sync.SyncOperation
+import ir.sayda.yara.hub.core.sync.SyncOperationType
 import ir.sayda.yara.hub.network.api.HubIntegrationApi
+import ir.sayda.yara.hub.network.api.SynchronizationDomainApi
 import ir.sayda.yara.hub.network.dto.HubConfirmationRequestDto
 import ir.sayda.yara.hub.network.dto.HubSyncPayloadRequestDto
 import ir.sayda.yara.hub.network.dto.HubSyncStartRequestDto
@@ -46,6 +50,7 @@ class ReplicaMetadataRepositoryImpl @Inject constructor(
 
     override suspend fun advanceCheckpoint(sequence: Long, token: String?) {
         val current = dao.get() ?: return
+        if (sequence <= current.checkpointSequence) return
         dao.upsert(
             current.copy(
                 checkpointSequence = sequence,
@@ -176,6 +181,8 @@ class PendingEvidenceRepositoryImpl @Inject constructor(
     override fun observeHubConfirmationEvidence(): kotlinx.coroutines.flow.Flow<List<PendingEvidence>> =
         dao.observeHubConfirmationEvidence().map { entities -> entities.map { it.toDomain() } }
 
+    override fun observePendingCount(): Flow<Int> = dao.observePendingCount()
+
     override suspend fun markSubmitted(id: String) {
         val evidence = dao.getById(id) ?: return
         val now = System.currentTimeMillis()
@@ -186,6 +193,32 @@ class PendingEvidenceRepositoryImpl @Inject constructor(
             updatedAt = now,
             retryCount = evidence.retryCount,
             lastError = null,
+        )
+    }
+
+    override suspend fun markInFlight(id: String) {
+        val evidence = dao.getById(id) ?: return
+        val now = System.currentTimeMillis()
+        dao.updateStatus(
+            id = id,
+            status = PendingEvidenceStatus.IN_FLIGHT.name,
+            attemptAt = now,
+            updatedAt = now,
+            retryCount = evidence.retryCount,
+            lastError = null,
+        )
+    }
+
+    override suspend fun revertToPending(id: String) {
+        val evidence = dao.getById(id) ?: return
+        val now = System.currentTimeMillis()
+        dao.updateStatus(
+            id = id,
+            status = PendingEvidenceStatus.PENDING.name,
+            attemptAt = now,
+            updatedAt = now,
+            retryCount = evidence.retryCount,
+            lastError = evidence.lastError,
         )
     }
 
@@ -227,10 +260,73 @@ class RuntimeStateRepositoryImpl @Inject constructor(
 @Singleton
 class SynchronizationRepositoryImpl @Inject constructor(
     private val hubIntegrationApi: HubIntegrationApi,
+    private val synchronizationDomainApi: SynchronizationDomainApi,
     private val database: HubDatabase,
     private val json: Json,
 ) : SynchronizationRepository {
     private val syncSessionDao = database.syncSessionLocalDao()
+
+    override suspend fun fetchPendingOperations(sessionId: String): AppResult<List<SyncOperation>> {
+        return try {
+            val operations = synchronizationDomainApi.getPendingOperations(sessionId).map { dto ->
+                SyncOperation(
+                    id = dto.id,
+                    operationType = SyncOperationType.valueOf(dto.operationType),
+                    aggregateReference = dto.aggregateReference,
+                    aggregateVersion = dto.aggregateVersion,
+                    payloadType = dto.payloadType,
+                    payloadHash = dto.payloadHash,
+                    payloadJson = dto.payload?.toString() ?: "{}",
+                    status = dto.status,
+                )
+            }
+            AppResult.Success(operations)
+        } catch (exception: Exception) {
+            AppResult.Error(exception)
+        }
+    }
+
+    override suspend fun resumeSession(sessionId: String): AppResult<SyncSession> {
+        return try {
+            val response = synchronizationDomainApi.resumeSession(sessionId)
+            val session = SyncSession(
+                sessionId = response.id,
+                direction = response.direction,
+                status = response.status,
+                synchronizationToken = response.synchronizationToken,
+                startedAtEpochMillis = System.currentTimeMillis(),
+            )
+            syncSessionDao.upsert(session.toEntity())
+            AppResult.Success(session)
+        } catch (exception: Exception) {
+            AppResult.Error(exception)
+        }
+    }
+
+    override suspend fun cancelSession(sessionId: String): AppResult<Unit> {
+        return try {
+            synchronizationDomainApi.cancelSession(sessionId)
+            syncSessionDao.delete(sessionId)
+            AppResult.Success(Unit)
+        } catch (exception: Exception) {
+            AppResult.Error(exception)
+        }
+    }
+
+    override suspend fun fetchCheckpoint(replicaId: String): AppResult<ReplicaCheckpoint> {
+        return try {
+            val response = synchronizationDomainApi.getCheckpoint(replicaId)
+            AppResult.Success(
+                ReplicaCheckpoint(
+                    replicaIdentifier = response.replicaIdentifier,
+                    checkpointSequence = response.checkpointSequence,
+                    checkpointToken = response.checkpointToken,
+                ),
+            )
+        } catch (exception: Exception) {
+            AppResult.Error(exception)
+        }
+    }
 
     override suspend fun startSession(direction: SyncDirection, idempotencyKey: String): AppResult<SyncSession> {
         return try {

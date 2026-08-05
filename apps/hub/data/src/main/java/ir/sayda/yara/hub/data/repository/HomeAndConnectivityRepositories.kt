@@ -27,6 +27,7 @@ import ir.sayda.yara.hub.core.domain.repository.ReplicaMetadataRepository
 import ir.sayda.yara.hub.core.domain.repository.RuntimeStateRepository
 import ir.sayda.yara.hub.core.domain.repository.SchedulingReplicaRepository
 import ir.sayda.yara.hub.core.domain.repository.WorkflowReplicaRepository
+import ir.sayda.yara.hub.core.runtime.OccurrenceAlarmRegistry
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -67,6 +68,7 @@ class HomeRepositoryImpl @Inject constructor(
     private val runtimeStateRepository: RuntimeStateRepository,
     private val connectivityRepository: ConnectivityRepository,
     private val pendingEvidenceRepository: PendingEvidenceRepository,
+    private val occurrenceAlarmRegistry: OccurrenceAlarmRegistry,
 ) : HomeRepository {
 
     override fun observeHomeSnapshot(): Flow<HomeRuntimeSnapshot> =
@@ -75,6 +77,7 @@ class HomeRepositoryImpl @Inject constructor(
         }
 
     private fun combineHomeSnapshot(identity: HubIdentity?): Flow<HomeRuntimeSnapshot> {
+        val nowEpochMillis = System.currentTimeMillis()
         val endOfDay = endOfTodayEpochMillis()
         val contactsFlow = identity?.elderId?.let { elderId ->
             communicationReplicaRepository.observePriorityContacts(elderId)
@@ -84,42 +87,48 @@ class HomeRepositoryImpl @Inject constructor(
             combine(
                 workflowReplicaRepository.observeActiveExecutions(),
                 schedulingReplicaRepository.observeOccurrencesDueBefore(endOfDay),
+                schedulingReplicaRepository.observeNextScheduledOccurrence(nowEpochMillis),
+            ) { executions, dueOccurrences, nextOccurrence ->
+                Triple(executions, dueOccurrences, nextOccurrence)
+            },
+            combine(
                 careReplicaRepository.observeAllCareActivities(),
                 careReplicaRepository.observePrescriptions(),
                 replicaMetadataRepository.observeReplicaState(),
-            ) { executions, dueOccurrences, careActivities, prescriptions, replicaState ->
-                HomeReplicaInputs(
-                    executions = executions,
-                    dueOccurrences = dueOccurrences,
-                    careActivities = careActivities,
-                    prescriptions = prescriptions,
-                    replicaState = replicaState,
-                )
+            ) { careActivities, prescriptions, replicaState ->
+                Triple(careActivities, prescriptions, replicaState)
             },
             combine(
                 runtimeStateRepository.observeKernelState(),
                 connectivityRepository.observeOnline(),
                 contactsFlow,
                 pendingEvidenceRepository.observeHubConfirmationEvidence(),
-            ) { kernelState, online, contacts, hubConfirmations ->
+                pendingEvidenceRepository.observePendingCount(),
+            ) { kernelState, online, contacts, hubConfirmations, pendingEvidenceCount ->
                 HomeRuntimeInputs(
                     kernelState = kernelState,
                     online = online,
                     contacts = contacts,
                     hubConfirmations = hubConfirmations,
+                    pendingEvidenceCount = pendingEvidenceCount,
                 )
             },
-        ) { replicaInputs, runtimeInputs ->
+        ) { executionInputs, careInputs, runtimeInputs ->
+            val (executions, dueOccurrences, nextOccurrence) = executionInputs
+            val (careActivities, prescriptions, replicaState) = careInputs
             buildSnapshot(
                 identity = identity,
-                executions = replicaInputs.executions,
-                dueOccurrences = replicaInputs.dueOccurrences,
-                careActivities = replicaInputs.careActivities,
-                prescriptions = replicaInputs.prescriptions,
-                replicaState = replicaInputs.replicaState,
+                executions = executions,
+                dueOccurrences = dueOccurrences,
+                nextOccurrence = nextOccurrence,
+                careActivities = careActivities,
+                prescriptions = prescriptions,
+                replicaState = replicaState,
                 runtimeHealth = runtimeInputs.kernelState?.lifecycleState ?: "UNKNOWN",
                 online = runtimeInputs.online,
                 contacts = runtimeInputs.contacts,
+                pendingEvidenceCount = runtimeInputs.pendingEvidenceCount,
+                registeredAlarmCount = occurrenceAlarmRegistry.queryRegisteredOccurrenceIds().size,
                 locallyConfirmedExecutionIds = runtimeInputs.hubConfirmations
                     .map { it.workflowExecutionId }
                     .toSet(),
@@ -127,31 +136,27 @@ class HomeRepositoryImpl @Inject constructor(
         }
     }
 
-    private data class HomeReplicaInputs(
-        val executions: List<WorkflowExecution>,
-        val dueOccurrences: List<Occurrence>,
-        val careActivities: List<CareActivity>,
-        val prescriptions: List<Prescription>,
-        val replicaState: ReplicaState?,
-    )
-
     private data class HomeRuntimeInputs(
         val kernelState: RuntimeStateRecord?,
         val online: Boolean,
         val contacts: List<Contact>,
         val hubConfirmations: List<PendingEvidence>,
+        val pendingEvidenceCount: Int,
     )
 
     private fun buildSnapshot(
         identity: HubIdentity?,
         executions: List<WorkflowExecution>,
         dueOccurrences: List<Occurrence>,
+        nextOccurrence: Occurrence?,
         careActivities: List<CareActivity>,
         prescriptions: List<Prescription>,
         replicaState: ReplicaState?,
         runtimeHealth: String,
         online: Boolean,
         contacts: List<Contact>,
+        pendingEvidenceCount: Int,
+        registeredAlarmCount: Int,
         locallyConfirmedExecutionIds: Set<String>,
     ): HomeRuntimeSnapshot {
         val activityBySchedule = careActivities.associateBy { it.scheduleDefinitionId }
@@ -186,6 +191,10 @@ class HomeRepositoryImpl @Inject constructor(
             runtimeHealth = runtimeHealth,
             lastSyncEpochMillis = replicaState?.lastSuccessfulSyncEpochMillis,
             isOnline = online,
+            nextReminderEpochMillis = nextOccurrence?.scheduledForEpochMillis,
+            pendingEvidenceCount = pendingEvidenceCount,
+            synchronizationAvailable = online,
+            registeredAlarmCount = registeredAlarmCount,
         )
     }
 

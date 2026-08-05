@@ -20,6 +20,9 @@ import ir.sayda.yara.hub.core.domain.repository.PendingEvidenceRepository
 import ir.sayda.yara.hub.core.domain.repository.ReplicaMetadataRepository
 import ir.sayda.yara.hub.core.domain.repository.RuntimeStateRepository
 import ir.sayda.yara.hub.core.domain.repository.SchedulingReplicaRepository
+import ir.sayda.yara.hub.core.domain.repository.ReplicaSnapshotWriter
+import ir.sayda.yara.hub.core.domain.repository.SyncConflictRepository
+import ir.sayda.yara.hub.core.domain.repository.SyncSessionLocalRepository
 import ir.sayda.yara.hub.core.domain.repository.SynchronizationRepository
 import ir.sayda.yara.hub.core.domain.repository.WorkflowReplicaRepository
 import ir.sayda.yara.hub.core.domain.usecase.ObserveHomeSnapshotUseCase
@@ -27,6 +30,7 @@ import ir.sayda.yara.hub.core.domain.usecase.ObserveHubIdentityUseCase
 import ir.sayda.yara.hub.core.domain.repository.ReminderRepository
 import ir.sayda.yara.hub.core.domain.usecase.ObserveReminderPresentationUseCase
 import ir.sayda.yara.hub.core.domain.usecase.ObserveReplicaStateUseCase
+import ir.sayda.yara.hub.core.domain.usecase.RunSynchronizationCycleUseCase
 import ir.sayda.yara.hub.core.domain.usecase.StartSynchronizationUseCase
 import ir.sayda.yara.hub.data.repository.ReminderRepositoryImpl
 import ir.sayda.yara.hub.data.identity.AuthRepositoryImpl
@@ -41,7 +45,10 @@ import ir.sayda.yara.hub.data.repository.OutboxRepositoryImpl
 import ir.sayda.yara.hub.data.repository.PendingEvidenceRepositoryImpl
 import ir.sayda.yara.hub.data.repository.ReplicaMetadataRepositoryImpl
 import ir.sayda.yara.hub.data.repository.RuntimeStateRepositoryImpl
+import ir.sayda.yara.hub.data.repository.ReplicaSnapshotWriterImpl
 import ir.sayda.yara.hub.data.repository.SchedulingReplicaRepositoryImpl
+import ir.sayda.yara.hub.data.repository.SyncConflictRepositoryImpl
+import ir.sayda.yara.hub.data.repository.SyncSessionLocalRepositoryImpl
 import ir.sayda.yara.hub.data.repository.SynchronizationRepositoryImpl
 import ir.sayda.yara.hub.data.repository.WorkflowReplicaRepositoryImpl
 import ir.sayda.yara.hub.data.usecase.ObserveHomeSnapshotUseCaseImpl
@@ -69,6 +76,9 @@ abstract class RepositoryModule {
     @Binds @Singleton abstract fun bindPendingEvidenceRepository(impl: PendingEvidenceRepositoryImpl): PendingEvidenceRepository
     @Binds @Singleton abstract fun bindRuntimeStateRepository(impl: RuntimeStateRepositoryImpl): RuntimeStateRepository
     @Binds @Singleton abstract fun bindSynchronizationRepository(impl: SynchronizationRepositoryImpl): SynchronizationRepository
+    @Binds @Singleton abstract fun bindSyncSessionLocalRepository(impl: SyncSessionLocalRepositoryImpl): SyncSessionLocalRepository
+    @Binds @Singleton abstract fun bindSyncConflictRepository(impl: SyncConflictRepositoryImpl): SyncConflictRepository
+    @Binds @Singleton abstract fun bindReplicaSnapshotWriter(impl: ReplicaSnapshotWriterImpl): ReplicaSnapshotWriter
     @Binds @Singleton abstract fun bindIntegrationRuntimeRepository(impl: IntegrationRuntimeRepositoryImpl): IntegrationRuntimeRepository
     @Binds @Singleton abstract fun bindHomeRepository(impl: HomeRepositoryImpl): HomeRepository
     @Binds @Singleton abstract fun bindReminderRepository(impl: ReminderRepositoryImpl): ReminderRepository

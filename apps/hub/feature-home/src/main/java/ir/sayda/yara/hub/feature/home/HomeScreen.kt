@@ -86,6 +86,10 @@ fun HomeRoute(
                                 isOnline = snapshot.isOnline,
                                 activeExecutionCount = snapshot.activeExecutions.size,
                                 todayReminderCount = snapshot.todayReminders.size,
+                                nextReminderEpochMillis = snapshot.nextReminderEpochMillis,
+                                pendingEvidenceCount = snapshot.pendingEvidenceCount,
+                                synchronizationAvailable = snapshot.synchronizationAvailable,
+                                registeredAlarmCount = snapshot.registeredAlarmCount,
                             )
                         }
                         if (snapshot.todayReminders.isNotEmpty()) {

@@ -246,3 +246,18 @@ data class SyncSessionLocalEntity(
     @ColumnInfo(name = "synchronization_token") val synchronizationToken: String,
     @ColumnInfo(name = "started_at_epoch_millis") val startedAtEpochMillis: Long,
 )
+
+@Entity(
+    tableName = "sync_conflict",
+    indices = [Index("aggregate_reference"), Index("session_id")],
+)
+data class SyncConflictEntity(
+    @PrimaryKey @ColumnInfo(name = "id") val id: String,
+    @ColumnInfo(name = "aggregate_reference") val aggregateReference: String,
+    @ColumnInfo(name = "conflict_type") val conflictType: String,
+    @ColumnInfo(name = "local_version") val localVersion: String?,
+    @ColumnInfo(name = "remote_version") val remoteVersion: String?,
+    @ColumnInfo(name = "session_id") val sessionId: String?,
+    @ColumnInfo(name = "detected_at_epoch_millis") val detectedAtEpochMillis: Long,
+    @ColumnInfo(name = "payload_json") val payloadJson: String,
+)

@@ -8,7 +8,9 @@ import ir.sayda.yara.hub.core.domain.model.ScheduleDefinition
 import ir.sayda.yara.hub.core.domain.model.WorkflowDefinition
 import ir.sayda.yara.hub.core.domain.model.WorkflowExecution
 import ir.sayda.yara.hub.core.domain.repository.CareReplicaRepository
+import ir.sayda.yara.hub.core.domain.model.SyncSession
 import ir.sayda.yara.hub.core.domain.repository.PendingEvidenceRepository
+import ir.sayda.yara.hub.core.domain.repository.SyncSessionLocalRepository
 import ir.sayda.yara.hub.core.domain.repository.SchedulingReplicaRepository
 import ir.sayda.yara.hub.core.domain.repository.WorkflowReplicaRepository
 import ir.sayda.yara.hub.core.scheduling.OccurrenceStatus
@@ -58,6 +60,20 @@ class InMemorySchedulingRepository : SchedulingReplicaRepository {
         occurrences.value.filter {
             it.scheduledForEpochMillis <= epochMillis &&
                 it.status == OccurrenceStatus.SCHEDULED.name
+        }
+
+    override suspend fun getScheduledOccurrencesAfter(epochMillis: Long): List<Occurrence> =
+        occurrences.value.filter {
+            it.scheduledForEpochMillis > epochMillis &&
+                it.status == OccurrenceStatus.SCHEDULED.name
+        }
+
+    override fun observeNextScheduledOccurrence(afterEpochMillis: Long): Flow<Occurrence?> =
+        occurrences.asStateFlow().map { list ->
+            list.filter {
+                it.scheduledForEpochMillis > afterEpochMillis &&
+                    it.status == OccurrenceStatus.SCHEDULED.name
+            }.minByOrNull { it.scheduledForEpochMillis }
         }
 
     fun seedSchedule(schedule: ScheduleDefinition) {
@@ -175,11 +191,22 @@ class InMemoryPendingEvidenceRepository : PendingEvidenceRepository {
     override fun observeHubConfirmationEvidence(): Flow<List<PendingEvidence>> =
         MutableStateFlow(queued.filter { it.evidenceType == "HUB_CONFIRMATION" }).asStateFlow()
 
+    override fun observePendingCount(): Flow<Int> =
+        MutableStateFlow(queued.count { it.status == "PENDING" }).asStateFlow()
+
     override suspend fun getPending(limit: Int): List<PendingEvidence> =
         queued.filter { it.status == "PENDING" }.take(limit)
 
     override suspend fun markSubmitted(id: String) {
         queued.replaceAll { if (it.id == id) it.copy(status = "SUBMITTED") else it }
+    }
+
+    override suspend fun markInFlight(id: String) {
+        queued.replaceAll { if (it.id == id) it.copy(status = "IN_FLIGHT") else it }
+    }
+
+    override suspend fun revertToPending(id: String) {
+        queued.replaceAll { if (it.id == id) it.copy(status = "PENDING") else it }
     }
 
     override suspend fun markFailed(id: String, incrementRetry: Boolean, lastError: String?) {
@@ -195,6 +222,14 @@ class InMemoryPendingEvidenceRepository : PendingEvidenceRepository {
             }
         }
     }
+}
+
+object NoOpSyncSessionLocalRepository : SyncSessionLocalRepository {
+    override suspend fun save(session: SyncSession) = Unit
+    override suspend fun getActive(): SyncSession? = null
+    override suspend fun getById(sessionId: String): SyncSession? = null
+    override suspend fun updateStatus(sessionId: String, status: String) = Unit
+    override suspend fun clear(sessionId: String) = Unit
 }
 
 fun sampleSchedule(

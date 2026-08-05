@@ -386,3 +386,25 @@ fun SyncSession.toEntity() = SyncSessionLocalEntity(
     synchronizationToken = synchronizationToken,
     startedAtEpochMillis = startedAtEpochMillis,
 )
+
+fun ir.sayda.yara.hub.database.entity.SyncConflictEntity.toDomain() = ir.sayda.yara.hub.core.sync.SyncConflictRecord(
+    id = id,
+    aggregateReference = aggregateReference,
+    conflictType = ir.sayda.yara.hub.core.sync.ConflictType.valueOf(conflictType),
+    localVersion = localVersion,
+    remoteVersion = remoteVersion,
+    sessionId = sessionId,
+    detectedAtEpochMillis = detectedAtEpochMillis,
+    payloadJson = payloadJson,
+)
+
+fun ir.sayda.yara.hub.core.sync.SyncConflictRecord.toEntity() = ir.sayda.yara.hub.database.entity.SyncConflictEntity(
+    id = id,
+    aggregateReference = aggregateReference,
+    conflictType = conflictType.name,
+    localVersion = localVersion,
+    remoteVersion = remoteVersion,
+    sessionId = sessionId,
+    detectedAtEpochMillis = detectedAtEpochMillis,
+    payloadJson = payloadJson,
+)

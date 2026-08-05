@@ -78,6 +78,10 @@ class HubRuntimeKernel @Inject constructor(
         persistKernelState(RuntimeKernelState.STOPPED)
     }
 
+    override suspend fun restoreFromPersistence() {
+        restoreFromPersistenceInternal()
+    }
+
     override suspend fun health(): RuntimeHealth {
         val componentHealth = allComponentHealth()
         val unhealthy = componentHealth.values.any { !it.healthy }
@@ -97,7 +101,7 @@ class HubRuntimeKernel @Inject constructor(
         persistKernelState(RuntimeKernelState.FAILED, reason)
     }
 
-    suspend fun restoreFromPersistence() {
+    suspend fun restoreFromPersistenceInternal() {
         val persisted = runtimeStateRepository.get(RUNTIME_KERNEL_COMPONENT_ID) ?: return
         state = runCatching { RuntimeKernelState.valueOf(persisted.lifecycleState) }
             .getOrDefault(RuntimeKernelState.CREATED)

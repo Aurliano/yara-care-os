@@ -66,6 +66,8 @@ interface SchedulingReplicaRepository : ReplicaRepository<ScheduleDefinition> {
     suspend fun upsertOccurrence(occurrence: Occurrence)
     suspend fun getOccurrencesDueBefore(epochMillis: Long): List<Occurrence>
     suspend fun getScheduledOccurrencesDueBefore(epochMillis: Long): List<Occurrence>
+    suspend fun getScheduledOccurrencesAfter(epochMillis: Long): List<Occurrence>
+    fun observeNextScheduledOccurrence(afterEpochMillis: Long): Flow<Occurrence?>
 }
 
 interface WorkflowReplicaRepository : ReplicaRepository<WorkflowExecution> {
@@ -121,7 +123,10 @@ interface PendingEvidenceRepository {
     suspend fun getPending(limit: Int = 50): List<PendingEvidence>
     suspend fun findHubConfirmationEvidence(workflowExecutionId: String): PendingEvidence?
     fun observeHubConfirmationEvidence(): Flow<List<PendingEvidence>>
+    fun observePendingCount(): Flow<Int>
     suspend fun markSubmitted(id: String)
+    suspend fun markInFlight(id: String)
+    suspend fun revertToPending(id: String)
     suspend fun markFailed(id: String, incrementRetry: Boolean = true, lastError: String? = null)
 }
 
@@ -134,6 +139,10 @@ interface RuntimeStateRepository {
 
 interface SynchronizationRepository {
     suspend fun startSession(direction: SyncDirection, idempotencyKey: String): AppResult<SyncSession>
+    suspend fun fetchPendingOperations(sessionId: String): AppResult<List<ir.sayda.yara.hub.core.sync.SyncOperation>>
+    suspend fun resumeSession(sessionId: String): AppResult<SyncSession>
+    suspend fun cancelSession(sessionId: String): AppResult<Unit>
+    suspend fun fetchCheckpoint(replicaId: String): AppResult<ReplicaCheckpoint>
     suspend fun submitDelta(
         sessionId: String,
         aggregateReference: String,
@@ -153,6 +162,42 @@ interface SynchronizationRepository {
         idempotencyKey: String,
     ): AppResult<Unit>
 }
+
+interface SyncSessionLocalRepository {
+    suspend fun save(session: SyncSession)
+    suspend fun getActive(): SyncSession?
+    suspend fun getById(sessionId: String): SyncSession?
+    suspend fun updateStatus(sessionId: String, status: String)
+    suspend fun clear(sessionId: String)
+}
+
+interface SyncConflictRepository {
+    suspend fun record(conflict: ir.sayda.yara.hub.core.sync.SyncConflictRecord)
+    suspend fun listOpen(): List<ir.sayda.yara.hub.core.sync.SyncConflictRecord>
+}
+
+interface ReplicaSnapshotWriter {
+    suspend fun replaceReplicaTables(bundle: ReplicaSnapshotBundle)
+}
+
+data class ReplicaCheckpoint(
+    val replicaIdentifier: String,
+    val checkpointSequence: Long,
+    val checkpointToken: String?,
+)
+
+data class ReplicaSnapshotBundle(
+    val careActivities: List<CareActivity> = emptyList(),
+    val prescriptions: List<Prescription> = emptyList(),
+    val workflowDefinitions: List<WorkflowDefinition> = emptyList(),
+    val workflowExecutions: List<WorkflowExecution> = emptyList(),
+    val scheduleDefinitions: List<ScheduleDefinition> = emptyList(),
+    val occurrences: List<Occurrence> = emptyList(),
+    val devices: List<Device> = emptyList(),
+    val deviceCommands: List<DeviceCommand> = emptyList(),
+    val communicationSessions: List<CommunicationSession> = emptyList(),
+    val contacts: List<Contact> = emptyList(),
+)
 
 interface IntegrationRuntimeRepository {
     suspend fun processRuntimeCycle(): AppResult<Map<String, Int>>

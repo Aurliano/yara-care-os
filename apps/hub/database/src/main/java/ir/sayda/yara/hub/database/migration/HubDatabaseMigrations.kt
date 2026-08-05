@@ -70,3 +70,24 @@ val MIGRATION_1_2 = object : Migration(1, 2) {
         )
     }
 }
+
+val MIGRATION_2_3 = object : Migration(2, 3) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS sync_conflict (
+                id TEXT NOT NULL PRIMARY KEY,
+                aggregate_reference TEXT NOT NULL,
+                conflict_type TEXT NOT NULL,
+                local_version TEXT,
+                remote_version TEXT,
+                session_id TEXT,
+                detected_at_epoch_millis INTEGER NOT NULL,
+                payload_json TEXT NOT NULL
+            )
+            """.trimIndent(),
+        )
+        db.execSQL("CREATE INDEX IF NOT EXISTS index_sync_conflict_aggregate_reference ON sync_conflict(aggregate_reference)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS index_sync_conflict_session_id ON sync_conflict(session_id)")
+    }
+}

@@ -1,6 +1,7 @@
 package ir.sayda.yara.hub.runtime.dispatcher
 
 import ir.sayda.yara.hub.core.runtime.AppDispatchResult
+import ir.sayda.yara.hub.core.runtime.ReminderNotificationGateway
 import ir.sayda.yara.hub.core.runtime.ReminderOpenRequest
 import ir.sayda.yara.hub.core.runtime.ReminderPresentationGateway
 import ir.sayda.yara.hub.core.runtime.RuntimeEvent
@@ -24,7 +25,7 @@ class ShowReminderActionHandlerTest {
             }
             override fun observe(): Flow<RuntimeEvent> = MutableSharedFlow()
         }
-        val handler = ShowReminderActionHandler(gateway, bus)
+        val handler = ShowReminderActionHandler(gateway, RecordingNotificationGateway(), bus)
         val payload = """{"execution_id":"exec-1","occurrence_id":"occ-1"}"""
         val result = handler.handle(payload, "exec-1")
         assertTrue(result.accepted)
@@ -39,5 +40,10 @@ class ShowReminderActionHandlerTest {
             lastRequest = ReminderOpenRequest(executionId, occurrenceId)
         }
         override fun observeOpenRequests(): Flow<ReminderOpenRequest> = MutableSharedFlow()
+    }
+
+    private class RecordingNotificationGateway : ReminderNotificationGateway {
+        override suspend fun showReminderNotification(executionId: String, occurrenceId: String) = Unit
+        override fun cancelReminderNotification(executionId: String) = Unit
     }
 }
