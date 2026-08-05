@@ -6,6 +6,8 @@ import ir.sayda.yara.hub.core.runtime.IllegalRuntimeTransitionException
 import ir.sayda.yara.hub.core.runtime.RuntimeComponent
 import ir.sayda.yara.hub.core.runtime.RuntimeHealth
 import ir.sayda.yara.hub.core.runtime.RuntimeKernelState
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -25,6 +27,9 @@ class HubRuntimeKernelTest {
             persisted.lastOrNull { it.componentId == componentId }
 
         override suspend fun getAll(): List<RuntimeStateRecord> = persisted
+
+        override fun observeKernelState(): Flow<RuntimeStateRecord?> =
+            flowOf(persisted.lastOrNull { it.componentId == HubRuntimeKernel.KERNEL_COMPONENT_ID })
     }
 
     private class TestComponent(

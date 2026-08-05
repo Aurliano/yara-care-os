@@ -54,6 +54,9 @@ import ir.sayda.yara.hub.ui.theme.TextSecondary
 import ir.sayda.yara.hub.ui.theme.WarmWhite
 import ir.sayda.yara.hub.ui.theme.YaraGreen
 import ir.sayda.yara.hub.ui.theme.YaraLightGreen
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 @Composable
 fun TodayBackground(modifier: Modifier = Modifier) {
@@ -249,20 +252,76 @@ private fun YaraBaseCard(
 @Composable
 fun RuntimeStatusCard(
     replicaHealth: String,
+    runtimeHealth: String,
+    lastSyncEpochMillis: Long?,
     isOnline: Boolean,
     activeExecutionCount: Int,
+    todayReminderCount: Int,
     modifier: Modifier = Modifier,
 ) {
+    val lastSyncLabel = lastSyncEpochMillis?.let { formatEpoch(it) } ?: "هرگز"
     YaraBaseCard(
         onClick = {},
         icon = Icons.Rounded.Medication,
         iconColor = YaraGreen,
         iconBackground = YaraLightGreen,
         title = if (isOnline) "متصل به سرور" else "حالت آفلاین",
-        subtitle = "اجرای فعال: $activeExecutionCount",
-        description = "Replica: $replicaHealth",
+        subtitle = "یادآورهای امروز: $todayReminderCount",
+        description = "Runtime: $runtimeHealth | Replica: $replicaHealth | آخرین همگام‌سازی: $lastSyncLabel",
         modifier = modifier,
     )
+}
+
+@Composable
+fun TodayReminderCard(
+    title: String,
+    description: String,
+    scheduledTime: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    YaraBaseCard(
+        onClick = onClick,
+        icon = Icons.Rounded.Medication,
+        iconColor = YaraGreen,
+        iconBackground = YaraLightGreen,
+        title = scheduledTime,
+        subtitle = title,
+        description = description,
+        modifier = modifier,
+    )
+}
+
+@Composable
+fun ReminderActionButton(
+    label: String,
+    enabled: Boolean = true,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        onClick = onClick,
+        enabled = enabled,
+        shape = RoundedCornerShape(24.dp),
+        color = if (enabled) YaraGreen else TextSecondary.copy(alpha = 0.2f),
+        modifier = modifier
+            .fillMaxWidth()
+            .heightIn(min = 72.dp),
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.titleLarge,
+                color = if (enabled) Color.White else TextSecondary,
+                fontWeight = FontWeight.Bold,
+            )
+        }
+    }
+}
+
+private fun formatEpoch(epochMillis: Long): String {
+    val formatter = SimpleDateFormat("HH:mm", Locale("fa", "IR"))
+    return formatter.format(Date(epochMillis))
 }
 
 @Composable

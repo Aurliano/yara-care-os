@@ -26,12 +26,21 @@ interface CareActivityDao {
     @Query("SELECT * FROM care_activity WHERE elder_id = :elderId AND status = 'ACTIVE' ORDER BY display_title")
     fun observeActiveByElder(elderId: String): Flow<List<CareActivityEntity>>
 
+    @Query("SELECT * FROM care_activity ORDER BY display_title")
+    fun observeAll(): Flow<List<CareActivityEntity>>
+
+    @Query("SELECT * FROM care_activity WHERE schedule_definition_id = :scheduleDefinitionId LIMIT 1")
+    suspend fun getByScheduleDefinitionId(scheduleDefinitionId: String): CareActivityEntity?
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(entity: CareActivityEntity)
 }
 
 @Dao
 interface PrescriptionDao {
+    @Query("SELECT * FROM prescription ORDER BY care_activity_id")
+    fun observeAll(): Flow<List<PrescriptionEntity>>
+
     @Query("SELECT * FROM prescription WHERE care_activity_id = :careActivityId LIMIT 1")
     suspend fun getByCareActivityId(careActivityId: String): PrescriptionEntity?
 
@@ -41,6 +50,12 @@ interface PrescriptionDao {
 
 @Dao
 interface WorkflowDefinitionDao {
+    @Query("SELECT * FROM workflow_definition ORDER BY name")
+    fun observeAll(): Flow<List<WorkflowDefinitionEntity>>
+
+    @Query("SELECT * FROM workflow_definition WHERE id = :definitionId LIMIT 1")
+    suspend fun getById(definitionId: String): WorkflowDefinitionEntity?
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(entity: WorkflowDefinitionEntity)
 }
@@ -52,6 +67,9 @@ interface WorkflowExecutionDao {
 
     @Query("SELECT * FROM workflow_execution WHERE id = :executionId LIMIT 1")
     suspend fun getById(executionId: String): WorkflowExecutionEntity?
+
+    @Query("SELECT * FROM workflow_execution WHERE occurrence_id = :occurrenceId LIMIT 1")
+    suspend fun getByOccurrenceId(occurrenceId: String): WorkflowExecutionEntity?
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(entity: WorkflowExecutionEntity)
@@ -68,6 +86,12 @@ interface ScheduleDefinitionDao {
 
 @Dao
 interface OccurrenceDao {
+    @Query("SELECT * FROM occurrence ORDER BY scheduled_for_epoch_millis")
+    fun observeAll(): Flow<List<OccurrenceEntity>>
+
+    @Query("SELECT * FROM occurrence WHERE id = :occurrenceId LIMIT 1")
+    suspend fun getById(occurrenceId: String): OccurrenceEntity?
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(entity: OccurrenceEntity)
 
@@ -79,6 +103,24 @@ interface OccurrenceDao {
         """,
     )
     suspend fun getDueBefore(epochMillis: Long): List<OccurrenceEntity>
+
+    @Query(
+        """
+        SELECT * FROM occurrence
+        WHERE status = 'DUE' AND scheduled_for_epoch_millis <= :epochMillis
+        ORDER BY scheduled_for_epoch_millis
+        """,
+    )
+    fun observeDueBefore(epochMillis: Long): Flow<List<OccurrenceEntity>>
+
+    @Query(
+        """
+        SELECT * FROM occurrence
+        WHERE status = 'SCHEDULED' AND scheduled_for_epoch_millis <= :epochMillis
+        ORDER BY scheduled_for_epoch_millis
+        """,
+    )
+    suspend fun getScheduledDueBefore(epochMillis: Long): List<OccurrenceEntity>
 }
 
 @Dao
@@ -139,6 +181,26 @@ interface PendingEvidenceDao {
 
     @Query("SELECT * FROM pending_evidence WHERE status = 'PENDING' ORDER BY created_at_epoch_millis LIMIT :limit")
     suspend fun getPending(limit: Int): List<PendingEvidenceEntity>
+
+    @Query(
+        """
+        SELECT * FROM pending_evidence
+        WHERE workflow_execution_id = :workflowExecutionId
+          AND evidence_type = 'HUB_CONFIRMATION'
+        ORDER BY created_at_epoch_millis DESC
+        LIMIT 1
+        """,
+    )
+    suspend fun getHubConfirmationByExecution(workflowExecutionId: String): PendingEvidenceEntity?
+
+    @Query(
+        """
+        SELECT * FROM pending_evidence
+        WHERE evidence_type = 'HUB_CONFIRMATION'
+        ORDER BY created_at_epoch_millis DESC
+        """,
+    )
+    fun observeHubConfirmationEvidence(): kotlinx.coroutines.flow.Flow<List<PendingEvidenceEntity>>
 
     @Query(
         """
@@ -210,6 +272,9 @@ interface RuntimeStateDao {
 
     @Query("SELECT * FROM runtime_state")
     suspend fun getAll(): List<RuntimeStateEntity>
+
+    @Query("SELECT * FROM runtime_state WHERE component_id = :componentId LIMIT 1")
+    fun observe(componentId: String): Flow<RuntimeStateEntity?>
 }
 
 @Dao

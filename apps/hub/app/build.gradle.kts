@@ -50,6 +50,7 @@ dependencies {
     implementation(project(":runtime"))
     implementation(project(":ui"))
     implementation(project(":feature-home"))
+    implementation(project(":feature-reminder"))
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)

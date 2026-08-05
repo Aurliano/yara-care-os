@@ -17,6 +17,7 @@ import ir.sayda.yara.hub.core.sync.OutboxOperationType
 import ir.sayda.yara.hub.core.sync.PendingEvidenceStatus
 import ir.sayda.yara.hub.core.sync.SyncDirection
 import ir.sayda.yara.hub.database.HubDatabase
+import ir.sayda.yara.hub.core.runtime.RUNTIME_KERNEL_COMPONENT_ID
 import ir.sayda.yara.hub.database.mapper.toDomain
 import ir.sayda.yara.hub.database.mapper.toEntity
 import ir.sayda.yara.hub.network.api.HubIntegrationApi
@@ -169,6 +170,12 @@ class PendingEvidenceRepositoryImpl @Inject constructor(
     override suspend fun getPending(limit: Int): List<PendingEvidence> =
         dao.getPending(limit).map { it.toDomain() }
 
+    override suspend fun findHubConfirmationEvidence(workflowExecutionId: String): PendingEvidence? =
+        dao.getHubConfirmationByExecution(workflowExecutionId)?.toDomain()
+
+    override fun observeHubConfirmationEvidence(): kotlinx.coroutines.flow.Flow<List<PendingEvidence>> =
+        dao.observeHubConfirmationEvidence().map { entities -> entities.map { it.toDomain() } }
+
     override suspend fun markSubmitted(id: String) {
         val evidence = dao.getById(id) ?: return
         val now = System.currentTimeMillis()
@@ -212,6 +219,9 @@ class RuntimeStateRepositoryImpl @Inject constructor(
 
     override suspend fun getAll(): List<RuntimeStateRecord> =
         dao.getAll().map { it.toDomain() }
+
+    override fun observeKernelState(): kotlinx.coroutines.flow.Flow<RuntimeStateRecord?> =
+        dao.observe(RUNTIME_KERNEL_COMPONENT_ID).map { it?.toDomain() }
 }
 
 @Singleton

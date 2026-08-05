@@ -24,8 +24,11 @@ import ir.sayda.yara.hub.core.domain.repository.SynchronizationRepository
 import ir.sayda.yara.hub.core.domain.repository.WorkflowReplicaRepository
 import ir.sayda.yara.hub.core.domain.usecase.ObserveHomeSnapshotUseCase
 import ir.sayda.yara.hub.core.domain.usecase.ObserveHubIdentityUseCase
+import ir.sayda.yara.hub.core.domain.repository.ReminderRepository
+import ir.sayda.yara.hub.core.domain.usecase.ObserveReminderPresentationUseCase
 import ir.sayda.yara.hub.core.domain.usecase.ObserveReplicaStateUseCase
 import ir.sayda.yara.hub.core.domain.usecase.StartSynchronizationUseCase
+import ir.sayda.yara.hub.data.repository.ReminderRepositoryImpl
 import ir.sayda.yara.hub.data.identity.AuthRepositoryImpl
 import ir.sayda.yara.hub.data.identity.DataStoreReplicaIdentityProvider
 import ir.sayda.yara.hub.data.repository.CareReplicaRepositoryImpl
@@ -44,6 +47,7 @@ import ir.sayda.yara.hub.data.repository.WorkflowReplicaRepositoryImpl
 import ir.sayda.yara.hub.data.usecase.ObserveHomeSnapshotUseCaseImpl
 import ir.sayda.yara.hub.data.usecase.ObserveHubIdentityUseCaseImpl
 import ir.sayda.yara.hub.data.usecase.ObserveReplicaStateUseCaseImpl
+import ir.sayda.yara.hub.data.usecase.ObserveReminderPresentationUseCaseImpl
 import ir.sayda.yara.hub.data.usecase.StartSynchronizationUseCaseImpl
 import ir.sayda.yara.hub.network.identity.CorrelationIdProvider
 import ir.sayda.yara.hub.network.identity.ReplicaIdentityProvider
@@ -67,6 +71,7 @@ abstract class RepositoryModule {
     @Binds @Singleton abstract fun bindSynchronizationRepository(impl: SynchronizationRepositoryImpl): SynchronizationRepository
     @Binds @Singleton abstract fun bindIntegrationRuntimeRepository(impl: IntegrationRuntimeRepositoryImpl): IntegrationRuntimeRepository
     @Binds @Singleton abstract fun bindHomeRepository(impl: HomeRepositoryImpl): HomeRepository
+    @Binds @Singleton abstract fun bindReminderRepository(impl: ReminderRepositoryImpl): ReminderRepository
     @Binds @Singleton abstract fun bindConnectivityRepository(impl: ConnectivityRepositoryImpl): ConnectivityRepository
     @Binds @Singleton abstract fun bindReplicaIdentityProvider(impl: DataStoreReplicaIdentityProvider): ReplicaIdentityProvider
     @Binds @Singleton abstract fun bindCorrelationIdProvider(impl: DataStoreReplicaIdentityProvider): CorrelationIdProvider
@@ -78,6 +83,9 @@ abstract class UseCaseModule {
     @Binds abstract fun bindObserveHomeSnapshotUseCase(impl: ObserveHomeSnapshotUseCaseImpl): ObserveHomeSnapshotUseCase
     @Binds abstract fun bindObserveReplicaStateUseCase(impl: ObserveReplicaStateUseCaseImpl): ObserveReplicaStateUseCase
     @Binds abstract fun bindObserveHubIdentityUseCase(impl: ObserveHubIdentityUseCaseImpl): ObserveHubIdentityUseCase
+    @Binds abstract fun bindObserveReminderPresentationUseCase(
+        impl: ObserveReminderPresentationUseCaseImpl,
+    ): ObserveReminderPresentationUseCase
     @Binds abstract fun bindStartSynchronizationUseCase(impl: StartSynchronizationUseCaseImpl): StartSynchronizationUseCase
 }
 

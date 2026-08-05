@@ -1,5 +1,6 @@
 package ir.sayda.yara.hub.runtime.kernel
 
+import ir.sayda.yara.hub.core.runtime.RUNTIME_KERNEL_COMPONENT_ID
 import ir.sayda.yara.hub.core.domain.model.RuntimeStateRecord
 import ir.sayda.yara.hub.core.domain.repository.RuntimeStateRepository
 import ir.sayda.yara.hub.core.runtime.IllegalRuntimeTransitionException
@@ -97,7 +98,7 @@ class HubRuntimeKernel @Inject constructor(
     }
 
     suspend fun restoreFromPersistence() {
-        val persisted = runtimeStateRepository.get(KERNEL_COMPONENT_ID) ?: return
+        val persisted = runtimeStateRepository.get(RUNTIME_KERNEL_COMPONENT_ID) ?: return
         state = runCatching { RuntimeKernelState.valueOf(persisted.lifecycleState) }
             .getOrDefault(RuntimeKernelState.CREATED)
         if (state == RuntimeKernelState.FAILED) {
@@ -130,7 +131,7 @@ class HubRuntimeKernel @Inject constructor(
     ) {
         runtimeStateRepository.upsert(
             RuntimeStateRecord(
-                componentId = KERNEL_COMPONENT_ID,
+                componentId = RUNTIME_KERNEL_COMPONENT_ID,
                 lifecycleState = kernelState.name,
                 statePayloadJson = if (detail.isBlank()) "{}" else """{"detail":"$detail"}""",
                 updatedAtEpochMillis = System.currentTimeMillis(),
@@ -150,6 +151,6 @@ class HubRuntimeKernel @Inject constructor(
     }
 
     companion object {
-        const val KERNEL_COMPONENT_ID = "__kernel__"
+        const val KERNEL_COMPONENT_ID = RUNTIME_KERNEL_COMPONENT_ID
     }
 }

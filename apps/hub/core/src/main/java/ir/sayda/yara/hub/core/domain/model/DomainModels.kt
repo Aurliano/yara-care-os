@@ -190,7 +190,10 @@ data class HubIdentity(
 data class HomeRuntimeSnapshot(
     val elderDisplayName: String,
     val activeExecutions: List<WorkflowExecution>,
+    val todayReminders: List<TodayReminderItem>,
     val priorityContacts: List<Contact>,
     val replicaHealth: String,
+    val runtimeHealth: String,
+    val lastSyncEpochMillis: Long?,
     val isOnline: Boolean,
 )

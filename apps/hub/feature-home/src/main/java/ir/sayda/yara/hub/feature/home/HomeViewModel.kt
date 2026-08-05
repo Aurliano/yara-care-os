@@ -21,8 +21,11 @@ class HomeViewModel @Inject constructor(
             initialValue = HomeRuntimeSnapshot(
                 elderDisplayName = "سالمند",
                 activeExecutions = emptyList(),
+                todayReminders = emptyList(),
                 priorityContacts = emptyList(),
                 replicaHealth = "UNKNOWN",
+                runtimeHealth = "UNKNOWN",
+                lastSyncEpochMillis = null,
                 isOnline = false,
             ),
         )

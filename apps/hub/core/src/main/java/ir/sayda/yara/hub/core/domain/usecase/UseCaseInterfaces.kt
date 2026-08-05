@@ -2,6 +2,7 @@ package ir.sayda.yara.hub.core.domain.usecase
 
 import ir.sayda.yara.hub.core.domain.model.HomeRuntimeSnapshot
 import ir.sayda.yara.hub.core.domain.model.HubIdentity
+import ir.sayda.yara.hub.core.domain.model.ReminderPresentation
 import ir.sayda.yara.hub.core.domain.model.ReplicaState
 import ir.sayda.yara.hub.core.result.AppResult
 import ir.sayda.yara.hub.core.sync.SyncDirection
@@ -29,4 +30,12 @@ interface StartSynchronizationUseCase {
 
 interface RecoverRuntimeUseCase {
     suspend operator fun invoke(): AppResult<Unit>
+}
+
+interface ConfirmReminderUseCase {
+    suspend operator fun invoke(executionId: String, interactionReference: String): AppResult<String>
+}
+
+interface ObserveReminderPresentationUseCase {
+    suspend operator fun invoke(executionId: String): ReminderPresentation?
 }

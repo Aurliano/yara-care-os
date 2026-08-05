@@ -21,6 +21,15 @@ class SchedulingReplicaRepositoryImpl @Inject constructor(
     override fun observeScheduleDefinitions(): Flow<List<ScheduleDefinition>> =
         scheduleDao.observeAll().map { list -> list.map { it.toDomain() } }
 
+    override fun observeOccurrences(): Flow<List<Occurrence>> =
+        occurrenceDao.observeAll().map { list -> list.map { it.toDomain() } }
+
+    override fun observeOccurrencesDueBefore(epochMillis: Long): Flow<List<Occurrence>> =
+        occurrenceDao.observeDueBefore(epochMillis).map { list -> list.map { it.toDomain() } }
+
+    override suspend fun getOccurrence(occurrenceId: String): Occurrence? =
+        occurrenceDao.getById(occurrenceId)?.toDomain()
+
     override suspend fun upsertScheduleDefinition(schedule: ScheduleDefinition) {
         scheduleDao.upsert(schedule.toEntity())
     }
@@ -31,4 +40,7 @@ class SchedulingReplicaRepositoryImpl @Inject constructor(
 
     override suspend fun getOccurrencesDueBefore(epochMillis: Long): List<Occurrence> =
         occurrenceDao.getDueBefore(epochMillis).map { it.toDomain() }
+
+    override suspend fun getScheduledOccurrencesDueBefore(epochMillis: Long): List<Occurrence> =
+        occurrenceDao.getScheduledDueBefore(epochMillis).map { it.toDomain() }
 }

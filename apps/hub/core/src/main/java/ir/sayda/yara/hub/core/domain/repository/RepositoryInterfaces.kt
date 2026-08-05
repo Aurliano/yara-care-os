@@ -11,6 +11,7 @@ import ir.sayda.yara.hub.core.domain.model.Occurrence
 import ir.sayda.yara.hub.core.domain.model.OutboxEntry
 import ir.sayda.yara.hub.core.domain.model.PendingEvidence
 import ir.sayda.yara.hub.core.domain.model.Prescription
+import ir.sayda.yara.hub.core.domain.model.ReminderPresentation
 import ir.sayda.yara.hub.core.domain.model.ReplicaState
 import ir.sayda.yara.hub.core.domain.model.RuntimeStateRecord
 import ir.sayda.yara.hub.core.domain.model.ScheduleDefinition
@@ -45,8 +46,11 @@ interface ReplicaRepository<T> {
 interface CareReplicaRepository : ReplicaRepository<CareActivity> {
     override val replicaType: String get() = "care"
     fun observeActiveCareActivities(elderId: String): Flow<List<CareActivity>>
+    fun observeAllCareActivities(): Flow<List<CareActivity>>
+    suspend fun getCareActivityByScheduleDefinition(scheduleDefinitionId: String): CareActivity?
     suspend fun upsertCareActivity(activity: CareActivity)
     override suspend fun upsert(item: CareActivity) = upsertCareActivity(item)
+    fun observePrescriptions(): Flow<List<Prescription>>
     suspend fun getPrescription(careActivityId: String): Prescription?
     suspend fun upsertPrescription(prescription: Prescription)
 }
@@ -54,15 +58,22 @@ interface CareReplicaRepository : ReplicaRepository<CareActivity> {
 interface SchedulingReplicaRepository : ReplicaRepository<ScheduleDefinition> {
     override val replicaType: String get() = "scheduling"
     fun observeScheduleDefinitions(): Flow<List<ScheduleDefinition>>
+    fun observeOccurrences(): Flow<List<Occurrence>>
+    fun observeOccurrencesDueBefore(epochMillis: Long): Flow<List<Occurrence>>
+    suspend fun getOccurrence(occurrenceId: String): Occurrence?
     suspend fun upsertScheduleDefinition(schedule: ScheduleDefinition)
     override suspend fun upsert(item: ScheduleDefinition) = upsertScheduleDefinition(item)
     suspend fun upsertOccurrence(occurrence: Occurrence)
     suspend fun getOccurrencesDueBefore(epochMillis: Long): List<Occurrence>
+    suspend fun getScheduledOccurrencesDueBefore(epochMillis: Long): List<Occurrence>
 }
 
 interface WorkflowReplicaRepository : ReplicaRepository<WorkflowExecution> {
     override val replicaType: String get() = "workflow"
     fun observeActiveExecutions(): Flow<List<WorkflowExecution>>
+    fun observeDefinitions(): Flow<List<WorkflowDefinition>>
+    suspend fun getDefinition(definitionId: String): WorkflowDefinition?
+    suspend fun getExecutionByOccurrence(occurrenceId: String): WorkflowExecution?
     suspend fun upsertExecution(execution: WorkflowExecution)
     override suspend fun upsert(item: WorkflowExecution) = upsertExecution(item)
     suspend fun getExecution(executionId: String): WorkflowExecution?
@@ -108,6 +119,8 @@ interface PendingEvidenceRepository {
         idempotencyKey: String,
     ): PendingEvidence
     suspend fun getPending(limit: Int = 50): List<PendingEvidence>
+    suspend fun findHubConfirmationEvidence(workflowExecutionId: String): PendingEvidence?
+    fun observeHubConfirmationEvidence(): Flow<List<PendingEvidence>>
     suspend fun markSubmitted(id: String)
     suspend fun markFailed(id: String, incrementRetry: Boolean = true, lastError: String? = null)
 }
@@ -116,6 +129,7 @@ interface RuntimeStateRepository {
     suspend fun upsert(record: RuntimeStateRecord)
     suspend fun get(componentId: String): RuntimeStateRecord?
     suspend fun getAll(): List<RuntimeStateRecord>
+    fun observeKernelState(): Flow<RuntimeStateRecord?>
 }
 
 interface SynchronizationRepository {
@@ -151,6 +165,10 @@ interface IntegrationRuntimeRepository {
 
 interface HomeRepository {
     fun observeHomeSnapshot(): Flow<HomeRuntimeSnapshot>
+}
+
+interface ReminderRepository {
+    suspend fun loadPresentation(executionId: String): ReminderPresentation?
 }
 
 interface ConnectivityRepository {

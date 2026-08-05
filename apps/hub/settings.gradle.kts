@@ -30,4 +30,5 @@ include(
     ":runtime",
     ":ui",
     ":feature-home",
+    ":feature-reminder",
 )

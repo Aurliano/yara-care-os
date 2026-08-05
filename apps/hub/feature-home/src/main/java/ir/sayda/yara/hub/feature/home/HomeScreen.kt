@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
@@ -26,7 +27,9 @@ import ir.sayda.yara.hub.ui.components.GreetingSection
 import ir.sayda.yara.hub.ui.components.RuntimeStatusCard
 import ir.sayda.yara.hub.ui.components.SettingsButton
 import ir.sayda.yara.hub.ui.components.TodayBackground
+import ir.sayda.yara.hub.ui.components.TodayReminderCard
 import ir.sayda.yara.hub.ui.components.VoiceMessageCard
+import ir.sayda.yara.hub.ui.theme.TextSecondary
 import ir.sayda.yara.hub.ui.theme.WarmWhite
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -42,6 +45,7 @@ fun HomeRoute(
     val now = Date()
     val timeFormatter = SimpleDateFormat("HH:mm", Locale("fa", "IR"))
     val dateFormatter = SimpleDateFormat("EEEE، d MMMM yyyy", Locale("fa", "IR"))
+    val reminderTimeFormatter = SimpleDateFormat("HH:mm", Locale("fa", "IR"))
 
     CompositionLocalProvider(androidx.compose.ui.platform.LocalLayoutDirection provides LayoutDirection.Rtl) {
         Scaffold(
@@ -77,9 +81,38 @@ fun HomeRoute(
                         item {
                             RuntimeStatusCard(
                                 replicaHealth = snapshot.replicaHealth,
+                                runtimeHealth = snapshot.runtimeHealth,
+                                lastSyncEpochMillis = snapshot.lastSyncEpochMillis,
                                 isOnline = snapshot.isOnline,
                                 activeExecutionCount = snapshot.activeExecutions.size,
+                                todayReminderCount = snapshot.todayReminders.size,
                             )
+                        }
+                        if (snapshot.todayReminders.isNotEmpty()) {
+                            item {
+                                Text(text = "یادآورهای امروز", color = TextSecondary)
+                            }
+                            items(snapshot.todayReminders) { reminder ->
+                                val description = if (reminder.localConfirmationRecorded) {
+                                    "${reminder.friendlyDescription}\n✓ ثبت شد · در انتظار همگام‌سازی"
+                                } else {
+                                    reminder.friendlyDescription
+                                }
+                                TodayReminderCard(
+                                    title = reminder.title,
+                                    description = description,
+                                    scheduledTime = reminderTimeFormatter.format(Date(reminder.scheduledForEpochMillis)),
+                                    onClick = {},
+                                )
+                            }
+                        }
+                        if (snapshot.activeExecutions.isNotEmpty()) {
+                            item {
+                                Text(
+                                    text = "اجراهای فعال: ${snapshot.activeExecutions.size}",
+                                    color = TextSecondary,
+                                )
+                            }
                         }
                         items(snapshot.priorityContacts) { contact ->
                             ContactCard(name = contact.displayName, onClick = {})

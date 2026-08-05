@@ -21,6 +21,15 @@ class WorkflowReplicaRepositoryImpl @Inject constructor(
     override fun observeActiveExecutions(): Flow<List<WorkflowExecution>> =
         executionDao.observeActive().map { list -> list.map { it.toDomain() } }
 
+    override fun observeDefinitions(): Flow<List<WorkflowDefinition>> =
+        definitionDao.observeAll().map { list -> list.map { it.toDomain() } }
+
+    override suspend fun getDefinition(definitionId: String): WorkflowDefinition? =
+        definitionDao.getById(definitionId)?.toDomain()
+
+    override suspend fun getExecutionByOccurrence(occurrenceId: String): WorkflowExecution? =
+        executionDao.getByOccurrenceId(occurrenceId)?.toDomain()
+
     override suspend fun upsertExecution(execution: WorkflowExecution) {
         executionDao.upsert(execution.toEntity())
     }
