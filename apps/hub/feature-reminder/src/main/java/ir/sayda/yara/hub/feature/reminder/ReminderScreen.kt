@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import ir.sayda.yara.hub.ui.components.ReminderActionButton
+import ir.sayda.yara.hub.ui.components.ReminderLoadingIndicator
 import ir.sayda.yara.hub.ui.components.TodayBackground
 import ir.sayda.yara.hub.ui.theme.TextPrimary
 import ir.sayda.yara.hub.ui.theme.TextSecondary
@@ -68,7 +69,7 @@ fun ReminderRoute(
                 ) {
                     val reminder = presentation
                     if (reminder == null) {
-                        Text(text = "در حال بارگذاری یادآور...", color = TextSecondary)
+                        ReminderLoadingIndicator()
                     } else {
                         val time = SimpleDateFormat("HH:mm", Locale("fa", "IR"))
                             .format(Date(reminder.scheduledForEpochMillis))
@@ -88,7 +89,7 @@ fun ReminderRoute(
                         if (locallyConfirmed) {
                             Spacer(modifier = Modifier.height(16.dp))
                             Text(
-                                text = "✓ ثبت شد · در انتظار همگام‌سازی",
+                                text = "ثبت شد ✓",
                                 color = YaraGreen,
                                 style = MaterialTheme.typography.titleMedium,
                             )

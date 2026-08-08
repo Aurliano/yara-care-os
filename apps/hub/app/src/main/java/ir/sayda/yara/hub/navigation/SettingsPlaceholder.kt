@@ -22,11 +22,11 @@ fun SettingsPlaceholder(onBack: () -> Unit) {
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text(
-            text = "تنظیمات فنی",
+            text = "تنظیمات",
             style = MaterialTheme.typography.headlineMedium,
         )
         Text(
-            text = "پیکربندی Hub در Sprint بعدی از طریق Caregiver App انجام می‌شود.",
+            text = "تنظیمات دستگاه از طریق اپلیکیشن مراقب انجام می‌شود.",
             style = MaterialTheme.typography.bodyLarge,
             modifier = Modifier.padding(top = 16.dp, bottom = 32.dp),
         )

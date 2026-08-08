@@ -11,12 +11,14 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import ir.sayda.yara.hub.BuildConfig
 import ir.sayda.yara.hub.feature.home.HomeRoute
 import ir.sayda.yara.hub.feature.reminder.ReminderRoute
 
 object HubRoutes {
     const val HOME = "home"
     const val SETTINGS = "settings"
+    const val DEVELOPER = "developer"
     const val REMINDER = "reminder"
 }
 
@@ -40,6 +42,10 @@ fun HubNavHost(
     ) {
         composable(HubRoutes.HOME) {
             HomeRoute(
+                isDebugBuild = BuildConfig.DEBUG,
+                onOpenDeveloperSettings = {
+                    navController.navigate(HubRoutes.DEVELOPER)
+                },
                 onSettingsLongPress = {
                     navController.navigate(HubRoutes.SETTINGS)
                 },
@@ -47,6 +53,13 @@ fun HubNavHost(
         }
         composable(HubRoutes.SETTINGS) {
             SettingsPlaceholder(onBack = { navController.popBackStack() })
+        }
+        composable(HubRoutes.DEVELOPER) {
+            if (BuildConfig.DEBUG) {
+                DeveloperSettingsScreen(onBack = { navController.popBackStack() })
+            } else {
+                SettingsPlaceholder(onBack = { navController.popBackStack() })
+            }
         }
         composable(
             route = "${HubRoutes.REMINDER}/{executionId}",

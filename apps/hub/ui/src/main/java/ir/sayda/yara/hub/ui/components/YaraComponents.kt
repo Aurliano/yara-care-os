@@ -4,6 +4,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -27,15 +28,25 @@ import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.ChevronLeft
 import androidx.compose.material.icons.rounded.Eco
+import androidx.compose.material.icons.rounded.Cloud
+import androidx.compose.material.icons.rounded.CloudOff
+import androidx.compose.material.icons.rounded.CloudQueue
 import androidx.compose.material.icons.rounded.Medication
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.Spa
+import androidx.compose.material.icons.rounded.Wifi
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -47,10 +58,17 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import ir.sayda.yara.hub.ui.presentation.ConnectionVisualState
+import ir.sayda.yara.hub.ui.presentation.formatEpochForDisplay
+import ir.sayda.yara.hub.ui.theme.Error
 import ir.sayda.yara.hub.ui.theme.SoftBlue
 import ir.sayda.yara.hub.ui.theme.SoftOrange
+import ir.sayda.yara.hub.ui.theme.Success
+import ir.sayda.yara.hub.ui.theme.SurfaceGray
 import ir.sayda.yara.hub.ui.theme.TextPrimary
 import ir.sayda.yara.hub.ui.theme.TextSecondary
+import ir.sayda.yara.hub.ui.theme.TextTertiary
+import ir.sayda.yara.hub.ui.theme.Warning
 import ir.sayda.yara.hub.ui.theme.WarmWhite
 import ir.sayda.yara.hub.ui.theme.YaraGreen
 import ir.sayda.yara.hub.ui.theme.YaraLightGreen
@@ -83,8 +101,21 @@ fun TodayBackground(modifier: Modifier = Modifier) {
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun BrandHeader(time: String, date: String, modifier: Modifier = Modifier) {
+fun BrandHeader(
+    time: String,
+    date: String,
+    onLogoActivated: () -> Unit = {},
+    modifier: Modifier = Modifier,
+) {
+    var logoTapCount by remember { mutableIntStateOf(0) }
+    LaunchedEffect(logoTapCount) {
+        if (logoTapCount == 0) return@LaunchedEffect
+        kotlinx.coroutines.delay(2_000)
+        logoTapCount = 0
+    }
+
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -106,7 +137,7 @@ fun BrandHeader(time: String, date: String, modifier: Modifier = Modifier) {
                     style = MaterialTheme.typography.labelMedium,
                     color = TextSecondary,
                     fontSize = 12.sp,
-                    lineHeight = 16.sp,
+                    lineHeight = 18.sp,
                 )
             }
             Spacer(modifier = Modifier.width(16.dp))
@@ -114,12 +145,19 @@ fun BrandHeader(time: String, date: String, modifier: Modifier = Modifier) {
                 modifier = Modifier
                     .size(56.dp)
                     .clip(CircleShape)
-                    .background(YaraLightGreen),
+                    .background(YaraLightGreen)
+                    .clickable {
+                        logoTapCount++
+                        if (logoTapCount >= 5) {
+                            onLogoActivated()
+                            logoTapCount = 0
+                        }
+                    },
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
                     imageVector = Icons.Rounded.Eco,
-                    contentDescription = null,
+                    contentDescription = "لوگوی یارا",
                     tint = YaraGreen,
                     modifier = Modifier.size(36.dp),
                 )
@@ -213,7 +251,7 @@ private fun YaraBaseCard(
             .heightIn(min = 120.dp),
     ) {
         Row(
-            modifier = Modifier.padding(24.dp),
+            modifier = Modifier.padding(horizontal = 24.dp, vertical = 28.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Box(
@@ -249,6 +287,163 @@ private fun YaraBaseCard(
     }
 }
 
+@Composable
+fun ConnectionIndicator(
+    state: ConnectionVisualState,
+    title: String,
+    subtitle: String,
+    modifier: Modifier = Modifier,
+) {
+    val (icon, iconColor, iconBackground) = when (state) {
+        ConnectionVisualState.Connected -> Triple(Icons.Rounded.Wifi, Success, YaraLightGreen)
+        ConnectionVisualState.Waiting -> Triple(Icons.Rounded.CloudQueue, Warning, SoftOrange.copy(alpha = 0.15f))
+        ConnectionVisualState.Offline -> Triple(Icons.Rounded.CloudOff, Error, Error.copy(alpha = 0.12f))
+        ConnectionVisualState.Provisioning -> Triple(Icons.Rounded.Cloud, TextTertiary, SurfaceGray)
+    }
+    Surface(
+        shape = RoundedCornerShape(20.dp),
+        color = Color.White,
+        shadowElevation = 2.dp,
+        modifier = modifier.fillMaxWidth(),
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(CircleShape)
+                    .background(iconBackground),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(imageVector = icon, contentDescription = null, tint = iconColor, modifier = Modifier.size(28.dp))
+            }
+            Spacer(modifier = Modifier.width(16.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(text = title, style = MaterialTheme.typography.titleMedium, color = TextPrimary, fontWeight = FontWeight.SemiBold)
+                Text(text = subtitle, style = MaterialTheme.typography.bodyLarge, color = TextSecondary, lineHeight = 28.sp)
+            }
+        }
+    }
+}
+
+@Composable
+fun NextReminderHighlightCard(
+    title: String,
+    subtitle: String,
+    description: String?,
+    scheduledTime: String?,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    YaraBaseCard(
+        onClick = onClick,
+        icon = Icons.Rounded.Medication,
+        iconColor = YaraGreen,
+        iconBackground = YaraLightGreen,
+        title = scheduledTime ?: "امروز",
+        subtitle = title,
+        description = description ?: subtitle,
+        modifier = modifier,
+    )
+}
+
+@Composable
+fun HomeEmptyStateCard(
+    message: String,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        shape = RoundedCornerShape(24.dp),
+        color = Color.White,
+        shadowElevation = 2.dp,
+        modifier = modifier
+            .fillMaxWidth()
+            .heightIn(min = 96.dp),
+    ) {
+        Box(
+            modifier = Modifier.padding(horizontal = 24.dp, vertical = 28.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                text = message,
+                style = MaterialTheme.typography.titleLarge,
+                color = TextSecondary,
+                lineHeight = 32.sp,
+            )
+        }
+    }
+}
+
+@Composable
+fun HomeLoadingSkeleton(modifier: Modifier = Modifier) {
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        repeat(3) {
+            Surface(
+                shape = RoundedCornerShape(24.dp),
+                color = SurfaceGray,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(120.dp),
+            ) {}
+        }
+    }
+}
+
+@Composable
+fun DeveloperDiagnosticsCard(
+    replicaHealth: String,
+    runtimeHealth: String,
+    lastSyncEpochMillis: Long?,
+    isOnline: Boolean,
+    activeExecutionCount: Int,
+    todayReminderCount: Int,
+    nextReminderEpochMillis: Long?,
+    pendingEvidenceCount: Int,
+    synchronizationAvailable: Boolean,
+    registeredAlarmCount: Int,
+    modifier: Modifier = Modifier,
+) {
+    val lastSyncLabel = formatEpochForDisplay(lastSyncEpochMillis)
+    val nextReminderLabel = nextReminderEpochMillis?.let { formatEpoch(it) } ?: "—"
+    val syncLabel = if (synchronizationAvailable) "AVAILABLE" else "DISABLED"
+    Surface(
+        shape = RoundedCornerShape(16.dp),
+        color = SurfaceGray,
+        modifier = modifier.fillMaxWidth(),
+    ) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text(text = "Developer Diagnostics", style = MaterialTheme.typography.labelLarge, color = TextSecondary)
+            Text(text = "Runtime: $runtimeHealth", style = MaterialTheme.typography.bodyMedium)
+            Text(text = "Replica: $replicaHealth", style = MaterialTheme.typography.bodyMedium)
+            Text(text = "Online: $isOnline", style = MaterialTheme.typography.bodyMedium)
+            Text(text = "Synchronization: $syncLabel", style = MaterialTheme.typography.bodyMedium)
+            Text(text = "Checkpoint / Last sync: $lastSyncLabel", style = MaterialTheme.typography.bodyMedium)
+            Text(text = "PendingEvidence: $pendingEvidenceCount", style = MaterialTheme.typography.bodyMedium)
+            Text(text = "Alarm count: $registeredAlarmCount", style = MaterialTheme.typography.bodyMedium)
+            Text(text = "Active executions: $activeExecutionCount", style = MaterialTheme.typography.bodyMedium)
+            Text(text = "Today reminders: $todayReminderCount · Next: $nextReminderLabel", style = MaterialTheme.typography.bodyMedium)
+        }
+    }
+}
+
+@Composable
+fun ReminderLoadingIndicator(modifier: Modifier = Modifier) {
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        CircularProgressIndicator(color = YaraGreen, modifier = Modifier.size(56.dp), strokeWidth = 4.dp)
+        Text(text = "لطفاً چند لحظه صبر کنید...", color = TextSecondary, style = MaterialTheme.typography.bodyLarge)
+    }
+}
+
+@Deprecated("Use ConnectionIndicator and DeveloperDiagnosticsCard instead")
 @Composable
 fun RuntimeStatusCard(
     replicaHealth: String,
@@ -359,10 +554,13 @@ fun ContactCard(name: String, onClick: () -> Unit) {
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun SettingsButton(onLongClick: () -> Unit, modifier: Modifier = Modifier) {
+fun SettingsButton(
+    onLongClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     Box(
         modifier = modifier
-            .size(64.dp)
+            .size(56.dp)
             .clip(RoundedCornerShape(24.dp))
             .combinedClickable(onClick = {}, onLongClick = onLongClick),
         contentAlignment = Alignment.Center,
