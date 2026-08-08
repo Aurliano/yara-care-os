@@ -36,6 +36,10 @@ interface RecoverRuntimeUseCase {
     suspend operator fun invoke(): AppResult<Unit>
 }
 
+interface ReconcileRuntimeUseCase {
+    suspend operator fun invoke(): AppResult<Unit>
+}
+
 interface ConfirmReminderUseCase {
     suspend operator fun invoke(executionId: String, interactionReference: String): AppResult<String>
 }

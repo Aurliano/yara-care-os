@@ -35,4 +35,6 @@ dependencies {
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
     testImplementation(libs.junit)
+    testImplementation(libs.mockk)
+    testImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")
 }

@@ -1,16 +1,14 @@
 package ir.sayda.yara.hub.data.repository
 
-import android.content.Context
-import android.net.ConnectivityManager
-import android.net.NetworkCapabilities
-import dagger.hilt.android.qualifiers.ApplicationContext
 import ir.sayda.yara.hub.core.domain.model.CareActivity
 import ir.sayda.yara.hub.core.domain.model.Contact
+import ir.sayda.yara.hub.core.domain.model.ConnectivityState
 import ir.sayda.yara.hub.core.domain.model.HomeRuntimeSnapshot
 import ir.sayda.yara.hub.core.domain.model.HubIdentity
 import ir.sayda.yara.hub.core.domain.model.Occurrence
 import ir.sayda.yara.hub.core.domain.model.PendingEvidence
 import ir.sayda.yara.hub.core.domain.model.Prescription
+import ir.sayda.yara.hub.core.domain.model.ProvisioningState
 import ir.sayda.yara.hub.core.domain.model.ReminderPresentation
 import ir.sayda.yara.hub.core.domain.model.ReplicaState
 import ir.sayda.yara.hub.core.domain.model.RuntimeStateRecord
@@ -22,6 +20,7 @@ import ir.sayda.yara.hub.core.domain.repository.CommunicationReplicaRepository
 import ir.sayda.yara.hub.core.domain.repository.ConnectivityRepository
 import ir.sayda.yara.hub.core.domain.repository.HomeRepository
 import ir.sayda.yara.hub.core.domain.repository.PendingEvidenceRepository
+import ir.sayda.yara.hub.core.domain.repository.ProvisioningRepository
 import ir.sayda.yara.hub.core.domain.repository.ReminderRepository
 import ir.sayda.yara.hub.core.domain.repository.ReplicaMetadataRepository
 import ir.sayda.yara.hub.core.domain.repository.RuntimeStateRepository
@@ -32,30 +31,10 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import java.util.Calendar
 import javax.inject.Inject
 import javax.inject.Singleton
-
-@Singleton
-class ConnectivityRepositoryImpl @Inject constructor(
-    @ApplicationContext private val context: Context,
-) : ConnectivityRepository {
-
-    override fun observeOnline(): Flow<Boolean> = flow {
-        emit(isOnline())
-    }.distinctUntilChanged()
-
-    override suspend fun isOnline(): Boolean {
-        val connectivityManager =
-            context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-        val network = connectivityManager.activeNetwork ?: return false
-        val capabilities = connectivityManager.getNetworkCapabilities(network) ?: return false
-        return capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
-            capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
-    }
-}
 
 @Singleton
 class HomeRepositoryImpl @Inject constructor(
@@ -67,8 +46,10 @@ class HomeRepositoryImpl @Inject constructor(
     private val replicaMetadataRepository: ReplicaMetadataRepository,
     private val runtimeStateRepository: RuntimeStateRepository,
     private val connectivityRepository: ConnectivityRepository,
+    private val provisioningRepository: ProvisioningRepository,
     private val pendingEvidenceRepository: PendingEvidenceRepository,
     private val occurrenceAlarmRegistry: OccurrenceAlarmRegistry,
+    private val replicaDiagnosticsReader: ReplicaDiagnosticsReader,
 ) : HomeRepository {
 
     override fun observeHomeSnapshot(): Flow<HomeRuntimeSnapshot> =
@@ -99,21 +80,32 @@ class HomeRepositoryImpl @Inject constructor(
                 Triple(careActivities, prescriptions, replicaState)
             },
             combine(
-                runtimeStateRepository.observeKernelState(),
-                connectivityRepository.observeOnline(),
-                contactsFlow,
-                pendingEvidenceRepository.observeHubConfirmationEvidence(),
-                pendingEvidenceRepository.observePendingCount(),
-            ) { kernelState, online, contacts, hubConfirmations, pendingEvidenceCount ->
+                combine(
+                    runtimeStateRepository.observeKernelState(),
+                    connectivityRepository.observeConnectivity(),
+                    provisioningRepository.observeProvisioningStatus(),
+                ) { kernelState, connectivity, provisioning ->
+                    Triple(kernelState, connectivity, provisioning)
+                },
+                combine(
+                    contactsFlow,
+                    pendingEvidenceRepository.observeHubConfirmationEvidence(),
+                    pendingEvidenceRepository.observePendingCount(),
+                ) { contacts, hubConfirmations, pendingEvidenceCount ->
+                    Triple(contacts, hubConfirmations, pendingEvidenceCount)
+                },
+            ) { runtimeTriple, evidenceTriple ->
                 HomeRuntimeInputs(
-                    kernelState = kernelState,
-                    online = online,
-                    contacts = contacts,
-                    hubConfirmations = hubConfirmations,
-                    pendingEvidenceCount = pendingEvidenceCount,
+                    kernelState = runtimeTriple.first,
+                    connectivity = runtimeTriple.second,
+                    provisioning = runtimeTriple.third,
+                    contacts = evidenceTriple.first,
+                    hubConfirmations = evidenceTriple.second,
+                    pendingEvidenceCount = evidenceTriple.third,
                 )
             },
-        ) { executionInputs, careInputs, runtimeInputs ->
+            replicaDiagnosticsReader.observeCounts(),
+        ) { executionInputs, careInputs, runtimeInputs, diagnostics ->
             val (executions, dueOccurrences, nextOccurrence) = executionInputs
             val (careActivities, prescriptions, replicaState) = careInputs
             buildSnapshot(
@@ -125,20 +117,24 @@ class HomeRepositoryImpl @Inject constructor(
                 prescriptions = prescriptions,
                 replicaState = replicaState,
                 runtimeHealth = runtimeInputs.kernelState?.lifecycleState ?: "UNKNOWN",
-                online = runtimeInputs.online,
+                online = runtimeInputs.connectivity.state != ConnectivityState.DISCONNECTED,
                 contacts = runtimeInputs.contacts,
                 pendingEvidenceCount = runtimeInputs.pendingEvidenceCount,
                 registeredAlarmCount = occurrenceAlarmRegistry.queryRegisteredOccurrenceIds().size,
                 locallyConfirmedExecutionIds = runtimeInputs.hubConfirmations
                     .map { it.workflowExecutionId }
                     .toSet(),
+                provisioning = runtimeInputs.provisioning,
+                connectivity = runtimeInputs.connectivity,
+                diagnostics = diagnostics,
             )
         }
     }
 
     private data class HomeRuntimeInputs(
         val kernelState: RuntimeStateRecord?,
-        val online: Boolean,
+        val connectivity: ir.sayda.yara.hub.core.domain.model.ConnectivitySnapshot,
+        val provisioning: ir.sayda.yara.hub.core.domain.model.ProvisioningStatus,
         val contacts: List<Contact>,
         val hubConfirmations: List<PendingEvidence>,
         val pendingEvidenceCount: Int,
@@ -158,6 +154,9 @@ class HomeRepositoryImpl @Inject constructor(
         pendingEvidenceCount: Int,
         registeredAlarmCount: Int,
         locallyConfirmedExecutionIds: Set<String>,
+        provisioning: ir.sayda.yara.hub.core.domain.model.ProvisioningStatus,
+        connectivity: ir.sayda.yara.hub.core.domain.model.ConnectivitySnapshot,
+        diagnostics: ReplicaTableCounts,
     ): HomeRuntimeSnapshot {
         val activityBySchedule = careActivities.associateBy { it.scheduleDefinitionId }
         val prescriptionByActivity = prescriptions.associateBy { it.careActivityId }
@@ -193,8 +192,33 @@ class HomeRepositoryImpl @Inject constructor(
             isOnline = online,
             nextReminderEpochMillis = nextOccurrence?.scheduledForEpochMillis,
             pendingEvidenceCount = pendingEvidenceCount,
-            synchronizationAvailable = online,
+            synchronizationAvailable = online && provisioning.state == ProvisioningState.READY,
             registeredAlarmCount = registeredAlarmCount,
+            provisioningState = provisioning.state,
+            connectivityState = connectivity.state,
+            deviceId = identity?.deviceId ?: provisioning.deviceId,
+            replicaId = identity?.replicaId ?: provisioning.replicaId,
+            backendUrl = identity?.backendUrl ?: provisioning.backendUrl,
+            tokenExpiresAtEpochMillis = identity?.tokenExpiresAtEpochMillis,
+            lastAuthenticatedAtEpochMillis = identity?.lastAuthenticatedAtEpochMillis
+                ?: provisioning.lastAuthenticatedAtEpochMillis,
+            isAuthenticated = identity != null &&
+                identity.provisioningState == ProvisioningState.READY &&
+                identity.accessToken.isNotBlank(),
+            connectionType = connectivity.connectionType,
+            checkpointSequence = replicaState?.checkpointSequence ?: 0L,
+            lastDownloadSessionId = diagnostics.lastDownloadSessionId,
+            careActivityCount = diagnostics.careActivityCount,
+            workflowDefinitionCount = diagnostics.workflowDefinitionCount,
+            workflowExecutionCount = diagnostics.workflowExecutionCount,
+            scheduleDefinitionCount = diagnostics.scheduleDefinitionCount,
+            occurrenceCount = diagnostics.occurrenceCount,
+            deviceCount = diagnostics.deviceCount,
+            deviceCommandCount = diagnostics.deviceCommandCount,
+            communicationSessionCount = diagnostics.communicationSessionCount,
+            contactCount = diagnostics.contactCount,
+            outboxPendingCount = diagnostics.outboxPendingCount,
+            syncConflictCount = diagnostics.syncConflictCount,
         )
     }
 

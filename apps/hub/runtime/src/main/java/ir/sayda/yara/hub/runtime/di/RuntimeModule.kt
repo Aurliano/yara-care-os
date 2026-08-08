@@ -7,6 +7,7 @@ import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import dagger.multibindings.IntoSet
 import ir.sayda.yara.hub.core.domain.usecase.ConfirmReminderUseCase
+import ir.sayda.yara.hub.core.domain.usecase.ReconcileRuntimeUseCase
 import ir.sayda.yara.hub.core.domain.usecase.RecoverRuntimeUseCase
 import ir.sayda.yara.hub.core.domain.usecase.RunIntegrationCycleUseCase
 import ir.sayda.yara.hub.core.runtime.ActionRegistry
@@ -28,6 +29,7 @@ import ir.sayda.yara.hub.runtime.dispatcher.ShowReminderActionHandler
 import ir.sayda.yara.hub.runtime.event.RuntimeEventBusImpl
 import ir.sayda.yara.hub.runtime.kernel.HubRuntimeKernel
 import ir.sayda.yara.hub.runtime.usecase.ConfirmReminderUseCaseImpl
+import ir.sayda.yara.hub.runtime.usecase.ReconcileRuntimeUseCaseImpl
 import ir.sayda.yara.hub.runtime.usecase.RecoverRuntimeUseCaseImpl
 import ir.sayda.yara.hub.runtime.usecase.RunIntegrationCycleUseCaseImpl
 import ir.sayda.yara.hub.core.runtime.RuntimeRefreshPort
@@ -43,6 +45,7 @@ abstract class RuntimeModule {
     @Binds @Singleton abstract fun bindRuntimeEventBus(impl: RuntimeEventBusImpl): RuntimeEventBus
     @Binds abstract fun bindRunIntegrationCycleUseCase(impl: RunIntegrationCycleUseCaseImpl): RunIntegrationCycleUseCase
     @Binds abstract fun bindRecoverRuntimeUseCase(impl: RecoverRuntimeUseCaseImpl): RecoverRuntimeUseCase
+    @Binds abstract fun bindReconcileRuntimeUseCase(impl: ReconcileRuntimeUseCaseImpl): ReconcileRuntimeUseCase
     @Binds abstract fun bindConfirmReminderUseCase(impl: ConfirmReminderUseCaseImpl): ConfirmReminderUseCase
     @Binds @Singleton abstract fun bindRuntimeRefreshPort(impl: RuntimeRefreshCoordinator): RuntimeRefreshPort
 

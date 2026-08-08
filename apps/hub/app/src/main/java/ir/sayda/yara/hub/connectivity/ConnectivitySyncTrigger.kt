@@ -6,6 +6,7 @@ import android.net.Network
 import android.net.NetworkCapabilities
 import android.net.NetworkRequest
 import dagger.hilt.android.qualifiers.ApplicationContext
+import ir.sayda.yara.hub.core.provisioning.RuntimeProvisioningGate
 import ir.sayda.yara.hub.core.runtime.RuntimeScheduler
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -14,6 +15,7 @@ import javax.inject.Singleton
 class ConnectivitySyncTrigger @Inject constructor(
     @ApplicationContext private val context: Context,
     private val runtimeScheduler: RuntimeScheduler,
+    private val provisioningGate: RuntimeProvisioningGate,
 ) {
     private val connectivityManager =
         context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
@@ -31,6 +33,9 @@ class ConnectivitySyncTrigger @Inject constructor(
             request,
             object : ConnectivityManager.NetworkCallback() {
                 override fun onAvailable(network: Network) {
+                    if (!provisioningGate.isRuntimeAllowed()) {
+                        return
+                    }
                     runtimeScheduler.scheduleOneTimeRuntimeWork(occurrenceId = null)
                 }
             },

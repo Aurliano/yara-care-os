@@ -7,10 +7,13 @@ import dagger.hilt.components.SingletonComponent
 import ir.sayda.yara.hub.core.di.HubBaseUrl
 import ir.sayda.yara.hub.network.api.AuthApi
 import ir.sayda.yara.hub.network.api.HubIntegrationApi
+import ir.sayda.yara.hub.network.api.ProvisioningApi
+import ir.sayda.yara.hub.network.auth.TokenRefreshHandler
 import ir.sayda.yara.hub.network.identity.CorrelationIdProvider
 import ir.sayda.yara.hub.network.identity.ReplicaIdentityProvider
 import ir.sayda.yara.hub.network.interceptor.AuthInterceptor
 import ir.sayda.yara.hub.network.interceptor.HubHeadersInterceptor
+import ir.sayda.yara.hub.network.interceptor.TokenAuthenticator
 import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
@@ -39,6 +42,7 @@ object NetworkModule {
     fun provideOkHttpClient(
         authInterceptor: AuthInterceptor,
         hubHeadersInterceptor: HubHeadersInterceptor,
+        tokenAuthenticator: TokenAuthenticator,
     ): OkHttpClient {
         val logging = HttpLoggingInterceptor().apply {
             level = HttpLoggingInterceptor.Level.BASIC
@@ -49,6 +53,7 @@ object NetworkModule {
             .writeTimeout(30, TimeUnit.SECONDS)
             .addInterceptor(hubHeadersInterceptor)
             .addInterceptor(authInterceptor)
+            .authenticator(tokenAuthenticator)
             .addInterceptor(logging)
             .build()
     }
@@ -80,6 +85,18 @@ object NetworkModule {
     @Singleton
     fun provideSynchronizationDomainApi(retrofit: Retrofit): ir.sayda.yara.hub.network.api.SynchronizationDomainApi =
         retrofit.create(ir.sayda.yara.hub.network.api.SynchronizationDomainApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideProvisioningApi(retrofit: Retrofit): ProvisioningApi =
+        retrofit.create(ProvisioningApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideTokenAuthenticator(
+        identityProvider: ReplicaIdentityProvider,
+        tokenRefreshHandler: dagger.Lazy<TokenRefreshHandler>,
+    ): TokenAuthenticator = TokenAuthenticator(identityProvider, tokenRefreshHandler)
 
     @Provides
     @Singleton

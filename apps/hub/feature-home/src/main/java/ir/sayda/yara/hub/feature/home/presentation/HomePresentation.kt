@@ -1,6 +1,7 @@
 package ir.sayda.yara.hub.feature.home.presentation
 
 import ir.sayda.yara.hub.core.domain.model.HomeRuntimeSnapshot
+import ir.sayda.yara.hub.core.domain.model.ProvisioningState
 import ir.sayda.yara.hub.core.domain.model.TodayReminderItem
 import ir.sayda.yara.hub.ui.presentation.ConnectionVisualState
 import java.text.SimpleDateFormat
@@ -21,14 +22,40 @@ data class NextReminderPresentation(
 )
 
 fun HomeRuntimeSnapshot.toConnectionPresentation(): ConnectionPresentation {
-    val isProvisioning = replicaHealth.equals("UNKNOWN", ignoreCase = true) ||
-        elderDisplayName.isBlank()
-    return when {
-        isProvisioning -> ConnectionPresentation(
+    when (provisioningState) {
+        ProvisioningState.UNPROVISIONED -> return ConnectionPresentation(
             state = ConnectionVisualState.Provisioning,
-            title = "در حال آماده‌سازی",
-            subtitle = "دستگاه هنوز راه‌اندازی نشده است",
+            title = "در حال راه‌اندازی دستگاه",
+            subtitle = "لطفاً چند لحظه صبر کنید",
         )
+        ProvisioningState.REGISTERING -> return ConnectionPresentation(
+            state = ConnectionVisualState.Provisioning,
+            title = "در حال ثبت دستگاه",
+            subtitle = "در حال ثبت دستگاه",
+        )
+        ProvisioningState.AUTHENTICATING -> return ConnectionPresentation(
+            state = ConnectionVisualState.Provisioning,
+            title = "در حال اتصال",
+            subtitle = "در حال اتصال",
+        )
+        ProvisioningState.READY -> return ConnectionPresentation(
+            state = ConnectionVisualState.Connected,
+            title = "دستگاه آماده است",
+            subtitle = "دستگاه آماده است",
+        )
+        ProvisioningState.ERROR -> return ConnectionPresentation(
+            state = ConnectionVisualState.Offline,
+            title = "راه‌اندازی ناموفق بود",
+            subtitle = "راه‌اندازی ناموفق بود",
+        )
+        ProvisioningState.REGISTERED -> return ConnectionPresentation(
+            state = ConnectionVisualState.Provisioning,
+            title = "در حال اتصال",
+            subtitle = "در حال اتصال",
+        )
+    }
+
+    return when {
         !isOnline -> ConnectionPresentation(
             state = ConnectionVisualState.Offline,
             title = "بدون اینترنت",
@@ -80,6 +107,7 @@ fun HomeRuntimeSnapshot.todayRemindersSectionTitle(): String? =
     if (todayReminders.size > 1) "یادآورهای دیگر امروز" else null
 
 fun HomeRuntimeSnapshot.emptyMedicationMessage(): String? = when {
+    provisioningState != ProvisioningState.READY -> null
     todayReminders.isNotEmpty() -> null
     nextReminderEpochMillis != null -> null
     !isOnline -> null

@@ -12,6 +12,7 @@ import ir.sayda.yara.hub.runtime.dispatcher.ActionDispatcher
 import ir.sayda.yara.hub.runtime.dispatcher.DefaultActionRegistry
 import ir.sayda.yara.hub.runtime.event.RuntimeEventBusImpl
 import ir.sayda.yara.hub.runtime.scheduling.SchedulingReplicaRuntime
+import ir.sayda.yara.hub.runtime.support.AlwaysAllowedProvisioningGate
 import ir.sayda.yara.hub.runtime.support.InMemoryCareRepository
 import ir.sayda.yara.hub.runtime.support.NoOpSyncSessionLocalRepository
 import ir.sayda.yara.hub.runtime.support.InMemorySchedulingRepository
@@ -25,6 +26,8 @@ internal object OrchestratorTestSupport {
         kernel: RuntimeKernel,
         schedulingRepository: InMemorySchedulingRepository,
         alarmCoordinator: RuntimeAlarmCoordinator,
+        provisioningGate: ir.sayda.yara.hub.core.provisioning.RuntimeProvisioningGate =
+            AlwaysAllowedProvisioningGate(),
     ): HubRuntimeOrchestrator {
         val workflowRepository = InMemoryWorkflowRepository()
         workflowRepository.seedDefinition(sampleWorkflowDefinition())
@@ -52,6 +55,7 @@ internal object OrchestratorTestSupport {
             communicationRuntime = CommunicationReplicaRuntimeComponent(),
             integrationRuntime = IntegrationRuntimeComponent(),
             runtimeAlarmCoordinator = alarmCoordinator,
+            provisioningGate = provisioningGate,
         )
     }
 }

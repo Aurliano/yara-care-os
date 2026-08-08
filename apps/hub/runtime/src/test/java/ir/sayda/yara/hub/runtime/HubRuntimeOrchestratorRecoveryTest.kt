@@ -19,6 +19,8 @@ import ir.sayda.yara.hub.runtime.dispatcher.DefaultActionRegistry
 import ir.sayda.yara.hub.runtime.dispatcher.ShowReminderActionHandler
 import ir.sayda.yara.hub.runtime.event.RuntimeEventBusImpl
 import ir.sayda.yara.hub.runtime.scheduling.SchedulingReplicaRuntime
+import ir.sayda.yara.hub.runtime.support.AlwaysAllowedProvisioningGate
+import ir.sayda.yara.hub.runtime.support.DeniedProvisioningGate
 import ir.sayda.yara.hub.runtime.support.InMemoryCareRepository
 import ir.sayda.yara.hub.runtime.support.InMemoryOccurrenceAlarmRegistry
 import ir.sayda.yara.hub.runtime.support.InMemorySchedulingRepository
@@ -65,6 +67,26 @@ class HubRuntimeOrchestratorRecoveryTest {
         assertTrue(kernel.restoreFromPersistenceCalled)
         assertTrue(kernel.initializeCalled)
         assertTrue(alarmRegistry.isOccurrenceAlarmRegistered("occ-future"))
+    }
+
+    @Test
+    fun recoverSkipsKernelWhenProvisioningGateClosed() = runTest {
+        val schedulingRepository = InMemorySchedulingRepository()
+        val alarmRegistry = InMemoryOccurrenceAlarmRegistry()
+        val alarmCoordinator = RuntimeAlarmCoordinator(schedulingRepository, alarmRegistry)
+        val kernel = RecordingRuntimeKernel(initialState = RuntimeKernelState.STOPPED)
+        val orchestrator = OrchestratorTestSupport.buildOrchestrator(
+            kernel = kernel,
+            schedulingRepository = schedulingRepository,
+            alarmCoordinator = alarmCoordinator,
+            provisioningGate = DeniedProvisioningGate(),
+        )
+
+        val result = orchestrator.recover()
+
+        assertTrue(result is AppResult.Success)
+        assertTrue(!kernel.restoreFromPersistenceCalled)
+        assertTrue(!kernel.initializeCalled)
     }
 
     private fun buildOrchestrator(
@@ -155,6 +177,7 @@ class ReminderWakeFlowTest {
             communicationRuntime = CommunicationReplicaRuntimeComponent(),
             integrationRuntime = IntegrationRuntimeComponent(),
             runtimeAlarmCoordinator = alarmCoordinator,
+            provisioningGate = AlwaysAllowedProvisioningGate(),
         )
 
         val result = orchestrator.runCycle()
@@ -230,8 +253,10 @@ class BootRecoveryFlowTest {
             alarmCoordinator = alarmCoordinator,
         )
         val recoverUseCase = ir.sayda.yara.hub.runtime.usecase.RecoverRuntimeUseCaseImpl(orchestrator)
+        val reconcileUseCase = ir.sayda.yara.hub.runtime.usecase.ReconcileRuntimeUseCaseImpl(orchestrator)
 
-        val result = recoverUseCase()
+        recoverUseCase()
+        val result = reconcileUseCase()
 
         assertTrue(result is AppResult.Success)
         assertTrue(alarmRegistry.isOccurrenceAlarmRegistered("occ-future"))

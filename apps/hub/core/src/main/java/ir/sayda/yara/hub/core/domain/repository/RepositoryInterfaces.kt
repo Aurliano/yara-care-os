@@ -5,8 +5,11 @@ import ir.sayda.yara.hub.core.domain.model.CommunicationSession
 import ir.sayda.yara.hub.core.domain.model.Contact
 import ir.sayda.yara.hub.core.domain.model.Device
 import ir.sayda.yara.hub.core.domain.model.DeviceCommand
+import ir.sayda.yara.hub.core.domain.model.ConnectivitySnapshot
 import ir.sayda.yara.hub.core.domain.model.HomeRuntimeSnapshot
 import ir.sayda.yara.hub.core.domain.model.HubIdentity
+import ir.sayda.yara.hub.core.domain.model.ProvisioningState
+import ir.sayda.yara.hub.core.domain.model.ProvisioningStatus
 import ir.sayda.yara.hub.core.domain.model.Occurrence
 import ir.sayda.yara.hub.core.domain.model.OutboxEntry
 import ir.sayda.yara.hub.core.domain.model.PendingEvidence
@@ -27,14 +30,28 @@ interface AuthRepository {
     suspend fun getIdentity(): HubIdentity?
     suspend fun saveIdentity(identity: HubIdentity)
     suspend fun clearIdentity()
+    suspend fun login(phone: String, password: String): AppResult<HubIdentity>
+    suspend fun logout(): AppResult<Unit>
     suspend fun refreshTokenIfNeeded(): AppResult<HubIdentity>
+    suspend fun refreshToken(): AppResult<HubIdentity>
     fun observeIdentity(): Flow<HubIdentity?>
+}
+
+interface ProvisioningRepository {
+    suspend fun registerDevice(serialNumber: String, deviceModelCode: String): AppResult<ProvisioningStatus>
+    suspend fun authenticate(deviceId: String, phone: String, password: String): AppResult<HubIdentity>
+    suspend fun restoreProvisioning(): AppResult<ProvisioningStatus>
+    suspend fun revokeProvisioning(): AppResult<Unit>
+    suspend fun getStatus(): ProvisioningStatus
+    fun observeProvisioningStatus(): Flow<ProvisioningStatus>
+    suspend fun setProvisioningState(state: ProvisioningState, errorMessage: String? = null)
 }
 
 interface ReplicaMetadataRepository {
     suspend fun getReplicaState(): ReplicaState?
     suspend fun upsertReplicaState(state: ReplicaState)
     suspend fun advanceCheckpoint(sequence: Long, token: String?)
+    suspend fun touchLastSuccessfulSync()
     fun observeReplicaState(): Flow<ReplicaState?>
 }
 
@@ -143,6 +160,7 @@ interface SynchronizationRepository {
     suspend fun resumeSession(sessionId: String): AppResult<SyncSession>
     suspend fun cancelSession(sessionId: String): AppResult<Unit>
     suspend fun fetchCheckpoint(replicaId: String): AppResult<ReplicaCheckpoint>
+    suspend fun completeDownloadSession(sessionId: String): AppResult<Unit>
     suspend fun submitDelta(
         sessionId: String,
         aggregateReference: String,
@@ -219,4 +237,6 @@ interface ReminderRepository {
 interface ConnectivityRepository {
     fun observeOnline(): Flow<Boolean>
     suspend fun isOnline(): Boolean
+    fun observeConnectivity(): Flow<ConnectivitySnapshot>
+    suspend fun refreshBackendReachability(): ConnectivitySnapshot
 }

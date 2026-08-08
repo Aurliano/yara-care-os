@@ -40,6 +40,12 @@ class SyncSessionStore @Inject constructor(
         syncSessionLocalRepository.updateStatus(current.sessionId, status.name)
     }
 
+    suspend fun completeAndRetain(status: SyncSessionStatus) {
+        val current = cachedSession ?: return
+        syncSessionLocalRepository.updateStatus(current.sessionId, status.name)
+        cachedSession = null
+    }
+
     suspend fun clear() {
         cachedSession?.sessionId?.let { syncSessionLocalRepository.clear(it) }
         cachedSession = null

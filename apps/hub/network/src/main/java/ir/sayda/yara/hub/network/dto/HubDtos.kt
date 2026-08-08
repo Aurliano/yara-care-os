@@ -6,7 +6,7 @@ import kotlinx.serialization.json.JsonObject
 
 @Serializable
 data class TokenRequestDto(
-    val username: String,
+    val phone: String,
     val password: String,
 )
 
@@ -48,6 +48,12 @@ data class HubSyncPayloadRequestDto(
 data class HubSyncOperationResponseDto(
     @SerialName("operation_id") val operationId: String,
     val status: String,
+)
+
+@Serializable
+data class HubSyncCompleteResponseDto(
+    val status: String,
+    @SerialName("operations_applied") val operationsApplied: Int = 0,
 )
 
 @Serializable
@@ -105,4 +111,54 @@ data class SyncCheckpointResponseDto(
 data class ApiErrorDto(
     val detail: String? = null,
     val code: String? = null,
+)
+
+@Serializable
+data class HubProvisionRegisterRequestDto(
+    @SerialName("serial_number") val serialNumber: String,
+    @SerialName("device_model_code") val deviceModelCode: String,
+)
+
+@Serializable
+data class HubProvisionRegisterResponseDto(
+    @SerialName("device_id") val deviceId: String,
+    @SerialName("replica_identifier") val replicaIdentifier: String,
+    @SerialName("provisioning_state") val provisioningState: String,
+    @SerialName("provisioned_at") val provisionedAt: String,
+    @SerialName("elder_id") val elderId: String? = null,
+)
+
+@Serializable
+data class HubProvisionAuthenticateRequestDto(
+    @SerialName("device_id") val deviceId: String,
+    val phone: String,
+    val password: String,
+)
+
+@Serializable
+data class HubProvisionAuthenticateResponseDto(
+    @SerialName("device_id") val deviceId: String,
+    @SerialName("replica_identifier") val replicaIdentifier: String,
+    @SerialName("provisioning_state") val provisioningState: String,
+    @SerialName("provisioned_at") val provisionedAt: String,
+    @SerialName("authenticated_at") val authenticatedAt: String? = null,
+    @SerialName("elder_id") val elderId: String? = null,
+    val access: String,
+    val refresh: String,
+)
+
+@Serializable
+data class HubProvisionStatusResponseDto(
+    @SerialName("device_id") val deviceId: String,
+    @SerialName("replica_identifier") val replicaIdentifier: String? = null,
+    @SerialName("provisioning_state") val provisioningState: String,
+    @SerialName("provisioned_at") val provisionedAt: String? = null,
+    @SerialName("authenticated_at") val authenticatedAt: String? = null,
+    @SerialName("elder_id") val elderId: String? = null,
+    val revoked: Boolean = false,
+)
+
+@Serializable
+data class HubProvisionRevokeRequestDto(
+    @SerialName("device_id") val deviceId: String,
 )

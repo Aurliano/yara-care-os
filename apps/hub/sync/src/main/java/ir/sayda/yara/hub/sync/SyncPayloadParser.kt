@@ -4,6 +4,7 @@ import ir.sayda.yara.hub.core.domain.model.CareActivity
 import ir.sayda.yara.hub.core.domain.model.CommunicationSession
 import ir.sayda.yara.hub.core.domain.model.Contact
 import ir.sayda.yara.hub.core.domain.model.Device
+import ir.sayda.yara.hub.core.domain.model.DeviceCommand
 import ir.sayda.yara.hub.core.domain.model.Occurrence
 import ir.sayda.yara.hub.core.domain.model.Prescription
 import ir.sayda.yara.hub.core.domain.model.ScheduleDefinition
@@ -103,6 +104,27 @@ class SyncPayloadParser @Inject constructor() {
         )
     }
 
+    fun parseDeviceCommand(payloadJson: String, aggregateVersion: String): DeviceCommand {
+        val payload = json.parseToJsonElement(payloadJson).jsonObject
+        val now = System.currentTimeMillis()
+        return DeviceCommand(
+            id = payload.string("id") ?: payload.string("device_command_id") ?: "",
+            targetDeviceId = payload.string("device_id") ?: payload.string("target_device_id") ?: "",
+            commandType = payload.string("command_type") ?: "",
+            parametersJson = payload.string("payload_json")
+                ?: payload.string("parameters_json")
+                ?: payload.jsonString("payload")
+                ?: "{}",
+            status = payload.string("status") ?: "QUEUED",
+            expiresAtEpochMillis = payload.long("expires_at_epoch_millis") ?: 0L,
+            resultJson = payload.string("result_json") ?: "{}",
+            failureReason = payload.string("failure_reason") ?: "",
+            idempotencyKey = payload.string("idempotency_key") ?: "",
+            executionReference = payload.string("execution_reference"),
+            updatedAtEpochMillis = payload.long("updated_at_epoch_millis") ?: now,
+        )
+    }
+
     fun parseSnapshotBundle(payloadJson: String): ReplicaSnapshotBundle {
         val root = json.parseToJsonElement(payloadJson).jsonObject
         return ReplicaSnapshotBundle(
@@ -113,7 +135,7 @@ class SyncPayloadParser @Inject constructor() {
             scheduleDefinitions = root.array("schedule_definitions").mapNotNull { parseScheduleDefinition(it.jsonObject) },
             occurrences = root.array("occurrences").mapNotNull { parseOccurrence(it.jsonObject) },
             devices = root.array("devices").map { parseDevice(it.toString(), "0") },
-            deviceCommands = emptyList(),
+            deviceCommands = root.array("device_commands").map { parseDeviceCommand(it.toString(), "0") },
             communicationSessions = root.array("communication_sessions").map { parseCommunicationSession(it.toString(), "0") },
             contacts = root.array("contacts").mapNotNull { parseContact(it.jsonObject) },
         )

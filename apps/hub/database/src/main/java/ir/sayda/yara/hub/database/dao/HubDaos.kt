@@ -71,6 +71,9 @@ interface WorkflowDefinitionDao {
 
 @Dao
 interface WorkflowExecutionDao {
+    @Query("SELECT * FROM workflow_execution ORDER BY started_at_epoch_millis")
+    fun observeAll(): Flow<List<WorkflowExecutionEntity>>
+
     @Query("SELECT * FROM workflow_execution WHERE status IN ('PENDING', 'ACTIVE') ORDER BY started_at_epoch_millis")
     fun observeActive(): Flow<List<WorkflowExecutionEntity>>
 
@@ -162,6 +165,9 @@ interface OccurrenceDao {
 
 @Dao
 interface DeviceDao {
+    @Query("SELECT * FROM device")
+    fun observeAll(): Flow<List<DeviceEntity>>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(entity: DeviceEntity)
 
@@ -173,6 +179,9 @@ interface DeviceDao {
 interface DeviceCommandDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(entity: DeviceCommandEntity)
+
+    @Query("SELECT * FROM device_command WHERE status = 'QUEUED' ORDER BY expires_at_epoch_millis")
+    fun observeQueued(): Flow<List<DeviceCommandEntity>>
 
     @Query("SELECT * FROM device_command WHERE status = 'QUEUED' ORDER BY expires_at_epoch_millis")
     suspend fun getQueued(): List<DeviceCommandEntity>
@@ -192,6 +201,9 @@ interface ContactDao {
     )
     fun observePriorityByElder(elderId: String): Flow<List<ContactEntity>>
 
+    @Query("SELECT * FROM contact ORDER BY display_name")
+    fun observeAll(): Flow<List<ContactEntity>>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(entity: ContactEntity)
 
@@ -201,6 +213,9 @@ interface ContactDao {
 
 @Dao
 interface CommunicationSessionDao {
+    @Query("SELECT * FROM communication_session")
+    fun observeAll(): Flow<List<CommunicationSessionEntity>>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(entity: CommunicationSessionEntity)
 
@@ -293,6 +308,15 @@ interface OutboxDao {
     )
     suspend fun getPending(limit: Int): List<OutboxEntryEntity>
 
+    @Query(
+        """
+        SELECT * FROM outbox_entry
+        WHERE status = 'PENDING'
+        ORDER BY priority DESC, created_at_epoch_millis ASC
+        """,
+    )
+    fun observePending(): Flow<List<OutboxEntryEntity>>
+
     @Query("SELECT * FROM outbox_entry WHERE id = :id LIMIT 1")
     suspend fun getById(id: String): OutboxEntryEntity?
 
@@ -355,6 +379,16 @@ interface SyncSessionLocalDao {
 
     @Query("DELETE FROM sync_session_local WHERE session_id = :sessionId")
     suspend fun delete(sessionId: String)
+
+    @Query(
+        """
+        SELECT * FROM sync_session_local
+        WHERE direction = 'DOWNLOAD'
+        ORDER BY started_at_epoch_millis DESC
+        LIMIT 1
+        """,
+    )
+    fun observeLatestDownload(): Flow<SyncSessionLocalEntity?>
 }
 
 @Dao
@@ -364,4 +398,7 @@ interface SyncConflictDao {
 
     @Query("SELECT * FROM sync_conflict ORDER BY detected_at_epoch_millis DESC")
     suspend fun getAll(): List<ir.sayda.yara.hub.database.entity.SyncConflictEntity>
+
+    @Query("SELECT * FROM sync_conflict ORDER BY detected_at_epoch_millis DESC")
+    fun observeAll(): Flow<List<ir.sayda.yara.hub.database.entity.SyncConflictEntity>>
 }

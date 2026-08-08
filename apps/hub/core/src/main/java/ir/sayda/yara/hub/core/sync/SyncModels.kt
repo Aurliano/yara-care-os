@@ -61,6 +61,14 @@ data class SyncRefreshScope(
     val isEmpty: Boolean get() = !scheduling && !workflow && !care && !device && !communication
 
     companion object {
+        fun full(): SyncRefreshScope = SyncRefreshScope(
+            scheduling = true,
+            workflow = true,
+            care = true,
+            device = true,
+            communication = true,
+        )
+
         fun fromDomains(domains: Set<ReplicaDomain>): SyncRefreshScope = SyncRefreshScope(
             scheduling = ReplicaDomain.SCHEDULING in domains,
             workflow = ReplicaDomain.WORKFLOW in domains,

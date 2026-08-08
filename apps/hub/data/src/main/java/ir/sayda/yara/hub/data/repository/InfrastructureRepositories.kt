@@ -60,6 +60,15 @@ class ReplicaMetadataRepositoryImpl @Inject constructor(
         )
     }
 
+    override suspend fun touchLastSuccessfulSync() {
+        val current = dao.get() ?: return
+        dao.upsert(
+            current.copy(
+                lastSuccessfulSyncEpochMillis = System.currentTimeMillis(),
+            ),
+        )
+    }
+
     override fun observeReplicaState(): Flow<ReplicaState?> =
         dao.observe().map { it?.toDomain() }
 }
@@ -323,6 +332,15 @@ class SynchronizationRepositoryImpl @Inject constructor(
                     checkpointToken = response.checkpointToken,
                 ),
             )
+        } catch (exception: Exception) {
+            AppResult.Error(exception)
+        }
+    }
+
+    override suspend fun completeDownloadSession(sessionId: String): AppResult<Unit> {
+        return try {
+            hubIntegrationApi.completeDownloadSession(sessionId)
+            AppResult.Success(Unit)
         } catch (exception: Exception) {
             AppResult.Error(exception)
         }

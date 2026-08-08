@@ -26,7 +26,12 @@ from integration.runtime.adapters.device import (
     fail_hub_command,
     update_hub_device_state,
 )
-from integration.runtime.adapters.synchronization import start_download_session, start_upload_session
+from integration.runtime.adapters.synchronization import (
+    complete_download_session,
+    start_download_session,
+    start_upload_session,
+)
+from integration.services.hub_download_staging import stage_hub_download_operations
 from integration.runtime.scheduler import run_integration_cycle
 
 
@@ -160,6 +165,7 @@ class HubSyncStartView(APIView):
         try:
             if direction == "DOWNLOAD":
                 session = start_download_session(ctx, idempotency_key=idempotency_key)
+                stage_hub_download_operations(ctx=ctx, session=session)
             else:
                 session = start_upload_session(ctx, idempotency_key=idempotency_key)
         except Exception as exc:  # noqa: BLE001
@@ -212,6 +218,18 @@ class HubSyncSnapshotView(APIView):
         except Exception as exc:  # noqa: BLE001
             return hub_error_response(exc)
         return Response({"operation_id": str(operation.id), "status": operation.status}, status=status.HTTP_201_CREATED)
+
+
+class HubSyncCompleteView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request: Request, session_id: uuid.UUID) -> Response:
+        ctx = _ctx_from_request(request)
+        try:
+            result = complete_download_session(ctx, session_id=session_id)
+        except Exception as exc:  # noqa: BLE001
+            return hub_error_response(exc)
+        return Response(result)
 
 
 class HubSessionAcceptView(APIView):

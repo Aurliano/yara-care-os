@@ -3,6 +3,7 @@ package ir.sayda.yara.hub.runtime.usecase
 import ir.sayda.yara.hub.core.domain.repository.PendingEvidenceRepository
 import ir.sayda.yara.hub.core.domain.repository.WorkflowReplicaRepository
 import ir.sayda.yara.hub.core.domain.usecase.ConfirmReminderUseCase
+import ir.sayda.yara.hub.core.domain.usecase.ReconcileRuntimeUseCase
 import ir.sayda.yara.hub.core.domain.usecase.RecoverRuntimeUseCase
 import ir.sayda.yara.hub.core.domain.usecase.RunIntegrationCycleUseCase
 import ir.sayda.yara.hub.core.result.AppResult
@@ -23,7 +24,13 @@ class RunIntegrationCycleUseCaseImpl @Inject constructor(
 class RecoverRuntimeUseCaseImpl @Inject constructor(
     private val orchestrator: HubRuntimeOrchestrator,
 ) : RecoverRuntimeUseCase {
-    override suspend fun invoke(): AppResult<Unit> = orchestrator.recover()
+    override suspend fun invoke(): AppResult<Unit> = orchestrator.recoverKernel()
+}
+
+class ReconcileRuntimeUseCaseImpl @Inject constructor(
+    private val orchestrator: HubRuntimeOrchestrator,
+) : ReconcileRuntimeUseCase {
+    override suspend fun invoke(): AppResult<Unit> = orchestrator.reconcileReplicaRuntime()
 }
 
 class ConfirmReminderUseCaseImpl @Inject constructor(

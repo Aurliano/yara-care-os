@@ -31,6 +31,18 @@ python manage.py seed_licensing
 python manage.py runserver
 ```
 
+### Hub tablet on local Wi-Fi
+
+Bind to all interfaces so the tablet can reach your machine:
+
+```bash
+python manage.py runserver 0.0.0.0:8000
+```
+
+Development settings allow LAN hosts by default (`DEV_ALLOW_LAN_HOSTS=true`).
+Use your machine's LAN IP in the Hub (e.g. `http://192.168.1.101:8000`).
+To restrict hosts, set `DEV_ALLOW_LAN_HOSTS=false` and list IPs in `ALLOWED_HOSTS`.
+
 ## Health & Readiness
 
 | Endpoint | Auth | Purpose |

@@ -18,11 +18,20 @@ android {
         versionName = "2.0.0-foundation"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        buildConfigField("String", "HUB_DEVICE_MODEL_CODE", "\"YARA-HUB-TABLET\"")
+        buildConfigField("String", "PROVISION_PHONE", "\"+989136666666\"")
+        buildConfigField("String", "PROVISION_PASSWORD", "\"securepass123\"")
     }
 
     buildTypes {
+        debug {
+            buildConfigField("boolean", "DEBUG", "true")
+        }
         release {
             isMinifyEnabled = false
+            buildConfigField("boolean", "DEBUG", "false")
+            buildConfigField("String", "PROVISION_PHONE", "\"\"")
+            buildConfigField("String", "PROVISION_PASSWORD", "\"\"")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",

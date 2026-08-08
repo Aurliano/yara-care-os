@@ -45,8 +45,14 @@ class DownloadSessionRunner @Inject constructor(
         checkpointCoordinator.advanceFromRemote(token)
 
     suspend fun complete(): AppResult<Unit> {
-        syncSessionStore.updateStatus(SyncSessionStatus.SESSION_COMPLETED)
-        syncSessionStore.clear()
+        val session = syncSessionStore.getCached()
+        if (session != null) {
+            when (val result = synchronizationRepository.completeDownloadSession(session.sessionId)) {
+                is AppResult.Error -> return result
+                is AppResult.Success -> Unit
+            }
+        }
+        syncSessionStore.completeAndRetain(SyncSessionStatus.SESSION_COMPLETED)
         return AppResult.Success(Unit)
     }
 }

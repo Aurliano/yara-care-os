@@ -10,7 +10,7 @@ from domains.communication.exceptions import CommunicationError
 from domains.device.exceptions import DeviceError
 from domains.synchronization.exceptions import SynchronizationError
 from domains.workflow.exceptions import WorkflowError
-from integration.exceptions import IntegrationError
+from integration.exceptions import HubProvisioningError, IntegrationError
 
 
 def hub_error_response(exc: Exception) -> Response:
@@ -34,6 +34,8 @@ def hub_error_response(exc: Exception) -> Response:
         from domains.care.api.views import _care_error_response
 
         return _care_error_response(exc)
+    if isinstance(exc, HubProvisioningError):
+        return domain_error_response(exc, base_type=HubProvisioningError, bad_request=(HubProvisioningError,))
     if isinstance(exc, IntegrationError):
         return domain_error_response(exc, base_type=IntegrationError, bad_request=(IntegrationError,))
     raise exc

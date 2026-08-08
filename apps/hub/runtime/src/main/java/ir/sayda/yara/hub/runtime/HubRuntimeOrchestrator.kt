@@ -1,5 +1,6 @@
 package ir.sayda.yara.hub.runtime
 
+import ir.sayda.yara.hub.core.provisioning.RuntimeProvisioningGate
 import ir.sayda.yara.hub.core.result.AppResult
 import ir.sayda.yara.hub.core.runtime.IllegalRuntimeTransitionException
 import ir.sayda.yara.hub.core.runtime.RuntimeKernel
@@ -28,6 +29,7 @@ class HubRuntimeOrchestrator @Inject constructor(
     private val communicationRuntime: CommunicationReplicaRuntimeComponent,
     private val integrationRuntime: IntegrationRuntimeComponent,
     private val runtimeAlarmCoordinator: RuntimeAlarmCoordinator,
+    private val provisioningGate: RuntimeProvisioningGate,
 ) {
 
     private var componentsRegistered = false
@@ -43,10 +45,25 @@ class HubRuntimeOrchestrator @Inject constructor(
         componentsRegistered = true
     }
 
-    suspend fun recover(): AppResult<Unit> {
+    suspend fun recoverKernel(): AppResult<Unit> {
+        if (!provisioningGate.requireRuntimeReady()) {
+            return AppResult.Success(Unit)
+        }
         return try {
             registerComponentsIfNeeded()
             runtimeKernel.restoreFromPersistence()
+            ensureRunningKernel()
+            AppResult.Success(Unit)
+        } catch (exception: IllegalRuntimeTransitionException) {
+            AppResult.Error(exception)
+        }
+    }
+
+    suspend fun reconcileReplicaRuntime(): AppResult<Unit> {
+        if (!provisioningGate.requireRuntimeReady()) {
+            return AppResult.Success(Unit)
+        }
+        return try {
             ensureRunningKernel()
             runtimeAlarmCoordinator.syncAlarmsFromReplicas()
             workflowReplicaRuntime.dispatchActiveReminders()
@@ -56,7 +73,18 @@ class HubRuntimeOrchestrator @Inject constructor(
         }
     }
 
+    suspend fun recover(): AppResult<Unit> {
+        when (val kernel = recoverKernel()) {
+            is AppResult.Error -> return kernel
+            is AppResult.Success -> Unit
+        }
+        return reconcileReplicaRuntime()
+    }
+
     suspend fun runCycle(): AppResult<Map<String, Int>> {
+        if (!provisioningGate.requireRuntimeReady()) {
+            return AppResult.Success(emptyMap())
+        }
         try {
             ensureRunningKernel()
         } catch (exception: IllegalRuntimeTransitionException) {

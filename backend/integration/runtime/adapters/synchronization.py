@@ -64,3 +64,18 @@ def start_download_session(ctx: IntegrationContext, *, idempotency_key: str):
         direction=SyncDirection.DOWNLOAD,
         idempotency_key=idempotency_key,
     )
+
+
+def complete_download_session(ctx: IntegrationContext, *, session_id: uuid.UUID) -> dict[str, Any]:
+    if ctx.replica_id is None:
+        raise ReplicaContextRequiredError("replica_id is required")
+    from integration.services.hub_download_staging import complete_hub_download_session
+
+    result = complete_hub_download_session(ctx=ctx, session_id=session_id)
+    integration_logging.log_orchestration_step(
+        ctx,
+        "sync_download_completed",
+        session_id=str(session_id),
+        operations_applied=result.get("operations_applied", 0),
+    )
+    return result
