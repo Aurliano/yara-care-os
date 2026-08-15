@@ -17,3 +17,11 @@ annotation class ApplicationScope
 @Qualifier
 @Retention(AnnotationRetention.BINARY)
 annotation class HubBaseUrl
+
+@Qualifier
+@Retention(AnnotationRetention.BINARY)
+annotation class ProvisioningClient
+
+@Qualifier
+@Retention(AnnotationRetention.BINARY)
+annotation class UnauthenticatedAuth

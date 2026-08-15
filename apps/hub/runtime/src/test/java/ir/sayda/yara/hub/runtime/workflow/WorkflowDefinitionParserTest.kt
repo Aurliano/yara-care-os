@@ -22,4 +22,17 @@ class WorkflowDefinitionParserTest {
         assertEquals(7200L, WorkflowDefinitionParser.stepTimeoutSeconds(json))
         assertTrue(WorkflowDefinitionParser.initialActionJson(json).contains("SHOW_REMINDER"))
     }
+
+    @Test
+    fun parsesPostponePolicy() {
+        val json = """
+            {
+              "postpone": {"allowed": true, "max_count": 2, "delay_seconds": 300}
+            }
+        """.trimIndent()
+        val policy = WorkflowDefinitionParser.postponePolicy(json)
+        assertEquals(true, policy.allowed)
+        assertEquals(2, policy.maxCount)
+        assertEquals(300L, policy.delaySeconds)
+    }
 }

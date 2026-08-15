@@ -134,6 +134,36 @@ interface OccurrenceDao {
     @Query(
         """
         SELECT * FROM occurrence
+        WHERE status IN ('DUE', 'SCHEDULED')
+          AND scheduled_for_epoch_millis <= :endOfDayEpochMillis
+        ORDER BY scheduled_for_epoch_millis
+        """,
+    )
+    fun observeTodayReminders(endOfDayEpochMillis: Long): Flow<List<OccurrenceEntity>>
+
+    @Query(
+        """
+        SELECT * FROM occurrence
+        WHERE (
+            (status = 'DUE' AND scheduled_for_epoch_millis <= :endOfDayEpochMillis)
+            OR (
+                status = 'SCHEDULED'
+                AND scheduled_for_epoch_millis > :nowEpochMillis
+                AND scheduled_for_epoch_millis <= :endOfDayEpochMillis
+            )
+        )
+        ORDER BY scheduled_for_epoch_millis
+        LIMIT 1
+        """,
+    )
+    fun observeNextReminderOccurrence(
+        nowEpochMillis: Long,
+        endOfDayEpochMillis: Long,
+    ): Flow<OccurrenceEntity?>
+
+    @Query(
+        """
+        SELECT * FROM occurrence
         WHERE status = 'SCHEDULED' AND scheduled_for_epoch_millis <= :epochMillis
         ORDER BY scheduled_for_epoch_millis
         """,
@@ -161,6 +191,9 @@ interface OccurrenceDao {
 
     @Query("DELETE FROM occurrence")
     suspend fun deleteAll()
+
+    @Query("DELETE FROM occurrence WHERE schedule_definition_id = :scheduleDefinitionId")
+    suspend fun deleteByScheduleDefinitionId(scheduleDefinitionId: String)
 }
 
 @Dao

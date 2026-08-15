@@ -18,4 +18,7 @@ data class ReminderPresentation(
     val scheduledForEpochMillis: Long,
     val workflowStatus: String,
     val localConfirmationRecorded: Boolean = false,
+    val postponeAllowed: Boolean = false,
+    val remainingPostpones: Int = 0,
+    val postponeDelayMinutes: Int = 0,
 )

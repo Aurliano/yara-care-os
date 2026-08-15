@@ -11,7 +11,7 @@ import javax.inject.Singleton
 @Singleton
 class ReminderPresentationGatewayImpl @Inject constructor() : ReminderPresentationGateway {
 
-    private val requests = MutableSharedFlow<ReminderOpenRequest>(extraBufferCapacity = 8)
+    private val requests = MutableSharedFlow<ReminderOpenRequest>(replay = 1, extraBufferCapacity = 8)
 
     override suspend fun openReminder(executionId: String, occurrenceId: String) {
         requests.emit(ReminderOpenRequest(executionId = executionId, occurrenceId = occurrenceId))

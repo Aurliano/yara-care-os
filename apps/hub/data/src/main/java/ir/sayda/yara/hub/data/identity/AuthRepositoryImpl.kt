@@ -1,16 +1,18 @@
 package ir.sayda.yara.hub.data.identity
 
+import dagger.Lazy
+import ir.sayda.yara.hub.core.di.UnauthenticatedAuth
 import ir.sayda.yara.hub.core.domain.model.HubIdentity
 import ir.sayda.yara.hub.core.domain.model.ProvisioningState
 import ir.sayda.yara.hub.core.domain.repository.AuthRepository
+import ir.sayda.yara.hub.core.domain.repository.ProvisioningRepository
+import ir.sayda.yara.hub.core.provisioning.HubDeviceCredentialsProvider
 import ir.sayda.yara.hub.core.result.AppResult
 import ir.sayda.yara.hub.data.provisioning.JwtExpiryParser
 import ir.sayda.yara.hub.data.provisioning.ProvisioningStateMachine
 import ir.sayda.yara.hub.network.api.AuthApi
-import ir.sayda.yara.hub.network.dto.TokenRefreshRequestDto
 import ir.sayda.yara.hub.network.dto.TokenRequestDto
 import ir.sayda.yara.hub.network.identity.CorrelationIdProvider
-import ir.sayda.yara.hub.network.logging.HubNetworkLogger
 import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -18,9 +20,12 @@ import javax.inject.Singleton
 @Singleton
 class AuthRepositoryImpl @Inject constructor(
     private val identityStore: DataStoreReplicaIdentityProvider,
-    private val authApi: AuthApi,
+    @UnauthenticatedAuth private val authApi: AuthApi,
     private val stateMachine: ProvisioningStateMachine,
     private val correlationIdProvider: CorrelationIdProvider,
+    private val tokenRefreshCoordinator: HubTokenRefreshCoordinator,
+    private val provisioningRepository: Lazy<ProvisioningRepository>,
+    private val deviceCredentialsProvider: HubDeviceCredentialsProvider,
 ) : AuthRepository {
 
     override suspend fun getIdentity(): HubIdentity? = identityStore.readIdentity()
@@ -63,37 +68,39 @@ class AuthRepositoryImpl @Inject constructor(
     override suspend fun refreshTokenIfNeeded(): AppResult<HubIdentity> {
         val current = identityStore.readIdentity()
             ?: return AppResult.Error(IllegalStateException("No hub identity configured"))
-        if (System.currentTimeMillis() < current.tokenExpiresAtEpochMillis - TOKEN_REFRESH_SKEW_MS) {
-            return AppResult.Success(current)
+        if (tokenRefreshCoordinator.refreshIfNeeded()) {
+            return identityStore.readIdentity()?.let { AppResult.Success(it) }
+                ?: AppResult.Success(current)
         }
-        return refreshToken()
+        return reauthenticateAfterRefreshFailure(current)
     }
 
     override suspend fun refreshToken(): AppResult<HubIdentity> {
-        return try {
-            val current = identityStore.readIdentity()
-                ?: return AppResult.Error(IllegalStateException("No hub identity configured"))
-            val correlationId = correlationIdProvider.next()
-            val response = authApi.refreshToken(TokenRefreshRequestDto(refresh = current.refreshToken))
-            val refreshed = current.copy(
-                accessToken = response.access,
-                refreshToken = response.refresh,
-                tokenExpiresAtEpochMillis = JwtExpiryParser.expiresAtEpochMillis(
-                    response.access,
-                    System.currentTimeMillis(),
-                ),
-            )
-            identityStore.writeIdentity(refreshed)
-            HubNetworkLogger.authenticationRefresh(current.deviceId, correlationId)
-            AppResult.Success(refreshed)
-        } catch (exception: Exception) {
-            AppResult.Error(exception)
+        val current = identityStore.readIdentity()
+            ?: return AppResult.Error(IllegalStateException("No hub identity configured"))
+        if (tokenRefreshCoordinator.refresh(force = true)) {
+            return identityStore.readIdentity()?.let { AppResult.Success(it) }
+                ?: AppResult.Error(IllegalStateException("Identity missing after token refresh"))
         }
+        return reauthenticateAfterRefreshFailure(current)
     }
 
     override fun observeIdentity(): Flow<HubIdentity?> = identityStore.observeIdentity()
 
-    companion object {
-        private const val TOKEN_REFRESH_SKEW_MS = 60_000L
+    private suspend fun reauthenticateAfterRefreshFailure(current: HubIdentity): AppResult<HubIdentity> {
+        val credentials = deviceCredentialsProvider.credentials()
+            ?: return AppResult.Error(IllegalStateException("Failed to refresh access token"))
+        return when (
+            val result = provisioningRepository.get().authenticate(
+                deviceId = current.deviceId,
+                phone = credentials.phone,
+                password = credentials.password,
+            )
+        ) {
+            is AppResult.Success -> result
+            is AppResult.Error -> AppResult.Error(
+                IllegalStateException("Failed to refresh access token", result.exception),
+            )
+        }
     }
 }

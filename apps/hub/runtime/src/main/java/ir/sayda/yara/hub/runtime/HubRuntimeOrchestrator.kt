@@ -12,6 +12,7 @@ import ir.sayda.yara.hub.runtime.component.SchedulingReplicaRuntimeComponent
 import ir.sayda.yara.hub.runtime.component.SynchronizationReplicaRuntimeComponent
 import ir.sayda.yara.hub.runtime.component.WorkflowReplicaRuntimeComponent
 import ir.sayda.yara.hub.runtime.alarm.RuntimeAlarmCoordinator
+import ir.sayda.yara.hub.runtime.bootstrap.HubWorkflowBootstrap
 import ir.sayda.yara.hub.runtime.scheduling.SchedulingReplicaRuntime
 import ir.sayda.yara.hub.runtime.workflow.WorkflowReplicaRuntime
 import javax.inject.Inject
@@ -30,6 +31,7 @@ class HubRuntimeOrchestrator @Inject constructor(
     private val integrationRuntime: IntegrationRuntimeComponent,
     private val runtimeAlarmCoordinator: RuntimeAlarmCoordinator,
     private val provisioningGate: RuntimeProvisioningGate,
+    private val hubWorkflowBootstrap: HubWorkflowBootstrap,
 ) {
 
     private var componentsRegistered = false
@@ -92,6 +94,7 @@ class HubRuntimeOrchestrator @Inject constructor(
         }
 
         val now = System.currentTimeMillis()
+        hubWorkflowBootstrap.ensureWorkflowDefinitionsForCareActivities()
         val schedulingResult = schedulingReplicaRuntime.hydrateAndEvaluate(now)
         val workflowResult = workflowReplicaRuntime.processDueOccurrences(now)
         val remindersDispatched = workflowReplicaRuntime.dispatchActiveReminders()

@@ -49,6 +49,30 @@ class SyncPayloadParser @Inject constructor() {
         )
     }
 
+    data class CareActivityBundle(
+        val activity: CareActivity,
+        val schedule: ScheduleDefinition?,
+        val occurrences: List<Occurrence>,
+    )
+
+    fun parseCareActivityBundle(payloadJson: String, aggregateVersion: String): CareActivityBundle {
+        val payload = json.parseToJsonElement(payloadJson).jsonObject
+        val schedule = payload["schedule_definition"]?.jsonObject?.let(::parseScheduleDefinition)
+        val occurrences = payload["occurrences"]?.jsonArray?.mapNotNull { element ->
+            parseOccurrence(element.jsonObject)
+        } ?: emptyList()
+        return CareActivityBundle(
+            activity = parseCareActivity(payloadJson, aggregateVersion),
+            schedule = schedule,
+            occurrences = occurrences,
+        )
+    }
+
+    fun careDeltaIncludesScheduling(payloadJson: String): Boolean {
+        val payload = json.parseToJsonElement(payloadJson).jsonObject
+        return payload["schedule_definition"] != null
+    }
+
     fun parseWorkflowExecution(payloadJson: String, aggregateVersion: String): WorkflowExecution {
         val payload = json.parseToJsonElement(payloadJson).jsonObject
         val now = System.currentTimeMillis()

@@ -178,6 +178,8 @@ def update_care_activity(
             start_at=start_at,
             end_at=end_at,
         )
+        bump_care_activity_version(activity, ["aggregate_version"])
+        activity.save(update_fields=["aggregate_version", "updated_at"])
 
     emit_care_activity_updated(care_activity_id=activity.id, status=activity.status)
     return activity

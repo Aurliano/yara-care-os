@@ -1,5 +1,6 @@
 package ir.sayda.yara.hub.network.api
 
+import ir.sayda.yara.hub.network.dto.HealthResponseDto
 import ir.sayda.yara.hub.network.dto.HubProvisionAuthenticateRequestDto
 import ir.sayda.yara.hub.network.dto.HubProvisionAuthenticateResponseDto
 import ir.sayda.yara.hub.network.dto.HubProvisionRegisterRequestDto
@@ -78,6 +79,9 @@ interface SynchronizationDomainApi {
 }
 
 interface ProvisioningApi {
+    @GET("health/")
+    suspend fun health(): HealthResponseDto
+
     @POST("hub/provision/register/")
     suspend fun register(@Body body: HubProvisionRegisterRequestDto): HubProvisionRegisterResponseDto
 

@@ -32,6 +32,7 @@ fun DeveloperSettingsScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: HomeViewModel = hiltViewModel(),
+    devViewModel: DeveloperSettingsViewModel = hiltViewModel(),
 ) {
     val snapshot by viewModel.snapshot.collectAsStateWithLifecycle()
     val context = LocalContext.current
@@ -45,6 +46,7 @@ fun DeveloperSettingsScreen(
         appendLine("Device ID: ${snapshot.deviceId ?: "—"}")
         appendLine("Replica ID: ${snapshot.replicaId ?: "—"}")
         appendLine("Provisioning state: ${snapshot.provisioningState}")
+        appendLine("Provisioning error: ${snapshot.lastProvisioningError ?: "—"}")
         appendLine("Authenticated: ${snapshot.isAuthenticated}")
         appendLine("JWT expiration: ${formatEpochForDisplay(snapshot.tokenExpiresAtEpochMillis)}")
         appendLine("Last authentication: ${formatEpochForDisplay(snapshot.lastAuthenticatedAtEpochMillis)}")
@@ -95,6 +97,7 @@ fun DeveloperSettingsScreen(
             DiagnosticRow("Device ID", snapshot.deviceId ?: "—")
             DiagnosticRow("Replica ID", snapshot.replicaId ?: "—")
             DiagnosticRow("Provisioning", snapshot.provisioningState.name)
+            DiagnosticRow("Provisioning error", snapshot.lastProvisioningError ?: "—")
             DiagnosticRow("Authenticated", snapshot.isAuthenticated.toString())
             DiagnosticRow("JWT expiration", formatEpochForDisplay(snapshot.tokenExpiresAtEpochMillis))
             DiagnosticRow("Last authentication", formatEpochForDisplay(snapshot.lastAuthenticatedAtEpochMillis))
@@ -128,6 +131,20 @@ fun DeveloperSettingsScreen(
             DiagnosticRow("Build variant", BuildConfig.BUILD_TYPE)
             if (snapshot.provisioningState == ProvisioningState.READY && snapshot.isAuthenticated) {
                 DiagnosticRow("Status", "READY — device provisioned")
+            }
+            if (snapshot.provisioningState == ProvisioningState.READY && snapshot.isAuthenticated) {
+                Button(
+                    onClick = { devViewModel.scheduleTestReminderInOneMinute() },
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text("Schedule local test (1 min)")
+                }
+                Button(
+                    onClick = { devViewModel.forceSynchronization() },
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text("Force sync now")
+                }
             }
             Button(
                 onClick = {

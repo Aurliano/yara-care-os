@@ -28,6 +28,8 @@ createdb yara_test
 python manage.py migrate
 python manage.py seed_identity_access
 python manage.py seed_licensing
+python manage.py seed_hub_provision
+python manage.py seed_hub_dev_sync --device-id=<hub-device-uuid>
 python manage.py runserver
 ```
 

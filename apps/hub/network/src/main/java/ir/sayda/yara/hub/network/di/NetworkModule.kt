@@ -5,6 +5,8 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import ir.sayda.yara.hub.core.di.HubBaseUrl
+import ir.sayda.yara.hub.core.di.ProvisioningClient
+import ir.sayda.yara.hub.core.di.UnauthenticatedAuth
 import ir.sayda.yara.hub.network.api.AuthApi
 import ir.sayda.yara.hub.network.api.HubIntegrationApi
 import ir.sayda.yara.hub.network.api.ProvisioningApi
@@ -36,6 +38,30 @@ object NetworkModule {
     @Provides
     @Singleton
     fun provideJson(): Json = json
+
+    @Provides
+    @Singleton
+    @ProvisioningClient
+    fun provideProvisioningOkHttpClient(
+        correlationIdProvider: CorrelationIdProvider,
+    ): OkHttpClient {
+        val logging = HttpLoggingInterceptor().apply {
+            level = HttpLoggingInterceptor.Level.BASIC
+        }
+        val correlationInterceptor = okhttp3.Interceptor { chain ->
+            val request = chain.request().newBuilder()
+                .header("X-Correlation-ID", correlationIdProvider.next())
+                .build()
+            chain.proceed(request)
+        }
+        return OkHttpClient.Builder()
+            .connectTimeout(10, TimeUnit.SECONDS)
+            .readTimeout(10, TimeUnit.SECONDS)
+            .writeTimeout(10, TimeUnit.SECONDS)
+            .addInterceptor(correlationInterceptor)
+            .addInterceptor(logging)
+            .build()
+    }
 
     @Provides
     @Singleton
@@ -78,6 +104,22 @@ object NetworkModule {
 
     @Provides
     @Singleton
+    @UnauthenticatedAuth
+    fun provideUnauthenticatedAuthApi(
+        @HubBaseUrl baseUrl: String,
+        @ProvisioningClient okHttpClient: OkHttpClient,
+    ): AuthApi {
+        val contentType = "application/json".toMediaType()
+        return Retrofit.Builder()
+            .baseUrl(baseUrl)
+            .client(okHttpClient)
+            .addConverterFactory(json.asConverterFactory(contentType))
+            .build()
+            .create(AuthApi::class.java)
+    }
+
+    @Provides
+    @Singleton
     fun provideHubIntegrationApi(retrofit: Retrofit): HubIntegrationApi =
         retrofit.create(HubIntegrationApi::class.java)
 
@@ -88,15 +130,24 @@ object NetworkModule {
 
     @Provides
     @Singleton
-    fun provideProvisioningApi(retrofit: Retrofit): ProvisioningApi =
-        retrofit.create(ProvisioningApi::class.java)
+    fun provideProvisioningApi(
+        @HubBaseUrl baseUrl: String,
+        @ProvisioningClient okHttpClient: OkHttpClient,
+    ): ProvisioningApi {
+        val contentType = "application/json".toMediaType()
+        return Retrofit.Builder()
+            .baseUrl(baseUrl)
+            .client(okHttpClient)
+            .addConverterFactory(json.asConverterFactory(contentType))
+            .build()
+            .create(ProvisioningApi::class.java)
+    }
 
     @Provides
     @Singleton
     fun provideTokenAuthenticator(
-        identityProvider: ReplicaIdentityProvider,
         tokenRefreshHandler: dagger.Lazy<TokenRefreshHandler>,
-    ): TokenAuthenticator = TokenAuthenticator(identityProvider, tokenRefreshHandler)
+    ): TokenAuthenticator = TokenAuthenticator(tokenRefreshHandler)
 
     @Provides
     @Singleton

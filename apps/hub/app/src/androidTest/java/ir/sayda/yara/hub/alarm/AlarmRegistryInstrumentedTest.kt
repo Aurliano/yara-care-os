@@ -27,6 +27,13 @@ class AlarmRegistryInstrumentedTest {
                     triggerAtEpochMillis = triggerAt,
                 ),
             )
+            val updatedTriggerAt = triggerAt + 30_000L
+            registry.registerOccurrenceAlarm(
+                OccurrenceAlarmSpec(
+                    occurrenceId = occurrenceId,
+                    triggerAtEpochMillis = updatedTriggerAt,
+                ),
+            )
         }
 
         assertTrue(registry.isOccurrenceAlarmRegistered(occurrenceId))

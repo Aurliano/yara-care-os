@@ -44,6 +44,10 @@ interface ConfirmReminderUseCase {
     suspend operator fun invoke(executionId: String, interactionReference: String): AppResult<String>
 }
 
+interface PostponeReminderUseCase {
+    suspend operator fun invoke(executionId: String, interactionReference: String): AppResult<Long>
+}
+
 interface ObserveReminderPresentationUseCase {
     suspend operator fun invoke(executionId: String): ReminderPresentation?
 }

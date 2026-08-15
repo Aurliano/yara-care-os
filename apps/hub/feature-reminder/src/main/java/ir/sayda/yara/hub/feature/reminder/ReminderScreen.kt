@@ -41,6 +41,7 @@ fun ReminderRoute(
 ) {
     val presentation by viewModel.presentation.collectAsStateWithLifecycle()
     val confirmationState by viewModel.confirmationState.collectAsStateWithLifecycle()
+    val postponeState by viewModel.postponeState.collectAsStateWithLifecycle()
 
     LaunchedEffect(executionId) {
         viewModel.load(executionId)
@@ -48,6 +49,12 @@ fun ReminderRoute(
 
     LaunchedEffect(confirmationState) {
         if (confirmationState is ReminderViewModel.ConfirmationState.Completed) {
+            onFinished()
+        }
+    }
+
+    LaunchedEffect(postponeState) {
+        if (postponeState is ReminderViewModel.PostponeState.Completed) {
             onFinished()
         }
     }
@@ -73,6 +80,8 @@ fun ReminderRoute(
                     } else {
                         val time = SimpleDateFormat("HH:mm", Locale("fa", "IR"))
                             .format(Date(reminder.scheduledForEpochMillis))
+                        val actionBusy = confirmationState is ReminderViewModel.ConfirmationState.Submitting ||
+                            postponeState is ReminderViewModel.PostponeState.Submitting
                         val locallyConfirmed = reminder.localConfirmationRecorded ||
                             confirmationState is ReminderViewModel.ConfirmationState.Completed
                         Text(text = "وقت مصرف دارو", color = TextSecondary)
@@ -94,19 +103,30 @@ fun ReminderRoute(
                                 style = MaterialTheme.typography.titleMedium,
                             )
                         }
+                        val postponeFailed = postponeState as? ReminderViewModel.PostponeState.Failed
+                        if (postponeFailed != null) {
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = postponeFailed.message,
+                                color = MaterialTheme.colorScheme.error,
+                            )
+                        }
                         Spacer(modifier = Modifier.height(32.dp))
                         ReminderActionButton(
                             label = if (locallyConfirmed) "ثبت شد" else "تأیید مصرف",
-                            enabled = !locallyConfirmed &&
-                                confirmationState !is ReminderViewModel.ConfirmationState.Submitting,
+                            enabled = !locallyConfirmed && !actionBusy,
                             onClick = { viewModel.confirm(reminder.executionId) },
                             modifier = Modifier.fillMaxWidth(),
                         )
                         Spacer(modifier = Modifier.height(16.dp))
                         ReminderActionButton(
-                            label = "به بعد انداختن",
-                            enabled = false,
-                            onClick = {},
+                            label = if (reminder.postponeDelayMinutes > 0) {
+                                "به بعد انداختن (${reminder.postponeDelayMinutes} دقیقه)"
+                            } else {
+                                "به بعد انداختن"
+                            },
+                            enabled = reminder.postponeAllowed && !locallyConfirmed && !actionBusy,
+                            onClick = { viewModel.postpone(reminder.executionId) },
                             modifier = Modifier.fillMaxWidth(),
                         )
                         Spacer(modifier = Modifier.height(16.dp))

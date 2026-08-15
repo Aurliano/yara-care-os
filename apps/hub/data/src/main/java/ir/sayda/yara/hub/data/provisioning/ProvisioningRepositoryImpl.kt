@@ -15,9 +15,11 @@ import ir.sayda.yara.hub.network.dto.HubProvisionRevokeRequestDto
 import ir.sayda.yara.hub.network.identity.CorrelationIdProvider
 import ir.sayda.yara.hub.network.logging.HubNetworkLogger
 import ir.sayda.yara.hub.sync.ReplicaStateInitializer
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.withTimeout
 import java.io.IOException
 import java.time.Instant
 import javax.inject.Inject
@@ -40,26 +42,31 @@ class ProvisioningRepositoryImpl @Inject constructor(
     ): AppResult<ProvisioningStatus> {
         val correlationId = correlationIdProvider.next()
         return try {
-            stateMachine.transitionTo(ProvisioningState.REGISTERING)
-            HubNetworkLogger.provisioningStarted(correlationId)
-            val response = provisioningApi.register(
-                HubProvisionRegisterRequestDto(
-                    serialNumber = serialNumber,
-                    deviceModelCode = deviceModelCode,
-                ),
-            )
-            val provisionedAt = parseIsoEpoch(response.provisionedAt)
-            identityStore.writePartial(
-                deviceId = response.deviceId,
-                replicaId = response.replicaIdentifier,
-                elderId = response.elderId,
-                backendUrl = backendUrl,
-                provisionedAtEpochMillis = provisionedAt,
-                provisioningState = ProvisioningState.REGISTERED,
-            )
-            stateMachine.transitionTo(ProvisioningState.REGISTERED)
-            HubNetworkLogger.provisioningCompleted(response.deviceId, correlationId)
-            AppResult.Success(toStatus(ProvisioningState.REGISTERED))
+            HubNetworkLogger.provisioningRegisterAttempt(backendUrl, correlationId)
+            withTimeout(PROVISIONING_CALL_TIMEOUT_MS) {
+                stateMachine.transitionTo(ProvisioningState.REGISTERING)
+                HubNetworkLogger.provisioningStarted(correlationId)
+                val response = provisioningApi.register(
+                    HubProvisionRegisterRequestDto(
+                        serialNumber = serialNumber,
+                        deviceModelCode = deviceModelCode,
+                    ),
+                )
+                val provisionedAt = parseIsoEpoch(response.provisionedAt)
+                identityStore.writePartial(
+                    deviceId = response.deviceId,
+                    replicaId = response.replicaIdentifier,
+                    elderId = response.elderId,
+                    backendUrl = backendUrl,
+                    provisionedAtEpochMillis = provisionedAt,
+                    provisioningState = ProvisioningState.REGISTERED,
+                )
+                stateMachine.transitionTo(ProvisioningState.REGISTERED)
+                HubNetworkLogger.provisioningCompleted(response.deviceId, correlationId)
+                AppResult.Success(toStatus(ProvisioningState.REGISTERED))
+            }
+        } catch (exception: CancellationException) {
+            throw exception
         } catch (exception: Exception) {
             val message = mapException(exception)
             stateMachine.transitionTo(ProvisioningState.ERROR, message)
@@ -75,32 +82,36 @@ class ProvisioningRepositoryImpl @Inject constructor(
     ): AppResult<HubIdentity> {
         val correlationId = correlationIdProvider.next()
         return try {
-            stateMachine.transitionTo(ProvisioningState.AUTHENTICATING)
-            val response = provisioningApi.authenticate(
-                HubProvisionAuthenticateRequestDto(
-                    deviceId = deviceId,
-                    phone = phone,
-                    password = password,
-                ),
-            )
-            val now = System.currentTimeMillis()
-            val identity = HubIdentity(
-                deviceId = response.deviceId,
-                replicaId = response.replicaIdentifier,
-                elderId = response.elderId,
-                accessToken = response.access,
-                refreshToken = response.refresh,
-                tokenExpiresAtEpochMillis = JwtExpiryParser.expiresAtEpochMillis(response.access, now),
-                backendUrl = backendUrl,
-                provisionedAtEpochMillis = parseIsoEpoch(response.provisionedAt),
-                lastAuthenticatedAtEpochMillis = response.authenticatedAt?.let(::parseIsoEpoch) ?: now,
-                provisioningState = ProvisioningState.READY,
-            )
-            authRepository.saveIdentity(identity)
-            stateMachine.transitionTo(ProvisioningState.READY)
-            replicaStateInitializer.ensureInitialized()
-            HubNetworkLogger.authenticationSuccess(deviceId, correlationId)
-            AppResult.Success(identity)
+            withTimeout(PROVISIONING_CALL_TIMEOUT_MS) {
+                stateMachine.transitionTo(ProvisioningState.AUTHENTICATING)
+                val response = provisioningApi.authenticate(
+                    HubProvisionAuthenticateRequestDto(
+                        deviceId = deviceId,
+                        phone = phone,
+                        password = password,
+                    ),
+                )
+                val now = System.currentTimeMillis()
+                val identity = HubIdentity(
+                    deviceId = response.deviceId,
+                    replicaId = response.replicaIdentifier,
+                    elderId = response.elderId,
+                    accessToken = response.access,
+                    refreshToken = response.refresh,
+                    tokenExpiresAtEpochMillis = JwtExpiryParser.expiresAtEpochMillis(response.access, now),
+                    backendUrl = backendUrl,
+                    provisionedAtEpochMillis = parseIsoEpoch(response.provisionedAt),
+                    lastAuthenticatedAtEpochMillis = response.authenticatedAt?.let(::parseIsoEpoch) ?: now,
+                    provisioningState = ProvisioningState.READY,
+                )
+                authRepository.saveIdentity(identity)
+                stateMachine.transitionTo(ProvisioningState.READY)
+                replicaStateInitializer.ensureInitialized()
+                HubNetworkLogger.authenticationSuccess(deviceId, correlationId)
+                AppResult.Success(identity)
+            }
+        } catch (exception: CancellationException) {
+            throw exception
         } catch (exception: Exception) {
             val message = mapException(exception)
             stateMachine.transitionTo(ProvisioningState.ERROR, message)
@@ -184,14 +195,17 @@ class ProvisioningRepositoryImpl @Inject constructor(
         }
 
     private fun mapException(exception: Exception): String = when (exception) {
-        is IOException -> "Network unavailable"
+        is kotlinx.coroutines.TimeoutCancellationException ->
+            "Backend unreachable at $backendUrl — check local.properties hub.backend.url and runserver"
+        is IOException -> "Network unavailable — check backend URL ($backendUrl) and that runserver is running"
         else -> {
             val message = exception.message.orEmpty()
             when {
-                message.contains("401") -> "Authentication failed"
+                message.contains("401") -> "Authentication failed — run: python manage.py seed_hub_provision"
                 message.contains("403") -> "Access denied"
-                message.contains("404") -> "Resource not found"
+                message.contains("404") -> "Resource not found — run seed_hub_provision on backend"
                 message.contains("409") -> "Conflict"
+                message.startsWith("HTTP ") -> message
                 else -> message.ifBlank { "Unknown error" }
             }
         }
@@ -199,4 +213,8 @@ class ProvisioningRepositoryImpl @Inject constructor(
 
     private fun parseIsoEpoch(value: String): Long =
         runCatching { Instant.parse(value).toEpochMilli() }.getOrDefault(System.currentTimeMillis())
+
+    companion object {
+        private const val PROVISIONING_CALL_TIMEOUT_MS = 15_000L
+    }
 }

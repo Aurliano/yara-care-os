@@ -91,9 +91,15 @@ class SynchronizationClientImpl @Inject constructor(
 
     ): AppResult<ActiveSynchronizationSession> {
 
-        authRepository.refreshTokenIfNeeded()
+        val refresh = authRepository.refreshTokenIfNeeded()
+        when (refresh) {
+            is AppResult.Error -> return refresh
+            is AppResult.Success -> Unit
+        }
 
-        return when (val result = synchronizationRepository.startSession(direction, idempotencyKey)) {
+        val startResult = synchronizationRepository.startSession(direction, idempotencyKey)
+
+        return when (val result = startResult) {
 
             is AppResult.Success -> {
 
@@ -249,7 +255,9 @@ class SynchronizationClientImpl @Inject constructor(
 
     override suspend fun runSynchronizationCycle(idempotencyKey: String): AppResult<ApplySummary> {
 
-        if (!provisioningGate.requireRuntimeReady()) {
+        val gateReady = provisioningGate.requireRuntimeReady()
+
+        if (!gateReady) {
 
             return AppResult.Success(emptySummary())
 
@@ -257,9 +265,10 @@ class SynchronizationClientImpl @Inject constructor(
 
         replicaStateInitializer.ensureInitialized()
 
-        authRepository.refreshTokenIfNeeded()
-
-
+        when (val refresh = authRepository.refreshTokenIfNeeded()) {
+            is AppResult.Error -> return refresh.mapError()
+            is AppResult.Success -> Unit
+        }
 
         when (val uploadBegin = beginUploadSession(idempotencyKey)) {
 
@@ -401,7 +410,7 @@ class SynchronizationClientImpl @Inject constructor(
 
         }
 
-
+        markReplicaHealthyIfNeeded(summary.appliedCount)
 
         val refreshScope = if (snapshots.isNotEmpty()) {
 
@@ -439,7 +448,12 @@ class SynchronizationClientImpl @Inject constructor(
 
     )
 
-
+    private suspend fun markReplicaHealthyIfNeeded(appliedCount: Int) {
+        if (appliedCount <= 0) return
+        val current = replicaMetadataRepository.getReplicaState() ?: return
+        if (current.health.equals("HEALTHY", ignoreCase = true)) return
+        replicaMetadataRepository.upsertReplicaState(current.copy(health = "HEALTHY"))
+    }
 
     private fun <T> AppResult<T>.mapError(): AppResult<ApplySummary> =
 

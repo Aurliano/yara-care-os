@@ -114,6 +114,11 @@ data class ApiErrorDto(
 )
 
 @Serializable
+data class HealthResponseDto(
+    val status: String,
+)
+
+@Serializable
 data class HubProvisionRegisterRequestDto(
     @SerialName("serial_number") val serialNumber: String,
     @SerialName("device_model_code") val deviceModelCode: String,

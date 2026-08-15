@@ -82,6 +82,7 @@ interface ActionRegistry {
 interface RuntimeScheduler {
     fun schedulePeriodicRuntimeWork()
     fun scheduleOneTimeRuntimeWork(occurrenceId: String? = null)
+    fun scheduleDelayedRuntimeWork(occurrenceId: String, delayMs: Long)
 }
 
 const val RUNTIME_KERNEL_COMPONENT_ID = "__kernel__"

@@ -48,13 +48,17 @@ class WorkflowReplicaRuntime @Inject constructor(
         return dispatched
     }
 
+    fun releaseReminderDispatch(executionId: String) {
+        dispatchedExecutionIds.remove(executionId)
+    }
+
     private suspend fun startExecutionForOccurrence(
         occurrence: ir.sayda.yara.hub.core.domain.model.Occurrence,
         nowEpochMillis: Long,
     ): WorkflowExecution? {
         val careActivity = careRepository.getCareActivityByScheduleDefinition(occurrence.scheduleDefinitionId)
-            ?: return null
-        val definition = workflowRepository.getDefinition(careActivity.workflowDefinitionId) ?: return null
+        val definition = careActivity?.let { workflowRepository.getDefinition(it.workflowDefinitionId) }
+        if (careActivity == null || definition == null) return null
         val executionId = computeExecutionId(occurrence.id)
         val existing = workflowRepository.getExecution(executionId)
         if (existing != null && existing.status in TERMINAL_OR_ACTIVE) {
@@ -93,11 +97,12 @@ class WorkflowReplicaRuntime @Inject constructor(
     }
 
     private suspend fun dispatchReminderIfNeeded(execution: WorkflowExecution): Boolean {
-        if (execution.id in dispatchedExecutionIds) return false
-        if (execution.status != WorkflowExecutionStatus.ACTIVE.name) return false
         val actionType = runCatching {
             HubJsonReader.requireString(execution.currentActionJson, "type")
-        }.getOrNull() ?: return false
+        }.getOrNull()
+        if (execution.id in dispatchedExecutionIds) return false
+        if (execution.status != WorkflowExecutionStatus.ACTIVE.name) return false
+        if (actionType == null) return false
         if (actionType != WorkflowActionType.SHOW_REMINDER.name) return false
 
         val payload = HubJsonReader.buildObject(

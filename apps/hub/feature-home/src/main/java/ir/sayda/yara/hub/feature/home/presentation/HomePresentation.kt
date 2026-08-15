@@ -82,14 +82,14 @@ fun HomeRuntimeSnapshot.toConnectionPresentation(): ConnectionPresentation {
 fun HomeRuntimeSnapshot.toNextReminderPresentation(
     timeFormatter: SimpleDateFormat,
 ): NextReminderPresentation {
-    val currentReminder = todayReminders.firstOrNull()
-    if (currentReminder != null) {
-        return currentReminder.toPresentation(timeFormatter)
+    val soonestToday = todayReminders.minByOrNull { it.scheduledForEpochMillis }
+    if (soonestToday != null) {
+        return soonestToday.toPresentation(timeFormatter)
     }
     val nextMillis = nextReminderEpochMillis
     if (nextMillis != null) {
         return NextReminderPresentation(
-            title = "یادآور بعدی",
+            title = nextReminderTitle ?: "یادآور بعدی",
             subtitle = timeFormatter.format(Date(nextMillis)),
             description = null,
             scheduledTime = timeFormatter.format(Date(nextMillis)),

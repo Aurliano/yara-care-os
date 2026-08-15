@@ -15,7 +15,11 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.LayoutDirection
@@ -40,6 +44,7 @@ import ir.sayda.yara.hub.ui.components.TodayBackground
 import ir.sayda.yara.hub.ui.components.TodayReminderCard
 import ir.sayda.yara.hub.ui.theme.TextSecondary
 import ir.sayda.yara.hub.ui.theme.WarmWhite
+import kotlinx.coroutines.delay
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -54,7 +59,14 @@ fun HomeRoute(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snapshot = uiState.snapshot
-    val now = Date()
+    var nowEpochMillis by remember { mutableLongStateOf(System.currentTimeMillis()) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            nowEpochMillis = System.currentTimeMillis()
+            delay(1_000L)
+        }
+    }
+    val now = Date(nowEpochMillis)
     val timeFormatter = SimpleDateFormat("HH:mm", Locale("fa", "IR"))
     val dateFormatter = SimpleDateFormat("EEEE، d MMMM yyyy", Locale("fa", "IR"))
     val reminderTimeFormatter = SimpleDateFormat("HH:mm", Locale("fa", "IR"))

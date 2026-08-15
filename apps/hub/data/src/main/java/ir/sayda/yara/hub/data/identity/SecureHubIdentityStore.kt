@@ -26,6 +26,13 @@ class SecureHubIdentityStore @Inject constructor(
         EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM,
     )
 
+    private fun readProvisioningState(): ProvisioningState {
+        val raw = prefs.getString(Keys.PROVISIONING_STATE, ProvisioningState.UNPROVISIONED.name)
+            ?: ProvisioningState.UNPROVISIONED.name
+        return runCatching { ProvisioningState.valueOf(raw) }
+            .getOrDefault(ProvisioningState.UNPROVISIONED)
+    }
+
     fun readProvisioning(): StoredProvisioning? {
         val deviceId = prefs.getString(Keys.DEVICE_ID, null) ?: return null
         return StoredProvisioning(
@@ -35,10 +42,7 @@ class SecureHubIdentityStore @Inject constructor(
             backendUrl = prefs.getString(Keys.BACKEND_URL, "") ?: "",
             provisionedAtEpochMillis = prefs.getLong(Keys.PROVISIONED_AT, 0L),
             lastAuthenticatedAtEpochMillis = prefs.getLong(Keys.LAST_AUTHENTICATED_AT, 0L),
-            provisioningState = ProvisioningState.valueOf(
-                prefs.getString(Keys.PROVISIONING_STATE, ProvisioningState.UNPROVISIONED.name)
-                    ?: ProvisioningState.UNPROVISIONED.name,
-            ),
+            provisioningState = readProvisioningState(),
         )
     }
 
@@ -57,10 +61,7 @@ class SecureHubIdentityStore @Inject constructor(
             backendUrl = prefs.getString(Keys.BACKEND_URL, "") ?: "",
             provisionedAtEpochMillis = prefs.getLong(Keys.PROVISIONED_AT, 0L),
             lastAuthenticatedAtEpochMillis = prefs.getLong(Keys.LAST_AUTHENTICATED_AT, 0L),
-            provisioningState = ProvisioningState.valueOf(
-                prefs.getString(Keys.PROVISIONING_STATE, ProvisioningState.UNPROVISIONED.name)
-                    ?: ProvisioningState.UNPROVISIONED.name,
-            ),
+            provisioningState = readProvisioningState(),
         )
     }
 

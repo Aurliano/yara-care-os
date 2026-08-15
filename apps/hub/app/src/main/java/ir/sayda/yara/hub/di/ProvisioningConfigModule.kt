@@ -5,14 +5,19 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import ir.sayda.yara.hub.BuildConfig
+import ir.sayda.yara.hub.core.di.HubBaseUrl
+import ir.sayda.yara.hub.core.provisioning.HubDeviceCredentialsProvider
+import ir.sayda.yara.hub.core.provisioning.ProvisionCredential
 import ir.sayda.yara.hub.provisioning.HubDeviceModelCode
-import ir.sayda.yara.hub.provisioning.HubProvisionCredentials
-import ir.sayda.yara.hub.provisioning.ProvisionCredential
 import javax.inject.Singleton
 
 @Module
 @InstallIn(SingletonComponent::class)
 object ProvisioningConfigModule {
+    @Provides
+    @HubBaseUrl
+    fun provideHubBaseUrl(): String = BuildConfig.HUB_BACKEND_URL
+
     @Provides
     @Singleton
     fun provideHubDeviceModelCode(): HubDeviceModelCode = object : HubDeviceModelCode {
@@ -21,7 +26,8 @@ object ProvisioningConfigModule {
 
     @Provides
     @Singleton
-    fun provideHubProvisionCredentials(): HubProvisionCredentials = object : HubProvisionCredentials {
+    fun provideHubDeviceCredentialsProvider(): HubDeviceCredentialsProvider =
+        object : HubDeviceCredentialsProvider {
         override fun credentials(): ProvisionCredential? {
             if (BuildConfig.PROVISION_PHONE.isBlank() || BuildConfig.PROVISION_PASSWORD.isBlank()) {
                 return null

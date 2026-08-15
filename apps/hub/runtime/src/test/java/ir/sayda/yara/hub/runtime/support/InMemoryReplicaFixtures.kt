@@ -39,6 +39,14 @@ class InMemorySchedulingRepository : SchedulingReplicaRepository {
             }
         }
 
+    override fun observeTodayReminders(endOfDayEpochMillis: Long): Flow<List<Occurrence>> =
+        occurrences.asStateFlow().map { list ->
+            list.filter {
+                it.scheduledForEpochMillis <= endOfDayEpochMillis &&
+                    (it.status == OccurrenceStatus.DUE.name || it.status == OccurrenceStatus.SCHEDULED.name)
+            }.sortedBy { it.scheduledForEpochMillis }
+        }
+
     override suspend fun getOccurrence(occurrenceId: String): Occurrence? =
         occurrences.value.firstOrNull { it.id == occurrenceId }
 
@@ -68,11 +76,32 @@ class InMemorySchedulingRepository : SchedulingReplicaRepository {
                 it.status == OccurrenceStatus.SCHEDULED.name
         }
 
+    override suspend fun replaceOccurrencesForSchedule(
+        scheduleDefinitionId: String,
+        occurrences: List<Occurrence>,
+    ) {
+        this.occurrences.value = this.occurrences.value
+            .filterNot { it.scheduleDefinitionId == scheduleDefinitionId } + occurrences
+    }
+
     override fun observeNextScheduledOccurrence(afterEpochMillis: Long): Flow<Occurrence?> =
         occurrences.asStateFlow().map { list ->
             list.filter {
                 it.scheduledForEpochMillis > afterEpochMillis &&
                     it.status == OccurrenceStatus.SCHEDULED.name
+            }.minByOrNull { it.scheduledForEpochMillis }
+        }
+
+    override fun observeNextReminderOccurrence(
+        nowEpochMillis: Long,
+        endOfDayEpochMillis: Long,
+    ): Flow<Occurrence?> =
+        occurrences.asStateFlow().map { list ->
+            list.filter { occurrence ->
+                (occurrence.status == OccurrenceStatus.DUE.name &&
+                    occurrence.scheduledForEpochMillis <= endOfDayEpochMillis) ||
+                    (occurrence.status == OccurrenceStatus.SCHEDULED.name &&
+                        occurrence.scheduledForEpochMillis > nowEpochMillis)
             }.minByOrNull { it.scheduledForEpochMillis }
         }
 

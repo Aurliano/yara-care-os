@@ -29,6 +29,14 @@ class WorkManagerRuntimeScheduler @Inject constructor(
     }
 
     override fun scheduleOneTimeRuntimeWork(occurrenceId: String?) {
+        enqueueRuntimeWork(occurrenceId = occurrenceId, delayMs = 0L)
+    }
+
+    override fun scheduleDelayedRuntimeWork(occurrenceId: String, delayMs: Long) {
+        enqueueRuntimeWork(occurrenceId = occurrenceId, delayMs = delayMs)
+    }
+
+    private fun enqueueRuntimeWork(occurrenceId: String?, delayMs: Long) {
         val input = if (occurrenceId.isNullOrBlank()) {
             Data.EMPTY
         } else {
@@ -36,13 +44,20 @@ class WorkManagerRuntimeScheduler @Inject constructor(
                 .putString(IntegrationRuntimeWorker.INPUT_OCCURRENCE_ID, occurrenceId)
                 .build()
         }
-        val request = OneTimeWorkRequestBuilder<IntegrationRuntimeWorker>()
+        val requestBuilder = OneTimeWorkRequestBuilder<IntegrationRuntimeWorker>()
             .setInputData(input)
-            .build()
+        if (delayMs > 0L) {
+            requestBuilder.setInitialDelay(delayMs, TimeUnit.MILLISECONDS)
+        }
+        val workName = if (delayMs > 0L) {
+            IntegrationRuntimeWorker.DELAYED_WORK_NAME
+        } else {
+            IntegrationRuntimeWorker.UNIQUE_WORK_NAME
+        }
         WorkManager.getInstance(context).enqueueUniqueWork(
-            IntegrationRuntimeWorker.UNIQUE_WORK_NAME,
+            workName,
             ExistingWorkPolicy.REPLACE,
-            request,
+            requestBuilder.build(),
         )
     }
 }

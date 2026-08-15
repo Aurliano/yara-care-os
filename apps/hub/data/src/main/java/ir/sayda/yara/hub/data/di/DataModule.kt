@@ -6,7 +6,6 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import ir.sayda.yara.hub.core.di.DefaultDispatcher
-import ir.sayda.yara.hub.core.di.HubBaseUrl
 import ir.sayda.yara.hub.core.di.IoDispatcher
 import ir.sayda.yara.hub.core.domain.repository.AuthRepository
 import ir.sayda.yara.hub.core.domain.repository.CareReplicaRepository
@@ -114,8 +113,6 @@ abstract class UseCaseModule {
 @Module
 @InstallIn(SingletonComponent::class)
 object AppConfigModule {
-    @Provides @HubBaseUrl fun provideHubBaseUrl(): String = "http://10.0.2.2:8000/api/v1/"
-
     @Provides @IoDispatcher fun provideIoDispatcher(): CoroutineDispatcher = Dispatchers.IO
 
     @Provides @DefaultDispatcher fun provideDefaultDispatcher(): CoroutineDispatcher = Dispatchers.Default

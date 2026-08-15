@@ -23,13 +23,41 @@ class DataStoreReplicaIdentityProvider @Inject constructor(
 
     override fun next(): String = UUID.randomUUID().toString()
 
-    override fun replicaId(): String? = snapshotHolder.get().replicaId
+    override fun replicaId(): String? = effectiveSnapshot().replicaId
 
-    override fun deviceId(): String? = snapshotHolder.get().deviceId
+    override fun deviceId(): String? = effectiveSnapshot().deviceId
 
-    override fun accessToken(): String? = snapshotHolder.get().accessToken
+    override fun accessToken(): String? = effectiveSnapshot().accessToken
 
-    override fun refreshToken(): String? = snapshotHolder.get().refreshToken
+    override fun refreshToken(): String? = effectiveSnapshot().refreshToken
+
+    fun peekAccessToken(): String? = accessToken()
+
+    /**
+     * OkHttp interceptors run on worker threads before [hydrateFromStore] may finish.
+     * Fall back to encrypted prefs so authenticated calls are not sent without a token.
+     */
+    private fun effectiveSnapshot(): IdentitySnapshot {
+        val cached = snapshotHolder.get()
+        val stored = secureStore.read()
+        if (stored != null) {
+            return IdentitySnapshot(
+                deviceId = cached.deviceId ?: stored.deviceId,
+                replicaId = cached.replicaId ?: stored.replicaId,
+                accessToken = cached.accessToken?.takeIf { it.isNotBlank() }
+                    ?: stored.accessToken?.takeIf { it.isNotBlank() },
+                refreshToken = cached.refreshToken?.takeIf { it.isNotBlank() }
+                    ?: stored.refreshToken?.takeIf { it.isNotBlank() },
+                tokenExpiresAtEpochMillis = cached.tokenExpiresAtEpochMillis.takeIf { it > 0L }
+                    ?: stored.tokenExpiresAtEpochMillis,
+            )
+        }
+        val provisioning = secureStore.readProvisioning()
+        return cached.copy(
+            deviceId = cached.deviceId ?: provisioning?.deviceId,
+            replicaId = cached.replicaId ?: provisioning?.replicaId,
+        )
+    }
 
     override suspend fun updateTokens(access: String, refresh: String, expiresAtEpochMillis: Long) {
         val current = secureStore.read()?.toHubIdentity() ?: return

@@ -16,10 +16,13 @@ from django.db import transaction
 from django.utils import timezone
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from domains.device.enums import AssignmentStatus, DeviceOperationalStatus
+from domains.device.enums import AssignmentStatus, AssignmentType, DeviceOperationalStatus
 from domains.device.exceptions import DeviceModelNotFoundError, DeviceNotFoundError, InvalidDeviceStateError
 from domains.device.models import Device, DeviceAssignment, DeviceModel
+from domains.device.services.assignments import assign_device, get_assignments
 from domains.device.services.devices import create_device, get_device
+from domains.identity_access.enums import MembershipStatus
+from domains.identity_access.models import Membership
 from domains.synchronization.enums import ReplicaType
 from domains.synchronization.services.replicas import get_or_create_replica_state
 from integration.exceptions import HubProvisioningError
@@ -60,6 +63,33 @@ def _device_model_by_code(device_model_code: str) -> DeviceModel:
 def _ensure_not_revoked(blob: dict[str, Any]) -> None:
     if blob.get("revoked"):
         raise HubProvisioningError("Hub provisioning has been revoked.")
+
+
+def _primary_elder_id_for_user(user) -> uuid.UUID | None:
+    membership = (
+        Membership.objects.filter(user=user, status=MembershipStatus.ACTIVE)
+        .order_by("-is_primary", "-joined_at")
+        .first()
+    )
+    return membership.elder_id if membership else None
+
+
+def _ensure_hub_assigned_to_caregiver_elder(*, device_id: uuid.UUID, user) -> uuid.UUID | None:
+    active = _active_elder_id(device_id)
+    if active is not None:
+        return active
+    elder_id = _primary_elder_id_for_user(user)
+    if elder_id is None:
+        return None
+    existing = get_assignments(device_id=device_id)
+    if any(item.status == AssignmentStatus.ASSIGNED for item in existing):
+        return _active_elder_id(device_id)
+    assign_device(
+        device_id=device_id,
+        elder_id=elder_id,
+        assignment_type=AssignmentType.OWNED,
+    )
+    return elder_id
 
 
 @transaction.atomic
@@ -135,13 +165,16 @@ def authenticate_hub_device(
     if user is None:
         raise HubProvisioningError("Invalid credentials.")
 
+    elder_id = _ensure_hub_assigned_to_caregiver_elder(device_id=device.id, user=user)
+
     refresh = RefreshToken.for_user(user)
     now = timezone.now()
     blob["provisioning_state"] = "READY"
     blob["authenticated_at"] = now.isoformat()
     _save_provisioning(device, blob)
 
-    elder_id = _active_elder_id(device.id)
+    if elder_id is None:
+        elder_id = _active_elder_id(device.id)
     return {
         "device_id": str(device.id),
         "replica_identifier": blob["replica_identifier"],

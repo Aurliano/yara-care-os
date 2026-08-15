@@ -5,6 +5,10 @@ import android.util.Log
 object HubNetworkLogger {
     private const val TAG = "YaraHub"
 
+    fun provisioningRegisterAttempt(backendUrl: String, correlationId: String) {
+        Log.i(TAG, "provisioning_register_attempt backend_url=$backendUrl correlation_id=$correlationId")
+    }
+
     fun provisioningStarted(correlationId: String) {
         Log.i(TAG, "provisioning_started correlation_id=$correlationId")
     }

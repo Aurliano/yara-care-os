@@ -178,6 +178,10 @@ class ReminderWakeFlowTest {
             integrationRuntime = IntegrationRuntimeComponent(),
             runtimeAlarmCoordinator = alarmCoordinator,
             provisioningGate = AlwaysAllowedProvisioningGate(),
+            hubWorkflowBootstrap = ir.sayda.yara.hub.runtime.bootstrap.HubWorkflowBootstrap(
+                workflowRepository,
+                careRepository,
+            ),
         )
 
         val result = orchestrator.runCycle()

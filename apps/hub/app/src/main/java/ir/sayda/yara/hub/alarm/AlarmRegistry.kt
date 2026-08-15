@@ -21,8 +21,14 @@ class AlarmRegistry @Inject constructor(
     private val trackedOccurrenceIds = ConcurrentHashMap.newKeySet<String>()
 
     override suspend fun registerOccurrenceAlarm(spec: OccurrenceAlarmSpec) {
-        if (spec.triggerAtEpochMillis <= System.currentTimeMillis()) return
-        if (isOccurrenceAlarmRegistered(spec.occurrenceId)) return
+        if (spec.triggerAtEpochMillis <= System.currentTimeMillis()) {
+            cancelOccurrenceAlarm(spec.occurrenceId)
+            return
+        }
+
+        // Always cancel first so trigger-time updates are not blocked by a stale PendingIntent.
+        alarmManager.cancel(pendingIntentFor(spec.occurrenceId))
+        trackedOccurrenceIds.remove(spec.occurrenceId)
 
         alarmManager.setExactAndAllowWhileIdle(
             AlarmManager.RTC_WAKEUP,

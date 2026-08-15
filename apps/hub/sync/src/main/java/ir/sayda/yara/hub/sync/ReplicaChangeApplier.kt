@@ -3,6 +3,7 @@ package ir.sayda.yara.hub.sync
 import ir.sayda.yara.hub.core.domain.repository.CareReplicaRepository
 import ir.sayda.yara.hub.core.domain.repository.CommunicationReplicaRepository
 import ir.sayda.yara.hub.core.domain.repository.DeviceReplicaRepository
+import ir.sayda.yara.hub.core.domain.repository.SchedulingReplicaRepository
 import ir.sayda.yara.hub.core.domain.repository.WorkflowReplicaRepository
 import ir.sayda.yara.hub.core.sync.ApplySummary
 import ir.sayda.yara.hub.core.sync.ReplicaDomain
@@ -14,6 +15,7 @@ import javax.inject.Singleton
 @Singleton
 class ReplicaChangeApplier @Inject constructor(
     private val careReplicaRepository: CareReplicaRepository,
+    private val schedulingReplicaRepository: SchedulingReplicaRepository,
     private val workflowReplicaRepository: WorkflowReplicaRepository,
     private val deviceReplicaRepository: DeviceReplicaRepository,
     private val communicationReplicaRepository: CommunicationReplicaRepository,
@@ -41,6 +43,9 @@ class ReplicaChangeApplier @Inject constructor(
                     ApplyOutcome.APPLIED -> {
                         applied++
                         domains += ReplicaDomain.CARE
+                        if (syncPayloadParser.careDeltaIncludesScheduling(operation.payloadJson)) {
+                            domains += ReplicaDomain.SCHEDULING
+                        }
                     }
                     ApplyOutcome.SKIPPED -> skipped++
                     ApplyOutcome.CONFLICT -> conflicts++
@@ -92,13 +97,21 @@ class ReplicaChangeApplier @Inject constructor(
     private enum class ApplyOutcome { APPLIED, SKIPPED, CONFLICT }
 
     private suspend fun applyCareDelta(operation: SyncOperation): ApplyOutcome {
-        val activity = syncPayloadParser.parseCareActivity(operation.payloadJson, operation.aggregateVersion)
-        val current = careReplicaRepository.getCareActivityByScheduleDefinition(activity.scheduleDefinitionId)
+        val bundle = syncPayloadParser.parseCareActivityBundle(operation.payloadJson, operation.aggregateVersion)
+        val current = careReplicaRepository.getCareActivityByScheduleDefinition(bundle.activity.scheduleDefinitionId)
         return applyWithVersionGuard(
             operation = operation,
             localVersion = current?.aggregateVersion?.toString(),
         ) {
-            careReplicaRepository.upsertCareActivity(activity)
+            careReplicaRepository.upsertCareActivity(bundle.activity)
+            val schedule = bundle.schedule
+            if (schedule != null) {
+                schedulingReplicaRepository.upsertScheduleDefinition(schedule)
+                schedulingReplicaRepository.replaceOccurrencesForSchedule(
+                    scheduleDefinitionId = schedule.id,
+                    occurrences = bundle.occurrences,
+                )
+            }
         }
     }
 

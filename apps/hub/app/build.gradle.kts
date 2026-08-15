@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -5,6 +7,15 @@ plugins {
     alias(libs.plugins.hilt)
     alias(libs.plugins.ksp)
 }
+
+val localProperties = Properties()
+val localPropertiesFile = rootProject.file("local.properties")
+if (localPropertiesFile.exists()) {
+    localPropertiesFile.inputStream().use { localProperties.load(it) }
+}
+val hubBackendUrl = localProperties.getProperty("hub.backend.url")?.trim()?.let { url ->
+    if (url.endsWith("/")) url else "$url/"
+} ?: "http://10.0.2.2:8000/api/v1/"
 
 android {
     namespace = "ir.sayda.yara.hub"
@@ -19,6 +30,7 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("String", "HUB_DEVICE_MODEL_CODE", "\"YARA-HUB-TABLET\"")
+        buildConfigField("String", "HUB_BACKEND_URL", "\"$hubBackendUrl\"")
         buildConfigField("String", "PROVISION_PHONE", "\"+989136666666\"")
         buildConfigField("String", "PROVISION_PASSWORD", "\"securepass123\"")
     }

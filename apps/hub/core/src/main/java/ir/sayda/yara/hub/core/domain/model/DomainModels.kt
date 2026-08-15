@@ -201,6 +201,7 @@ data class HomeRuntimeSnapshot(
     val lastSyncEpochMillis: Long?,
     val isOnline: Boolean,
     val nextReminderEpochMillis: Long? = null,
+    val nextReminderTitle: String? = null,
     val pendingEvidenceCount: Int = 0,
     val synchronizationAvailable: Boolean = false,
     val registeredAlarmCount: Int = 0,
@@ -226,4 +227,5 @@ data class HomeRuntimeSnapshot(
     val contactCount: Int = 0,
     val outboxPendingCount: Int = 0,
     val syncConflictCount: Int = 0,
+    val lastProvisioningError: String? = null,
 )
