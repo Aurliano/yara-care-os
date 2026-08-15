@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     "domains.communication",
     "domains.synchronization",
     "integration",
+    "infrastructure",
 ]
 
 AUTH_USER_MODEL = "identity_access.User"
@@ -175,6 +176,11 @@ LOGGING = {
             "level": env("LOG_LEVEL"),
             "propagate": False,
         },
+        "yara.infrastructure": {
+            "handlers": ["console"],
+            "level": env("LOG_LEVEL"),
+            "propagate": False,
+        },
     },
 }
 
@@ -189,3 +195,8 @@ DOMAIN_APPS: list[str] = [
     "domains.device",
     "domains.communication",
 ]
+
+COMMUNICATION_PROVIDER = env("COMMUNICATION_PROVIDER", default="skyroom")
+SKYROOM_API_KEY = env("SKYROOM_API_KEY", default="")
+SKYROOM_API_BASE_URL = env("SKYROOM_API_BASE_URL", default="https://www.skyroom.online/skyroom/api")
+COMMUNICATION_LOGIN_TTL_SECONDS = env.int("COMMUNICATION_LOGIN_TTL_SECONDS", default=3600)

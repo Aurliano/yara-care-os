@@ -109,6 +109,7 @@ backend/
   config/          # Django project (settings, URLs, WSGI)
   common/          # Shared infrastructure (health, API errors, observability)
   domains/         # Domain Django apps (B1–B9)
+  infrastructure/  # Provider adapters (Skyroom, etc.) — not a domain
   integration/     # Integration runtime + Hub APIs (B10)
   architecture/    # Architecture check helpers
   tests/           # Test suite
@@ -116,7 +117,7 @@ backend/
 
 ## Architecture Guardrails
 
-- **import-linter** — `.importlinter` enforces import boundaries (11 contracts).
+- **import-linter** — `.importlinter` enforces import boundaries (12 contracts).
 - **Frozen Domain Contracts** — business rules are not changed in hardening stages.
 - **Integration isolation** — `integration/` imports only `domains.<x>.services` and Event query APIs.
 

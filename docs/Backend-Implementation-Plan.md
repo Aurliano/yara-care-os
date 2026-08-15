@@ -63,4 +63,13 @@ These stages introduce critical cross-domain behavior and should not proceed to 
 
 ## Current Stage
 
-**Completed**
+**Completed** (B0–B11)
+
+Sprint III Phase A adds Backend communication *transport* infrastructure
+without changing frozen Communication aggregates:
+
+- `CommunicationProvider` port (ADR-013)
+- Skyroom adapter (API key, room/user reuse, login URL)
+- `POST /api/v1/communication/call/start|end` and `POST /api/v1/communication/login-url`
+
+Hub Runtime, UI, and WebRTC remain out of scope for this phase.

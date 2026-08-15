@@ -5,6 +5,7 @@ root_packages =
     domains
     architecture
     integration
+    infrastructure
 
 [importlinter:contract:common-isolation]
 name = Common infrastructure must not import domain apps
@@ -19,6 +20,7 @@ name = Domain dependency direction
 type = layers
 layers =
     integration
+    infrastructure
     domains.synchronization
     domains.device
     domains.communication
@@ -103,6 +105,17 @@ forbidden_modules =
     domains.device
     domains.notification
     domains.synchronization
+
+[importlinter:contract:communication-no-skyroom-client]
+name = Communication must not import the Skyroom HTTP client
+type = forbidden
+source_modules =
+    domains.communication
+forbidden_modules =
+    infrastructure.communication.skyroom
+    infrastructure.communication.factory
+    infrastructure.communication.models
+    infrastructure.communication.services
 
 [importlinter:contract:synchronization-independence]
 name = Synchronization must not import Business Domains
