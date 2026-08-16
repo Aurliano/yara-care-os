@@ -76,5 +76,8 @@ without changing frozen Communication aggregates:
 
 Sprint III Phase B connects Hub Runtime (`CommunicationGateway`,
 `CommunicationRepository`, `CommunicationRuntime`) to those Backend APIs.
-No WebRTC, media player, or vendor SDK on the Hub. The Hub persists the
-current `CallSession` for reconnect and process-death recovery.
+The Hub persists the current `CallSession` for reconnect and process-death
+recovery.
+
+Sprint III Phase C adds Hub `SkyroomCallEngine`. The Hub consumes the
+Backend `joinToken` as `loginUrl` and never calls Skyroom REST.

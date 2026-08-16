@@ -118,6 +118,7 @@ interface CommunicationReplicaRepository : ReplicaRepository<Contact> {
     override val replicaType: String get() = "communication"
     override suspend fun upsert(item: Contact) = upsertContact(item)
     fun observePriorityContacts(elderId: String): Flow<List<Contact>>
+    fun observeSessions(): Flow<List<CommunicationSession>>
     suspend fun upsertContact(contact: Contact)
     suspend fun upsertSession(session: CommunicationSession)
 }

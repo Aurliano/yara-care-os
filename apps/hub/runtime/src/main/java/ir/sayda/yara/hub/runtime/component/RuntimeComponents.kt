@@ -50,8 +50,14 @@ class CommunicationReplicaRuntimeComponent(
     private val communicationRuntime: ir.sayda.yara.hub.runtime.communication.CommunicationRuntime? = null,
 ) : BaseRuntimeComponent("communication_replica_runtime") {
     override suspend fun recover() {
+        communicationRuntime?.startCollectors()
         communicationRuntime?.recover()
         super.recover()
+    }
+
+    override suspend fun start() {
+        communicationRuntime?.startCollectors()
+        super.start()
     }
 }
 

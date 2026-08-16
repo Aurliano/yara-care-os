@@ -4,6 +4,8 @@ import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
+import ir.sayda.yara.hub.communication.AndroidSkyroomClient
+import ir.sayda.yara.hub.core.communication.SkyroomClient
 import ir.sayda.yara.hub.presentation.CommunicationPresentationGatewayImpl
 import ir.sayda.yara.hub.presentation.ReminderPresentationGatewayImpl
 import ir.sayda.yara.hub.core.runtime.CommunicationPresentationGateway
@@ -24,4 +26,10 @@ abstract class AppPresentationModule {
     abstract fun bindCommunicationPresentationGateway(
         impl: CommunicationPresentationGatewayImpl,
     ): CommunicationPresentationGateway
+
+    @Binds
+    @Singleton
+    abstract fun bindSkyroomClient(
+        impl: AndroidSkyroomClient,
+    ): SkyroomClient
 }

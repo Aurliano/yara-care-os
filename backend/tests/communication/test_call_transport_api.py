@@ -257,14 +257,17 @@ def test_integration_cycle_reports_communication_timeouts(licensed_elder, comm_u
     assert session.status == SessionStatus.CANCELLED
 
 
-def test_hub_sources_do_not_reference_skyroom():
+def test_hub_sources_do_not_call_skyroom_rest():
     from pathlib import Path
 
     hub_root = Path(__file__).resolve().parents[3] / "apps" / "hub"
-    hits = [
-        str(path.relative_to(hub_root))
-        for path in hub_root.rglob("*.kt")
-        if "src" in path.parts
-        and "skyroom" in path.read_text(encoding="utf-8", errors="ignore").lower()
-    ]
+    forbidden = ("skyroom.online/skyroom/api", "skyroom_api_key", "apikey-")
+    hits = []
+    for path in hub_root.rglob("*.kt"):
+        if "src" not in path.parts:
+            continue
+        text = path.read_text(encoding="utf-8", errors="ignore").lower()
+        for token in forbidden:
+            if token in text:
+                hits.append(f"{path.relative_to(hub_root)}:{token}")
     assert hits == []

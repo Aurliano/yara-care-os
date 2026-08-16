@@ -51,6 +51,9 @@ abstract class RuntimeModule {
     @Binds abstract fun bindConfirmReminderUseCase(impl: ConfirmReminderUseCaseImpl): ConfirmReminderUseCase
     @Binds abstract fun bindPostponeReminderUseCase(impl: PostponeReminderUseCaseImpl): PostponeReminderUseCase
     @Binds @Singleton abstract fun bindRuntimeRefreshPort(impl: RuntimeRefreshCoordinator): RuntimeRefreshPort
+    @Binds @Singleton abstract fun bindCallMediaEngine(
+        impl: ir.sayda.yara.hub.runtime.communication.SkyroomCallEngine,
+    ): ir.sayda.yara.hub.core.communication.CallMediaEngine
 
     @Binds @IntoSet abstract fun bindReminderHandler(handler: ShowReminderActionHandler): RuntimeActionHandler
     @Binds @IntoSet abstract fun bindDeviceHandler(handler: DeferredDeviceActionHandler): RuntimeActionHandler

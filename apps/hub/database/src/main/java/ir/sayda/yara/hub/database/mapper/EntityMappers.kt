@@ -421,6 +421,9 @@ fun ir.sayda.yara.hub.database.entity.LocalCallSessionEntity.toDomain() =
         joinToken = joinToken,
         expiresAtEpochMillis = expiresAtEpochMillis,
         updatedAtEpochMillis = updatedAtEpochMillis,
+        direction = runCatching {
+            ir.sayda.yara.hub.core.communication.CallDirection.valueOf(direction)
+        }.getOrDefault(ir.sayda.yara.hub.core.communication.CallDirection.Outgoing),
     )
 
 fun ir.sayda.yara.hub.core.domain.model.CallSession.toEntity() =
@@ -434,4 +437,5 @@ fun ir.sayda.yara.hub.core.domain.model.CallSession.toEntity() =
         joinToken = joinToken,
         expiresAtEpochMillis = expiresAtEpochMillis,
         updatedAtEpochMillis = updatedAtEpochMillis,
+        direction = direction.name,
     )

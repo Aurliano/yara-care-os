@@ -43,6 +43,9 @@ class CommunicationReplicaRepositoryImpl @Inject constructor(
     override fun observePriorityContacts(elderId: String): Flow<List<Contact>> =
         contactDao.observePriorityByElder(elderId).map { list -> list.map { it.toDomain() } }
 
+    override fun observeSessions(): Flow<List<CommunicationSession>> =
+        sessionDao.observeAll().map { list -> list.map { it.toDomain() } }
+
     override suspend fun upsertContact(contact: Contact) {
         contactDao.upsert(contact.toEntity())
     }
