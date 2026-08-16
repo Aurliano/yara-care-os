@@ -85,3 +85,10 @@ Backend `joinToken` as `loginUrl` and never calls Skyroom REST.
 Sprint III Phase D is Hub presentation only. It maps Communication Runtime
 states to elder call screens (incoming, outgoing, talking, finished,
 connection lost, retry) without changing runtime or Backend APIs.
+
+Sprint IV Phase A adds the Family App Communication Runtime
+(`CommunicationGateway`, `CommunicationRepository`, `CommunicationStateMachine`,
+`CommunicationRuntime`) as a first-class client of the same Backend join APIs.
+The Family App persists `CallSession` locally, recovers after process death,
+and never calls Skyroom REST. Backend remains the source of truth.
+This phase does not add media, WebRTC, or Family call UI.

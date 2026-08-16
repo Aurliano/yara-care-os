@@ -191,12 +191,18 @@ vendor API key. Backend owns room/user lifecycle and mints an opaque
 passes that token to `SkyroomCallEngine.join(loginUrl)`. The engine is a
 thin SDK wrapper: join/leave/mute/unmute/camera/speaker only.
 
-Hub Communication Runtime states:
+Hub and Family App Communication Runtime states:
 `Idle → Connecting → Connected → ConnectionLost → Reconnecting → Connected → Finished`.
 Outgoing calls use `startCall`. Incoming calls use `joinIncomingCall` or a
 replicated active session. Connection loss does not end the Backend session;
 reconnect consumes a fresh or cached `joinToken`.
 See ADR-013.
+
+Family App layering matches the Hub:
+Presentation → CommunicationRuntime → CommunicationGateway → Backend → Skyroom.
+The Family App never calls Skyroom REST. It only consumes Backend `joinToken`.
+Sprint IV Phase A persists `CallSession` locally for reconnect and process-death
+recovery and does not include media or WebRTC rendering.
 
 Hub presentation maps those states to elder call screens (incoming,
 outgoing, talking, connection lost, retry, finished) without changing
