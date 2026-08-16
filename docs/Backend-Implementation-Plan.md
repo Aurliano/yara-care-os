@@ -85,4 +85,3 @@ Backend `joinToken` as `loginUrl` and never calls Skyroom REST.
 Sprint III Phase D is Hub presentation only. It maps Communication Runtime
 states to elder call screens (incoming, outgoing, talking, finished,
 connection lost, retry) without changing runtime or Backend APIs.
-
