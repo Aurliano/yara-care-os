@@ -198,6 +198,10 @@ replicated active session. Connection loss does not end the Backend session;
 reconnect consumes a fresh or cached `joinToken`.
 See ADR-013.
 
+Hub presentation maps those states to elder call screens (incoming,
+outgoing, talking, connection lost, retry, finished) without changing
+runtime or Backend APIs.
+
 Backend enforces one active session per Elder (HTTP 409 on a second start)
 and auto-cancels unjoined sessions after the join timeout.
 

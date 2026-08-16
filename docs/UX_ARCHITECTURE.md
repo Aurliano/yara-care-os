@@ -112,6 +112,18 @@ No dial pad.
 
 No recent calls.
 
+Call screens stay on a single full-screen flow:
+
+Incoming → Talking → Finished
+
+or
+
+Outgoing → Talking → Finished
+
+Connection lost and retry are calm full-screen states with one clear next
+action. Copy is Persian. Layout is RTL. Buttons are large enough for a
+tablet. After the call finishes, the Hub returns to Home.
+
 ---
 
 ## Voice Messages

@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="call_family_fallback">خانواده</string>
+    <string name="call_incoming_headline">تماس ورودی</string>
+    <string name="call_incoming_status">در حال وصل شدن...</string>
+    <string name="call_outgoing_headline">در حال تماس</string>
+    <string name="call_outgoing_status">لطفاً کمی صبر کنید</string>
+    <string name="call_talking_headline">در حال گفتگو</string>
+    <string name="call_talking_status">تماس برقرار است</string>
+    <string name="call_talking_muted_status">صدا قطع است</string>
+    <string name="call_lost_headline">ارتباط قطع شد</string>
+    <string name="call_lost_status">نگران نباشید، می‌توانید دوباره وصل شوید</string>
+    <string name="call_retry_headline">در حال تلاش دوباره</string>
+    <string name="call_retry_status">لطفاً کمی صبر کنید</string>
+    <string name="call_failed_headline">تماس برقرار نشد</string>
+    <string name="call_failed_status">الان نتوانستیم وصل شویم. دوباره تلاش کنید.</string>
+    <string name="call_finished_headline">تماس پایان یافت</string>
+    <string name="call_finished_status">می‌توانید به صفحه اصلی برگردید</string>
+    <string name="call_action_answer">پاسخ</string>
+    <string name="call_action_decline">رد کردن</string>
+    <string name="call_action_hangup">قطع تماس</string>
+    <string name="call_action_retry">تلاش دوباره</string>
+    <string name="call_action_return_home">بازگشت به خانه</string>
+    <string name="call_action_mute">بی‌صدا</string>
+    <string name="call_action_unmute">صدا دار</string>
+    <string name="call_action_speaker">بلندگو</string>
+    <string name="call_action_camera_on">دوربین روشن</string>
+    <string name="call_action_camera_off">دوربین خاموش</string>
+    <string name="call_waiting">لطفاً کمی صبر کنید...</string>
+    <string name="call_voice_waveform_placeholder">موج صدا</string>
+    <string name="call_voice_recording_placeholder">ضبط</string>
+    <string name="call_voice_playback_placeholder">پخش</string>
+    <string name="call_voice_duration_placeholder">۰۰:۰۰</string>
+    <string name="call_camera_unavailable">دوربین در این تماس در دسترس نیست</string>
+    <string name="call_participant_photo">تصویر مخاطب</string>
+</resources>

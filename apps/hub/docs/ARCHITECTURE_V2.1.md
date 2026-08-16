@@ -194,6 +194,11 @@ Outgoing calls use `startCall`. Incoming calls use `joinIncomingCall` or a
 replicated active session. Connection loss does not end the Backend session;
 reconnect consumes a fresh or cached `joinToken`.
 
+Hub presentation (Phase D) maps those states to elder screens without
+changing runtime: Incoming, Outgoing, Talking, ConnectionLost, Retry,
+Finished. The screens are Persian-first, RTL, and tablet-sized. Call
+policy stays in `CommunicationRuntime`.
+
 ---
 
 ## Runtime Dispatcher (Coordinator — not a Replica Engine)

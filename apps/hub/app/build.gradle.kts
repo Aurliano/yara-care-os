@@ -73,6 +73,7 @@ dependencies {
     implementation(project(":ui"))
     implementation(project(":feature-home"))
     implementation(project(":feature-reminder"))
+    implementation(project(":feature-communication"))
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
