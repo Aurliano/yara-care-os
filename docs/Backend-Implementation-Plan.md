@@ -63,4 +63,18 @@ These stages introduce critical cross-domain behavior and should not proceed to 
 
 ## Current Stage
 
-**Completed**
+**Completed** (B0–B11)
+
+Sprint III Phase A adds Backend communication *transport* infrastructure
+without changing frozen Communication aggregates:
+
+- `CommunicationProvider` port (ADR-013)
+- Skyroom adapter (API key, room/user reuse, opaque `joinToken`)
+- `POST /api/v1/communication/call/start|end` and `POST /api/v1/communication/login-url`
+- One active session per Elder (409 on conflict)
+- Auto-cancel of unjoined sessions after the join timeout
+
+Sprint III Phase B connects Hub Runtime (`CommunicationGateway`,
+`CommunicationRepository`, `CommunicationRuntime`) to those Backend APIs.
+No WebRTC, media player, or vendor SDK on the Hub. The Hub persists the
+current `CallSession` for reconnect and process-death recovery.

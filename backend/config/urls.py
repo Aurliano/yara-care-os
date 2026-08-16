@@ -13,5 +13,6 @@ urlpatterns = [
     path("api/v1/", include("domains.device.api.urls")),
     path("api/v1/", include("domains.communication.api.urls")),
     path("api/v1/", include("domains.synchronization.api.urls")),
+    path("api/v1/", include("infrastructure.communication.api.urls")),
     path("api/v1/", include("integration.api.urls")),
 ]

@@ -17,4 +17,7 @@ PASSWORD_HASHERS = [
     "django.contrib.auth.hashers.MD5PasswordHasher",
 ]
 
+COMMUNICATION_PROVIDER = "fake"
+SKYROOM_API_KEY = ""
+
 LOGGING["root"]["level"] = "WARNING"  # noqa: F405

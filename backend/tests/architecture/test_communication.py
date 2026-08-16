@@ -52,3 +52,20 @@ def test_communication_does_not_import_workflow_care_or_device():
         for name in forbidden:
             assert name not in content, f"{module_name} imports {name}"
         assert "WorkflowExecution" not in content
+        assert "skyroom.online" not in content
+        assert "SKYROOM_API_KEY" not in content
+        assert "SkyroomCommunicationProvider" not in content
+
+
+def test_communication_session_has_no_provider_columns():
+    from domains.communication.models import CommunicationSession
+
+    field_names = {field.name.lower() for field in CommunicationSession._meta.get_fields()}
+    assert "skyroom_room_id" not in field_names
+    assert "skyroom_user_id" not in field_names
+    assert "external_room_id" not in field_names
+
+
+def test_infrastructure_is_not_a_domain_app():
+    assert "infrastructure" not in DOMAIN_APP_LABELS
+

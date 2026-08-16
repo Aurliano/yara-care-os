@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from domains.communication.services.sessions import auto_cancel_unjoined_sessions
 from domains.scheduling.services.due import process_due_occurrences
 from domains.workflow.services.timeout import process_workflow_timeouts
 from integration.context import IntegrationContext
@@ -16,6 +17,10 @@ def run_workflow_timeout_scan(ctx: IntegrationContext) -> int:
     return process_workflow_timeouts()
 
 
+def run_communication_timeout_scan(ctx: IntegrationContext) -> int:
+    return auto_cancel_unjoined_sessions()
+
+
 def run_event_dispatch(ctx: IntegrationContext, *, limit: int = 100) -> int:
     return process_pending_events(ctx, limit=limit)
 
@@ -24,5 +29,6 @@ def run_integration_cycle(ctx: IntegrationContext, *, event_limit: int = 100) ->
     return {
         "due_occurrences": run_due_occurrence_scan(ctx),
         "workflow_timeouts": run_workflow_timeout_scan(ctx),
+        "communication_timeouts": run_communication_timeout_scan(ctx),
         "events_processed": run_event_dispatch(ctx, limit=event_limit),
     }

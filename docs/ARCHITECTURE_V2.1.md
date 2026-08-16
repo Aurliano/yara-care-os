@@ -116,6 +116,7 @@ It is **not** responsible for:
 | Schedule definition | Backend |
 | Device model | Backend |
 | Communication rules | Backend |
+| Communication provider (API key, room/user lifecycle) | Backend |
 | Workflow execution (replica) | Hub |
 | Schedule execution (replica) | Hub |
 | Reminder rendering | Hub |
@@ -184,6 +185,17 @@ Responsible for: BLE, Pairing, Command execution, Command acknowledgment, Device
 
 Responsible for: Voice sessions, Call lifecycle, Hub callbacks. No reminder logic.
 
+The Hub must not call a communication vendor (Skyroom or any successor) and
+must not contain a vendor API key. Backend owns the `CommunicationProvider`
+adapter, persistent per-Elder rooms, and per-participant provider users.
+The Hub only asks Backend for opaque join credentials (`sessionId`,
+`joinToken`, `expiresAt`) and executes the local session replica.
+See ADR-013.
+
+Hub Communication Runtime states: `Idle → Connecting → Connected → Finished`.
+Backend enforces one active session per Elder (HTTP 409 on a second start)
+and auto-cancels unjoined sessions after the join timeout.
+
 ---
 
 ## Runtime Dispatcher (Coordinator — not a Replica Engine)
@@ -233,6 +245,7 @@ PendingEvidence
 OutboxEntry
 
 RuntimeState        -- persisted Runtime Kernel component states, for boot recovery
+LocalCallSession    -- current call for reconnect / process-death recovery (not a replica)
 ```
 
 Checkpoint is not a separate entity — it lives inside `ReplicaState`, matching the Backend Synchronization Domain (V2).
@@ -451,6 +464,8 @@ If the module structure changes, this document does not need to change — only 
 - Local models that diverge from Backend terminology
 - Runtime components calling each other directly instead of through the Runtime Kernel
 - Treating a stateless coordinator (e.g., Action Dispatcher) as if it were a stateful Replica Engine
+- Hub or Family App calling Skyroom (or any communication vendor) directly
+- Storing a communication-vendor API key on the Hub or in client apps
 
 ---
 

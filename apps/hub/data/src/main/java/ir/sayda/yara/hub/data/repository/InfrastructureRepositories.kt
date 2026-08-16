@@ -433,6 +433,7 @@ class IntegrationRuntimeRepositoryImpl @Inject constructor(
                 mapOf(
                     "due_occurrences" to response.dueOccurrences,
                     "workflow_timeouts" to response.workflowTimeouts,
+                    "communication_timeouts" to response.communicationTimeouts,
                     "events_processed" to response.eventsProcessed,
                 ),
             )

@@ -44,3 +44,8 @@ data class ReminderOpenRequest(
     val executionId: String,
     val occurrenceId: String,
 )
+
+interface CommunicationPresentationGateway {
+    suspend fun onCallSession(session: ir.sayda.yara.hub.core.domain.model.CallSession)
+    fun observeCallSessions(): kotlinx.coroutines.flow.Flow<ir.sayda.yara.hub.core.domain.model.CallSession>
+}

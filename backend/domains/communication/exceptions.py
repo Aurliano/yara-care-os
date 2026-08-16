@@ -21,6 +21,10 @@ class InvalidSessionStateError(CommunicationError):
     """Raised when a session operation conflicts with current status."""
 
 
+class ActiveSessionExistsError(InvalidSessionStateError):
+    """Raised when an elder already has a non-terminal communication session."""
+
+
 class InvalidContactStateError(CommunicationError):
     """Raised when a contact operation is not allowed."""
 
@@ -31,3 +35,15 @@ class EntitlementDeniedError(CommunicationError):
 
 class AuthorizationDeniedError(CommunicationError):
     """Raised when identity authorization blocks an operation."""
+
+
+class CommunicationProviderError(CommunicationError):
+    """Raised when the transport provider cannot complete a request."""
+
+    def __init__(self, message: str, *, error_code: int | None = None) -> None:
+        super().__init__(message)
+        self.error_code = error_code
+
+
+class ProviderRoomNotFoundError(CommunicationError):
+    """Raised when a provider room binding cannot be found."""

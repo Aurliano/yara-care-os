@@ -261,3 +261,16 @@ data class SyncConflictEntity(
     @ColumnInfo(name = "detected_at_epoch_millis") val detectedAtEpochMillis: Long,
     @ColumnInfo(name = "payload_json") val payloadJson: String,
 )
+
+@Entity(tableName = "local_call_session")
+data class LocalCallSessionEntity(
+    @PrimaryKey @ColumnInfo(name = "id") val id: String,
+    @ColumnInfo(name = "session_id") val sessionId: String,
+    @ColumnInfo(name = "elder_id") val elderId: String,
+    @ColumnInfo(name = "channel") val channel: String,
+    @ColumnInfo(name = "recipient_contact_id") val recipientContactId: String,
+    @ColumnInfo(name = "runtime_state") val runtimeState: String,
+    @ColumnInfo(name = "join_token") val joinToken: String,
+    @ColumnInfo(name = "expires_at_epoch_millis") val expiresAtEpochMillis: Long,
+    @ColumnInfo(name = "updated_at_epoch_millis") val updatedAtEpochMillis: Long,
+)

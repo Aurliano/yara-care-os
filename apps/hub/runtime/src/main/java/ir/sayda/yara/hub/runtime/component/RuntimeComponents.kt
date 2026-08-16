@@ -46,6 +46,13 @@ class WorkflowReplicaRuntimeComponent : BaseRuntimeComponent("workflow_replica_r
 
 class DeviceReplicaRuntimeComponent : BaseRuntimeComponent("device_replica_runtime")
 
-class CommunicationReplicaRuntimeComponent : BaseRuntimeComponent("communication_replica_runtime")
+class CommunicationReplicaRuntimeComponent(
+    private val communicationRuntime: ir.sayda.yara.hub.runtime.communication.CommunicationRuntime? = null,
+) : BaseRuntimeComponent("communication_replica_runtime") {
+    override suspend fun recover() {
+        communicationRuntime?.recover()
+        super.recover()
+    }
+}
 
 class IntegrationRuntimeComponent : BaseRuntimeComponent("integration_runtime")

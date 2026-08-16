@@ -23,9 +23,9 @@ import ir.sayda.yara.hub.runtime.component.SchedulingReplicaRuntimeComponent
 import ir.sayda.yara.hub.runtime.component.SynchronizationReplicaRuntimeComponent
 import ir.sayda.yara.hub.runtime.component.WorkflowReplicaRuntimeComponent
 import ir.sayda.yara.hub.runtime.dispatcher.ActionDispatcher
-import ir.sayda.yara.hub.runtime.dispatcher.DeferredCommunicationActionHandler
 import ir.sayda.yara.hub.runtime.dispatcher.DeferredDeviceActionHandler
 import ir.sayda.yara.hub.runtime.dispatcher.DefaultActionRegistry
+import ir.sayda.yara.hub.runtime.dispatcher.InitiateCallActionHandler
 import ir.sayda.yara.hub.runtime.dispatcher.ShowReminderActionHandler
 import ir.sayda.yara.hub.runtime.event.RuntimeEventBusImpl
 import ir.sayda.yara.hub.runtime.kernel.HubRuntimeKernel
@@ -54,7 +54,7 @@ abstract class RuntimeModule {
 
     @Binds @IntoSet abstract fun bindReminderHandler(handler: ShowReminderActionHandler): RuntimeActionHandler
     @Binds @IntoSet abstract fun bindDeviceHandler(handler: DeferredDeviceActionHandler): RuntimeActionHandler
-    @Binds @IntoSet abstract fun bindCommunicationHandler(handler: DeferredCommunicationActionHandler): RuntimeActionHandler
+    @Binds @IntoSet abstract fun bindCommunicationHandler(handler: InitiateCallActionHandler): RuntimeActionHandler
 }
 
 @Module
@@ -69,8 +69,10 @@ object RuntimeComponentModule {
     @Provides @Singleton fun provideDeviceRuntime(): DeviceReplicaRuntimeComponent =
         DeviceReplicaRuntimeComponent()
 
-    @Provides @Singleton fun provideCommunicationRuntime(): CommunicationReplicaRuntimeComponent =
-        CommunicationReplicaRuntimeComponent()
+    @Provides @Singleton fun provideCommunicationReplicaRuntime(
+        communicationRuntime: ir.sayda.yara.hub.runtime.communication.CommunicationRuntime,
+    ): CommunicationReplicaRuntimeComponent =
+        CommunicationReplicaRuntimeComponent(communicationRuntime)
 
     @Provides @Singleton fun provideIntegrationRuntime(): IntegrationRuntimeComponent =
         IntegrationRuntimeComponent()

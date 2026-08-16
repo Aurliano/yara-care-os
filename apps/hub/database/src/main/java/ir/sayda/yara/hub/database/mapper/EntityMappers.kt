@@ -408,3 +408,30 @@ fun ir.sayda.yara.hub.core.sync.SyncConflictRecord.toEntity() = ir.sayda.yara.hu
     detectedAtEpochMillis = detectedAtEpochMillis,
     payloadJson = payloadJson,
 )
+
+private const val CURRENT_CALL_ROW_ID = "current"
+
+fun ir.sayda.yara.hub.database.entity.LocalCallSessionEntity.toDomain() =
+    ir.sayda.yara.hub.core.domain.model.CallSession(
+        sessionId = sessionId,
+        elderId = elderId,
+        channel = channel,
+        recipientContactId = recipientContactId,
+        runtimeState = ir.sayda.yara.hub.core.domain.model.CallRuntimeState.valueOf(runtimeState),
+        joinToken = joinToken,
+        expiresAtEpochMillis = expiresAtEpochMillis,
+        updatedAtEpochMillis = updatedAtEpochMillis,
+    )
+
+fun ir.sayda.yara.hub.core.domain.model.CallSession.toEntity() =
+    ir.sayda.yara.hub.database.entity.LocalCallSessionEntity(
+        id = CURRENT_CALL_ROW_ID,
+        sessionId = sessionId,
+        elderId = elderId,
+        channel = channel,
+        recipientContactId = recipientContactId,
+        runtimeState = runtimeState.name,
+        joinToken = joinToken,
+        expiresAtEpochMillis = expiresAtEpochMillis,
+        updatedAtEpochMillis = updatedAtEpochMillis,
+    )

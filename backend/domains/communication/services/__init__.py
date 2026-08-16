@@ -12,9 +12,11 @@ from domains.communication.services.contacts import (
 )
 from domains.communication.services.sessions import (
     accept_session,
+    auto_cancel_unjoined_sessions,
     cancel_session,
     decline_session,
     end_session,
+    get_active_session,
     get_call_attempt,
     get_call_attempts,
     get_recent_sessions,
@@ -30,10 +32,12 @@ from domains.communication.services.sessions import (
 __all__ = [
     "accept_session",
     "archive_contact",
+    "auto_cancel_unjoined_sessions",
     "cancel_session",
     "create_contact",
     "decline_session",
     "end_session",
+    "get_active_session",
     "get_call_attempt",
     "get_call_attempts",
     "get_contact",
