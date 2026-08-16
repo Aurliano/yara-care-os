@@ -111,3 +111,14 @@ val MIGRATION_3_4 = object : Migration(3, 4) {
         )
     }
 }
+
+val MIGRATION_4_5 = object : Migration(4, 5) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            """
+            ALTER TABLE local_call_session
+            ADD COLUMN direction TEXT NOT NULL DEFAULT 'Outgoing'
+            """.trimIndent(),
+        )
+    }
+}

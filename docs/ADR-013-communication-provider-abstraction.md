@@ -35,10 +35,11 @@ vendor REST API or store the vendor API key.
    (`SKYROOM_API_KEY`). It is never returned to clients and never shipped
    in the Hub or Family App.
 
-3. **Hub and Family App speak only to Backend.** They receive opaque join
-   credentials (`sessionId`, `joinToken`, `expiresAt`). They never call Skyroom.
-   `joinToken` is provider-agnostic: Skyroom may mint a URL, LiveKit a token,
-   Jitsi a JWT. Clients must not interpret the token format.
+3. **Hub and Family App speak only to Backend for session control.** They
+   receive opaque join credentials (`sessionId`, `joinToken`, `expiresAt`).
+   They never call Skyroom REST and never hold the API key.
+   `joinToken` is provider-agnostic. The Hub media adapter
+   (`SkyroomCallEngine`) only consumes that token as `loginUrl`.
 
 4. **Provider port, not vendor types.** Backend depends on a
    `CommunicationProvider` protocol:

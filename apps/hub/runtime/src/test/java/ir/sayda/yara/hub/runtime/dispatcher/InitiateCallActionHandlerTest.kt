@@ -9,6 +9,8 @@ import ir.sayda.yara.hub.core.domain.repository.AuthRepository
 import ir.sayda.yara.hub.core.result.AppResult
 import ir.sayda.yara.hub.core.runtime.CommunicationPresentationGateway
 import ir.sayda.yara.hub.runtime.communication.CommunicationRuntime
+import ir.sayda.yara.hub.runtime.communication.FakeSkyroomClient
+import ir.sayda.yara.hub.runtime.communication.SkyroomCallEngine
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.runTest
@@ -25,7 +27,10 @@ class InitiateCallActionHandlerTest {
             gateway,
             InMemoryCommunicationRepository(),
             RecordingPresentationGateway(),
-        ) { 1_700_000_000_000L }
+            SkyroomCallEngine(FakeSkyroomClient()),
+            { 1_700_000_000_000L },
+            this,
+        )
         val handler = InitiateCallActionHandler(runtime, MissingAuthRepository())
         val payload = """
             {"elder_id":"elder-1","recipient_contact_id":"contact-1","channel":"VOICE"}
@@ -47,7 +52,10 @@ class InitiateCallActionHandlerTest {
             gateway,
             InMemoryCommunicationRepository(),
             RecordingPresentationGateway(),
-        ) { 1_700_000_000_000L }
+            SkyroomCallEngine(FakeSkyroomClient()),
+            { 1_700_000_000_000L },
+            this,
+        )
         val handler = InitiateCallActionHandler(runtime, IdentityAuthRepository("elder-from-auth"))
         val payload = """{"recipient_contact_id":"contact-9"}"""
 
@@ -64,7 +72,10 @@ class InitiateCallActionHandlerTest {
             RecordingGateway(),
             InMemoryCommunicationRepository(),
             RecordingPresentationGateway(),
-        ) { 1_700_000_000_000L }
+            SkyroomCallEngine(FakeSkyroomClient()),
+            { 1_700_000_000_000L },
+            this,
+        )
         val handler = InitiateCallActionHandler(runtime, MissingAuthRepository())
 
         val result = handler.handle("""{"elder_id":"elder-1"}""", "exec-3")

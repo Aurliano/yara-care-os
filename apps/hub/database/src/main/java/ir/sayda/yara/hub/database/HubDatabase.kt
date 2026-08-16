@@ -57,7 +57,7 @@ import ir.sayda.yara.hub.database.entity.WorkflowExecutionEntity
         SyncConflictEntity::class,
         LocalCallSessionEntity::class,
     ],
-    version = 4,
+    version = 5,
     exportSchema = true,
     autoMigrations = [],
 )

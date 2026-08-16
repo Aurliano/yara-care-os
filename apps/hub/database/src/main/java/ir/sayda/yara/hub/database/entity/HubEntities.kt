@@ -273,4 +273,5 @@ data class LocalCallSessionEntity(
     @ColumnInfo(name = "join_token") val joinToken: String,
     @ColumnInfo(name = "expires_at_epoch_millis") val expiresAtEpochMillis: Long,
     @ColumnInfo(name = "updated_at_epoch_millis") val updatedAtEpochMillis: Long,
+    @ColumnInfo(name = "direction") val direction: String,
 )

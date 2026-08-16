@@ -182,16 +182,17 @@ Responsible for: BLE, Pairing, Command execution, Command acknowledgment, Device
 
 ## Communication Runtime
 
-The Hub must not call a communication vendor (Skyroom or any successor) and
-must not contain a vendor API key. Backend owns the `CommunicationProvider`
-adapter, persistent per-Elder rooms, and per-participant provider users.
-The Hub only asks Backend for opaque join credentials (`sessionId`,
-`joinToken`, `expiresAt`) and executes the local session replica.
-See ADR-013.
+The Hub never calls a communication vendor REST API and never stores a
+vendor API key. Backend owns room/user lifecycle and mints an opaque
+`joinToken` (currently a Skyroom login URL). Hub `CommunicationRuntime`
+passes that token to `SkyroomCallEngine.join(loginUrl)`. The engine is a
+thin SDK wrapper: join/leave/mute/unmute/camera/speaker only.
 
-Hub Communication Runtime states: `Idle → Connecting → Connected → Finished`.
-Backend enforces one active session per Elder (HTTP 409 on a second start)
-and auto-cancels unjoined sessions after the join timeout.
+Hub Communication Runtime states:
+`Idle → Connecting → Connected → ConnectionLost → Reconnecting → Connected → Finished`.
+Outgoing calls use `startCall`. Incoming calls use `joinIncomingCall` or a
+replicated active session. Connection loss does not end the Backend session;
+reconnect consumes a fresh or cached `joinToken`.
 
 ---
 

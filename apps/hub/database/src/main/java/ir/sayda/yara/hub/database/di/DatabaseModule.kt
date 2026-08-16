@@ -11,6 +11,7 @@ import ir.sayda.yara.hub.database.HubDatabase
 import ir.sayda.yara.hub.database.migration.MIGRATION_1_2
 import ir.sayda.yara.hub.database.migration.MIGRATION_2_3
 import ir.sayda.yara.hub.database.migration.MIGRATION_3_4
+import ir.sayda.yara.hub.database.migration.MIGRATION_4_5
 import javax.inject.Singleton
 
 @Module
@@ -24,7 +25,7 @@ object DatabaseModule {
             context,
             HubDatabase::class.java,
             "yara_hub.db",
-        ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+        ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
             .fallbackToDestructiveMigration()
             .build()
 }
