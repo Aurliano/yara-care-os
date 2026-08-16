@@ -11,6 +11,8 @@ import ir.sayda.yara.hub.core.domain.repository.AuthRepository
 import ir.sayda.yara.hub.core.domain.repository.CommunicationReplicaRepository
 import ir.sayda.yara.hub.core.result.AppResult
 import ir.sayda.yara.hub.core.runtime.CommunicationPresentationGateway
+import ir.sayda.yara.hub.feature.communication.presentation.CommunicationPresentationState
+import ir.sayda.yara.hub.feature.communication.presentation.CommunicationPresentationStateMapper
 import ir.sayda.yara.hub.runtime.communication.CommunicationRuntime
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -51,13 +53,18 @@ class CallViewModel @Inject constructor(
     private var outgoingArgs: CallViewArgs? = null
     private var outgoingStarted = false
 
-    val uiState: StateFlow<CallUiModel> = bits
+    val uiState: StateFlow<CommunicationPresentationState> = bits
         .map { current ->
             val session = current.session
-            toCallUiModel(
+            CommunicationPresentationStateMapper.map(
                 session = session,
-                contactName = session?.resolvedContactName(current.contacts, current.fallbackName)
-                    ?: current.fallbackName.ifBlank { CallCopy.FAMILY },
+                contactName = session?.let { active ->
+                    CommunicationPresentationStateMapper.resolvedContactName(
+                        session = active,
+                        contacts = current.contacts,
+                        fallbackName = current.fallbackName,
+                    )
+                } ?: current.fallbackName,
                 muted = current.muted,
                 cameraOn = current.cameraOn,
                 startFailed = current.startFailed,
@@ -68,7 +75,7 @@ class CallViewModel @Inject constructor(
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5_000),
-            initialValue = toCallUiModel(null, CallCopy.FAMILY),
+            initialValue = CommunicationPresentationStateMapper.map(session = null, contactName = ""),
         )
 
     init {
@@ -178,6 +185,8 @@ class CallViewModel @Inject constructor(
 
     fun toggleCamera() {
         viewModelScope.launch {
+            val video = bits.value.session?.channel.equals("VIDEO", ignoreCase = true)
+            if (!video) return@launch
             val next = !bits.value.cameraOn
             if (next) communicationRuntime.cameraOn() else communicationRuntime.cameraOff()
             bits.update { it.copy(cameraOn = next) }

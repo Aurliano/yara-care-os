@@ -1,5 +1,12 @@
 package ir.sayda.yara.hub.feature.communication
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -9,17 +16,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Call
-import androidx.compose.material.icons.rounded.CallEnd
-import androidx.compose.material.icons.rounded.Home
-import androidx.compose.material.icons.rounded.Mic
-import androidx.compose.material.icons.rounded.MicOff
-import androidx.compose.material.icons.rounded.Refresh
-import androidx.compose.material.icons.rounded.Videocam
-import androidx.compose.material.icons.rounded.VideocamOff
-import androidx.compose.material.icons.rounded.VolumeUp
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -29,22 +30,24 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import ir.sayda.yara.hub.ui.components.CallActionButton
-import ir.sayda.yara.hub.ui.components.CallAvatar
-import ir.sayda.yara.hub.ui.components.CallIconButton
-import ir.sayda.yara.hub.ui.components.ReminderLoadingIndicator
+import ir.sayda.yara.hub.feature.communication.components.CallActionRow
+import ir.sayda.yara.hub.feature.communication.components.CallHeader
+import ir.sayda.yara.hub.feature.communication.components.CallLayoutTokens
+import ir.sayda.yara.hub.feature.communication.components.CallStatusText
+import ir.sayda.yara.hub.feature.communication.components.ConnectionBanner
+import ir.sayda.yara.hub.feature.communication.components.ParticipantCard
+import ir.sayda.yara.hub.feature.communication.components.rememberCallLayoutTokens
+import ir.sayda.yara.hub.feature.communication.presentation.CallScreenKind
+import ir.sayda.yara.hub.feature.communication.presentation.CommunicationPresentationState
+import ir.sayda.yara.hub.feature.communication.talking.TalkingScreen
+import ir.sayda.yara.hub.feature.communication.talking.VoiceFeaturePlaceholders
 import ir.sayda.yara.hub.ui.components.TodayBackground
-import ir.sayda.yara.hub.ui.theme.SoftRed
-import ir.sayda.yara.hub.ui.theme.SurfaceGray
-import ir.sayda.yara.hub.ui.theme.TextPrimary
-import ir.sayda.yara.hub.ui.theme.TextSecondary
-import ir.sayda.yara.hub.ui.theme.WarmWhite
-import ir.sayda.yara.hub.ui.theme.YaraGreen
-import ir.sayda.yara.hub.ui.theme.YaraLightGreen
+import ir.sayda.yara.hub.ui.theme.YaraTheme
 import kotlinx.coroutines.delay
 
 @Composable
@@ -68,7 +71,7 @@ fun CallRoute(
     }
 
     CallScreen(
-        ui = ui,
+        state = ui,
         onAnswer = viewModel::answer,
         onDecline = viewModel::hangup,
         onHangup = viewModel::hangup,
@@ -83,7 +86,7 @@ fun CallRoute(
 
 @Composable
 fun CallScreen(
-    ui: CallUiModel,
+    state: CommunicationPresentationState,
     onAnswer: () -> Unit,
     onDecline: () -> Unit,
     onHangup: () -> Unit,
@@ -94,53 +97,37 @@ fun CallScreen(
     onReturnHome: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val layout = rememberCallLayoutTokens()
     CompositionLocalProvider(androidx.compose.ui.platform.LocalLayoutDirection provides LayoutDirection.Rtl) {
         Scaffold(
             modifier = modifier.fillMaxSize(),
-            containerColor = WarmWhite,
+            containerColor = YaraTheme.colors.background,
         ) { innerPadding ->
             Box(modifier = Modifier.fillMaxSize()) {
                 TodayBackground(modifier = Modifier.fillMaxSize())
-                Column(
+                AnimatedContent(
+                    targetState = state,
+                    contentKey = { it.kind },
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(innerPadding)
-                        .padding(horizontal = 40.dp, vertical = 32.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center,
-                ) {
-                    Column(
-                        modifier = Modifier.widthIn(max = 720.dp).fillMaxWidth(),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                    ) {
-                        CallAvatar(name = ui.contactName)
-                        Spacer(modifier = Modifier.height(28.dp))
-                        Text(
-                            text = ui.headline,
-                            color = TextSecondary,
-                            style = MaterialTheme.typography.titleLarge,
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = ui.contactName,
-                            color = TextPrimary,
-                            style = MaterialTheme.typography.headlineLarge,
-                        )
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Text(
-                            text = ui.status,
-                            color = TextSecondary,
-                            style = MaterialTheme.typography.bodyLarge,
-                        )
-                        if (ui.kind == CallScreenKind.Outgoing ||
-                            (ui.kind == CallScreenKind.Retry && !ui.showRetry)
-                        ) {
-                            Spacer(modifier = Modifier.height(28.dp))
-                            ReminderLoadingIndicator()
-                        }
-                        Spacer(modifier = Modifier.height(40.dp))
-                        CallActions(
-                            ui = ui,
+                        .padding(innerPadding),
+                    transitionSpec = {
+                        (fadeIn(animationSpec = tween(280)) + scaleIn(
+                            initialScale = 0.98f,
+                            animationSpec = tween(280),
+                        )) togetherWith (fadeOut(animationSpec = tween(200)) + scaleOut(
+                            targetScale = 1.02f,
+                            animationSpec = tween(200),
+                        ))
+                    },
+                    label = "call-presentation-state",
+                ) { staged ->
+                    if (staged.kind == CallScreenKind.Hidden) {
+                        Box(modifier = Modifier.fillMaxSize())
+                    } else {
+                        CallStage(
+                            state = staged,
+                            layout = layout,
                             onAnswer = onAnswer,
                             onDecline = onDecline,
                             onHangup = onHangup,
@@ -158,8 +145,9 @@ fun CallScreen(
 }
 
 @Composable
-private fun CallActions(
-    ui: CallUiModel,
+private fun CallStage(
+    state: CommunicationPresentationState,
+    layout: CallLayoutTokens,
     onAnswer: () -> Unit,
     onDecline: () -> Unit,
     onHangup: () -> Unit,
@@ -169,80 +157,188 @@ private fun CallActions(
     onToggleCamera: () -> Unit,
     onReturnHome: () -> Unit,
 ) {
-    if (ui.showMediaControls) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly,
-            verticalAlignment = Alignment.Top,
+    val scroll = rememberScrollState()
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(scroll)
+            .padding(horizontal = layout.horizontalPadding, vertical = layout.verticalPadding),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+    ) {
+        Column(
+            modifier = Modifier
+                .widthIn(max = layout.contentMaxWidth)
+                .fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            CallIconButton(
-                label = if (ui.muted) CallCopy.UNMUTE else CallCopy.MUTE,
-                icon = if (ui.muted) Icons.Rounded.MicOff else Icons.Rounded.Mic,
-                onClick = onToggleMute,
-                containerColor = if (ui.muted) SoftRed.copy(alpha = 0.16f) else SurfaceGray,
-                contentColor = if (ui.muted) SoftRed else TextPrimary,
-            )
-            CallIconButton(
-                label = CallCopy.SPEAKER,
-                icon = Icons.Rounded.VolumeUp,
-                onClick = onSpeaker,
-                containerColor = YaraLightGreen,
-                contentColor = YaraGreen,
-            )
-            if (ui.showCamera) {
-                CallIconButton(
-                    label = if (ui.cameraOn) CallCopy.CAMERA_OFF else CallCopy.CAMERA_ON,
-                    icon = if (ui.cameraOn) Icons.Rounded.Videocam else Icons.Rounded.VideocamOff,
-                    onClick = onToggleCamera,
-                    containerColor = if (ui.cameraOn) YaraLightGreen else SurfaceGray,
-                    contentColor = if (ui.cameraOn) YaraGreen else TextPrimary,
+            if (state.kind == CallScreenKind.Talking) {
+                if (layout.useSplitLayout) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(32.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Column(
+                            modifier = Modifier.weight(1f),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                        ) {
+                            CallHeader(headlineRes = state.headlineRes)
+                            Spacer(modifier = Modifier.height(8.dp))
+                            ParticipantCard(name = state.contactName, avatarSize = layout.avatarSize)
+                            Spacer(modifier = Modifier.height(12.dp))
+                            CallStatusText(statusRes = state.statusRes)
+                        }
+                        Column(
+                            modifier = Modifier.weight(1f),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                        ) {
+                            if (state.showVoicePlaceholders) {
+                                VoiceFeaturePlaceholders()
+                                Spacer(modifier = Modifier.height(24.dp))
+                            }
+                            CallActionRow(
+                                state = state,
+                                onAnswer = onAnswer,
+                                onDecline = onDecline,
+                                onHangup = onHangup,
+                                onRetry = onRetry,
+                                onToggleMute = onToggleMute,
+                                onSpeaker = onSpeaker,
+                                onToggleCamera = onToggleCamera,
+                                onReturnHome = onReturnHome,
+                            )
+                        }
+                    }
+                } else {
+                    TalkingScreen(
+                        state = state,
+                        layout = layout,
+                        onHangup = onHangup,
+                        onToggleMute = onToggleMute,
+                        onSpeaker = onSpeaker,
+                        onToggleCamera = onToggleCamera,
+                    )
+                }
+            } else if (layout.useSplitLayout) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(32.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    CallIdentityColumn(
+                        state = state,
+                        layout = layout,
+                        modifier = Modifier.weight(1f),
+                    )
+                    CallControlsColumn(
+                        state = state,
+                        onAnswer = onAnswer,
+                        onDecline = onDecline,
+                        onHangup = onHangup,
+                        onRetry = onRetry,
+                        onToggleMute = onToggleMute,
+                        onSpeaker = onSpeaker,
+                        onToggleCamera = onToggleCamera,
+                        onReturnHome = onReturnHome,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+            } else {
+                CallIdentityColumn(state = state, layout = layout)
+                Spacer(modifier = Modifier.height(32.dp))
+                CallControlsColumn(
+                    state = state,
+                    onAnswer = onAnswer,
+                    onDecline = onDecline,
+                    onHangup = onHangup,
+                    onRetry = onRetry,
+                    onToggleMute = onToggleMute,
+                    onSpeaker = onSpeaker,
+                    onToggleCamera = onToggleCamera,
+                    onReturnHome = onReturnHome,
                 )
             }
         }
-        Spacer(modifier = Modifier.height(32.dp))
     }
-    if (ui.showAnswer) {
-        CallActionButton(
-            label = CallCopy.ANSWER,
-            onClick = onAnswer,
-            containerColor = YaraGreen,
-            icon = Icons.Rounded.Call,
+}
+
+@Composable
+private fun CallIdentityColumn(
+    state: CommunicationPresentationState,
+    layout: CallLayoutTokens,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        CallHeader(headlineRes = state.headlineRes)
+        Spacer(modifier = Modifier.height(8.dp))
+        ParticipantCard(name = state.contactName, avatarSize = layout.avatarSize)
+        if (state.bannerKind == null) {
+            Spacer(modifier = Modifier.height(12.dp))
+            CallStatusText(statusRes = state.statusRes)
+        }
+        state.bannerKind?.let { kind ->
+            Spacer(modifier = Modifier.height(20.dp))
+            ConnectionBanner(kind = kind)
+        }
+    }
+}
+
+@Composable
+private fun CallControlsColumn(
+    state: CommunicationPresentationState,
+    onAnswer: () -> Unit,
+    onDecline: () -> Unit,
+    onHangup: () -> Unit,
+    onRetry: () -> Unit,
+    onToggleMute: () -> Unit,
+    onSpeaker: () -> Unit,
+    onToggleCamera: () -> Unit,
+    onReturnHome: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        if (state.showWaitingIndicator) {
+            CallWaitingIndicator()
+            Spacer(modifier = Modifier.height(28.dp))
+        }
+        CallActionRow(
+            state = state,
+            onAnswer = onAnswer,
+            onDecline = onDecline,
+            onHangup = onHangup,
+            onRetry = onRetry,
+            onToggleMute = onToggleMute,
+            onSpeaker = onSpeaker,
+            onToggleCamera = onToggleCamera,
+            onReturnHome = onReturnHome,
         )
-        Spacer(modifier = Modifier.height(16.dp))
     }
-    if (ui.showRetry) {
-        CallActionButton(
-            label = CallCopy.RETRY,
-            onClick = onRetry,
-            containerColor = YaraGreen,
-            icon = Icons.Rounded.Refresh,
+}
+
+@Composable
+private fun CallWaitingIndicator(modifier: Modifier = Modifier) {
+    val tokens = YaraTheme.colors
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        CircularProgressIndicator(
+            color = tokens.primary,
+            modifier = Modifier.size(56.dp),
+            strokeWidth = 4.dp,
         )
-        Spacer(modifier = Modifier.height(16.dp))
-    }
-    if (ui.showDecline) {
-        CallActionButton(
-            label = CallCopy.DECLINE,
-            onClick = onDecline,
-            containerColor = SoftRed,
-            icon = Icons.Rounded.CallEnd,
-        )
-        Spacer(modifier = Modifier.height(16.dp))
-    }
-    if (ui.showHangup) {
-        CallActionButton(
-            label = CallCopy.HANGUP,
-            onClick = onHangup,
-            containerColor = SoftRed,
-            icon = Icons.Rounded.CallEnd,
-        )
-        Spacer(modifier = Modifier.height(16.dp))
-    }
-    if (ui.showReturnHome) {
-        CallActionButton(
-            label = CallCopy.RETURN_HOME,
-            onClick = onReturnHome,
-            containerColor = YaraGreen,
-            icon = Icons.Rounded.Home,
+        Text(
+            text = stringResource(R.string.call_waiting),
+            color = tokens.muted,
+            style = MaterialTheme.typography.bodyLarge,
         )
     }
 }

@@ -56,6 +56,7 @@ import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import ir.sayda.yara.hub.ui.presentation.ConnectionVisualState
@@ -72,6 +73,7 @@ import ir.sayda.yara.hub.ui.theme.Warning
 import ir.sayda.yara.hub.ui.theme.WarmWhite
 import ir.sayda.yara.hub.ui.theme.YaraGreen
 import ir.sayda.yara.hub.ui.theme.YaraLightGreen
+import ir.sayda.yara.hub.ui.theme.YaraTheme
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -556,17 +558,18 @@ fun ContactCard(name: String, onClick: () -> Unit) {
 fun CallActionButton(
     label: String,
     onClick: () -> Unit,
-    containerColor: Color,
-    contentColor: Color = Color.White,
+    containerColor: Color = YaraTheme.colors.primary,
+    contentColor: Color = YaraTheme.colors.onPrimary,
     enabled: Boolean = true,
     icon: ImageVector? = null,
     modifier: Modifier = Modifier,
 ) {
+    val tokens = YaraTheme.colors
     Surface(
         onClick = onClick,
         enabled = enabled,
         shape = RoundedCornerShape(28.dp),
-        color = if (enabled) containerColor else TextSecondary.copy(alpha = 0.2f),
+        color = if (enabled) containerColor else tokens.muted.copy(alpha = 0.2f),
         modifier = modifier
             .fillMaxWidth()
             .heightIn(min = 88.dp),
@@ -580,7 +583,7 @@ fun CallActionButton(
                 Icon(
                     imageVector = icon,
                     contentDescription = null,
-                    tint = if (enabled) contentColor else TextSecondary,
+                    tint = if (enabled) contentColor else tokens.muted,
                     modifier = Modifier.size(36.dp),
                 )
                 Spacer(modifier = Modifier.width(16.dp))
@@ -588,7 +591,7 @@ fun CallActionButton(
             Text(
                 text = label,
                 style = MaterialTheme.typography.titleLarge,
-                color = if (enabled) contentColor else TextSecondary,
+                color = if (enabled) contentColor else tokens.muted,
                 fontWeight = FontWeight.Bold,
             )
         }
@@ -600,25 +603,30 @@ fun CallIconButton(
     label: String,
     icon: ImageVector,
     onClick: () -> Unit,
-    containerColor: Color,
-    contentColor: Color,
+    containerColor: Color = YaraTheme.colors.surface,
+    contentColor: Color = YaraTheme.colors.onSurface,
+    enabled: Boolean = true,
     modifier: Modifier = Modifier,
 ) {
+    val tokens = YaraTheme.colors
+    val resolvedContainer = if (enabled) containerColor else tokens.mutedContainer
+    val resolvedContent = if (enabled) contentColor else tokens.muted
     Column(
         modifier = modifier,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Surface(
             onClick = onClick,
+            enabled = enabled,
             shape = CircleShape,
-            color = containerColor,
+            color = resolvedContainer,
             modifier = Modifier.size(96.dp),
         ) {
             Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
                 Icon(
                     imageVector = icon,
                     contentDescription = label,
-                    tint = contentColor,
+                    tint = resolvedContent,
                     modifier = Modifier.size(44.dp),
                 )
             }
@@ -627,26 +635,31 @@ fun CallIconButton(
         Text(
             text = label,
             style = MaterialTheme.typography.labelMedium,
-            color = TextPrimary,
+            color = if (enabled) tokens.onBackground else tokens.muted,
             fontWeight = FontWeight.Medium,
         )
     }
 }
 
 @Composable
-fun CallAvatar(name: String, modifier: Modifier = Modifier) {
-    val initial = name.trim().firstOrNull()?.toString() ?: "خ"
+fun CallAvatar(
+    name: String,
+    modifier: Modifier = Modifier,
+    size: Dp = 168.dp,
+) {
+    val tokens = YaraTheme.colors
+    val initial = name.trim().firstOrNull()?.toString().orEmpty()
     Box(
         modifier = modifier
-            .size(168.dp)
+            .size(size)
             .clip(CircleShape)
-            .background(YaraLightGreen),
+            .background(tokens.wash),
         contentAlignment = Alignment.Center,
     ) {
         Text(
             text = initial,
             style = MaterialTheme.typography.displayMedium,
-            color = YaraGreen,
+            color = tokens.primary,
             fontWeight = FontWeight.Bold,
         )
     }
