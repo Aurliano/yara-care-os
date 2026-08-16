@@ -145,6 +145,11 @@ object NetworkModule {
 
     @Provides
     @Singleton
+    fun provideCommunicationApi(retrofit: Retrofit): ir.sayda.yara.hub.network.api.CommunicationApi =
+        retrofit.create(ir.sayda.yara.hub.network.api.CommunicationApi::class.java)
+
+    @Provides
+    @Singleton
     fun provideTokenAuthenticator(
         tokenRefreshHandler: dagger.Lazy<TokenRefreshHandler>,
     ): TokenAuthenticator = TokenAuthenticator(tokenRefreshHandler)

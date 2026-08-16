@@ -7,6 +7,8 @@ import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import ir.sayda.yara.hub.core.di.DefaultDispatcher
 import ir.sayda.yara.hub.core.di.IoDispatcher
+import ir.sayda.yara.hub.core.communication.CommunicationGateway
+import ir.sayda.yara.hub.core.communication.CommunicationRepository
 import ir.sayda.yara.hub.core.domain.repository.AuthRepository
 import ir.sayda.yara.hub.core.domain.repository.CareReplicaRepository
 import ir.sayda.yara.hub.core.domain.repository.CommunicationReplicaRepository
@@ -40,6 +42,8 @@ import ir.sayda.yara.hub.data.identity.DataStoreReplicaIdentityProvider
 import ir.sayda.yara.hub.data.provisioning.ProvisioningRepositoryImpl
 import ir.sayda.yara.hub.data.provisioning.RuntimeProvisioningGateImpl
 import ir.sayda.yara.hub.core.provisioning.RuntimeProvisioningGate
+import ir.sayda.yara.hub.data.communication.CommunicationGatewayImpl
+import ir.sayda.yara.hub.data.communication.CommunicationRepositoryImpl
 import ir.sayda.yara.hub.data.repository.CareReplicaRepositoryImpl
 import ir.sayda.yara.hub.data.repository.CommunicationReplicaRepositoryImpl
 import ir.sayda.yara.hub.data.repository.ConnectivityRepositoryImpl
@@ -81,6 +85,8 @@ abstract class RepositoryModule {
     @Binds @Singleton abstract fun bindWorkflowReplicaRepository(impl: WorkflowReplicaRepositoryImpl): WorkflowReplicaRepository
     @Binds @Singleton abstract fun bindDeviceReplicaRepository(impl: DeviceReplicaRepositoryImpl): DeviceReplicaRepository
     @Binds @Singleton abstract fun bindCommunicationReplicaRepository(impl: CommunicationReplicaRepositoryImpl): CommunicationReplicaRepository
+    @Binds @Singleton abstract fun bindCommunicationGateway(impl: CommunicationGatewayImpl): CommunicationGateway
+    @Binds @Singleton abstract fun bindCommunicationSessionRepository(impl: CommunicationRepositoryImpl): CommunicationRepository
     @Binds @Singleton abstract fun bindReplicaMetadataRepository(impl: ReplicaMetadataRepositoryImpl): ReplicaMetadataRepository
     @Binds @Singleton abstract fun bindOutboxRepository(impl: OutboxRepositoryImpl): OutboxRepository
     @Binds @Singleton abstract fun bindPendingEvidenceRepository(impl: PendingEvidenceRepositoryImpl): PendingEvidenceRepository

@@ -33,6 +33,14 @@ TERMINAL_SESSION_STATUSES = frozenset(
     }
 )
 
+ACTIVE_SESSION_STATUSES = frozenset(
+    {
+        SessionStatus.INITIATED,
+        SessionStatus.CONNECTING,
+        SessionStatus.CONNECTED,
+    }
+)
+
 
 class SessionOutcome(models.TextChoices):
     ANSWERED = "ANSWERED", "Answered"

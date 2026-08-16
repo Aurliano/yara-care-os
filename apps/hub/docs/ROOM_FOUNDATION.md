@@ -9,8 +9,8 @@ Runtime Hardening review of the Hub local database foundation.
 | `exportSchema = true` | Enabled |
 | Schema output | `database/schemas/ir.sayda.yara.hub.database.HubDatabase/` |
 | KSP `room.schemaLocation` | Configured in `database/build.gradle.kts` |
-| Current version | **2** |
-| Entities | 15 replica / infrastructure tables (unchanged count) |
+| Current version | **4** |
+| Entities | Replica / infrastructure tables plus Hub-owned `local_call_session` |
 
 ## Version 2 changes (Runtime Hardening)
 
@@ -23,9 +23,12 @@ No business semantics changed. Retry execution remains deferred.
 
 ## Migration strategy
 
-1. **Production path**: `addMigrations(MIGRATION_1_2)` preserves existing installs.
+1. **Production path**: `addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)` preserves existing installs.
 2. **Development fallback**: `fallbackToDestructiveMigration()` remains for schema drift during MVP.
 3. **AutoMigration**: Not enabled yet. Schema JSON is exported so AutoMigration can be evaluated when entity changes stabilize.
+
+Version 4 adds Hub-owned `local_call_session` for Communication Runtime reconnect.
+It is not a replica of Backend `CommunicationSession`.
 
 ## Future readiness
 

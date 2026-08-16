@@ -72,8 +72,7 @@ def _display_name(request: Request, subject_type: str, elder: Elder) -> str:
 
 def _join_payload(result) -> dict:
     payload = {
-        "roomId": str(result.room_id),
-        "loginUrl": result.login_url,
+        "joinToken": result.join_token,
         "expiresAt": result.expires_at.isoformat().replace("+00:00", "Z"),
     }
     if result.session_id is not None:

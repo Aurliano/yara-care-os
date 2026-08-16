@@ -435,3 +435,18 @@ interface SyncConflictDao {
     @Query("SELECT * FROM sync_conflict ORDER BY detected_at_epoch_millis DESC")
     fun observeAll(): Flow<List<ir.sayda.yara.hub.database.entity.SyncConflictEntity>>
 }
+
+@Dao
+interface LocalCallSessionDao {
+    @Query("SELECT * FROM local_call_session WHERE id = 'current' LIMIT 1")
+    suspend fun getCurrent(): ir.sayda.yara.hub.database.entity.LocalCallSessionEntity?
+
+    @Query("SELECT * FROM local_call_session WHERE id = 'current' LIMIT 1")
+    fun observeCurrent(): Flow<ir.sayda.yara.hub.database.entity.LocalCallSessionEntity?>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsert(entity: ir.sayda.yara.hub.database.entity.LocalCallSessionEntity)
+
+    @Query("DELETE FROM local_call_session")
+    suspend fun deleteAll()
+}

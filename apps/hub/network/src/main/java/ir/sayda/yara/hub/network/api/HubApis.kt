@@ -18,9 +18,11 @@ import ir.sayda.yara.hub.network.dto.HubSyncStartResponseDto
 import ir.sayda.yara.hub.network.dto.SyncCheckpointResponseDto
 import ir.sayda.yara.hub.network.dto.SyncOperationDto
 import ir.sayda.yara.hub.network.dto.SyncSessionResponseDto
-import ir.sayda.yara.hub.network.dto.TokenRefreshRequestDto
-import ir.sayda.yara.hub.network.dto.TokenRequestDto
-import ir.sayda.yara.hub.network.dto.TokenResponseDto
+import ir.sayda.yara.hub.network.dto.CallEndRequestDto
+import ir.sayda.yara.hub.network.dto.CallEndResponseDto
+import ir.sayda.yara.hub.network.dto.CallJoinResponseDto
+import ir.sayda.yara.hub.network.dto.CallJoinTokenRequestDto
+import ir.sayda.yara.hub.network.dto.CallStartRequestDto
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.POST
@@ -93,4 +95,15 @@ interface ProvisioningApi {
 
     @POST("hub/provision/revoke/")
     suspend fun revoke(@Body body: HubProvisionRevokeRequestDto): HubProvisionStatusResponseDto
+}
+
+interface CommunicationApi {
+    @POST("communication/call/start/")
+    suspend fun startCall(@Body body: CallStartRequestDto): CallJoinResponseDto
+
+    @POST("communication/call/end/")
+    suspend fun endCall(@Body body: CallEndRequestDto): CallEndResponseDto
+
+    @POST("communication/login-url/")
+    suspend fun refreshJoinToken(@Body body: CallJoinTokenRequestDto): CallJoinResponseDto
 }

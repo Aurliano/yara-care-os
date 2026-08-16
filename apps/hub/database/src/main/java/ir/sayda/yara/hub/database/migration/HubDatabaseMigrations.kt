@@ -91,3 +91,23 @@ val MIGRATION_2_3 = object : Migration(2, 3) {
         db.execSQL("CREATE INDEX IF NOT EXISTS index_sync_conflict_session_id ON sync_conflict(session_id)")
     }
 }
+
+val MIGRATION_3_4 = object : Migration(3, 4) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS local_call_session (
+                id TEXT NOT NULL PRIMARY KEY,
+                session_id TEXT NOT NULL,
+                elder_id TEXT NOT NULL,
+                channel TEXT NOT NULL,
+                recipient_contact_id TEXT NOT NULL,
+                runtime_state TEXT NOT NULL,
+                join_token TEXT NOT NULL,
+                expires_at_epoch_millis INTEGER NOT NULL,
+                updated_at_epoch_millis INTEGER NOT NULL
+            )
+            """.trimIndent(),
+        )
+    }
+}

@@ -36,7 +36,9 @@ vendor REST API or store the vendor API key.
    in the Hub or Family App.
 
 3. **Hub and Family App speak only to Backend.** They receive opaque join
-   credentials (`roomId`, `loginUrl`, `expiresAt`). They never call Skyroom.
+   credentials (`sessionId`, `joinToken`, `expiresAt`). They never call Skyroom.
+   `joinToken` is provider-agnostic: Skyroom may mint a URL, LiveKit a token,
+   Jitsi a JWT. Clients must not interpret the token format.
 
 4. **Provider port, not vendor types.** Backend depends on a
    `CommunicationProvider` protocol:
@@ -57,9 +59,37 @@ vendor REST API or store the vendor API key.
    not on the frozen `CommunicationSession` aggregate.
    Ending a call ends the session; it does not delete the provider room.
 
+6. **One active session per Elder.** Concurrent `start_call` while a session
+   is `INITIATED`, `CONNECTING`, or `CONNECTED` returns HTTP 409.
+   A second caregiver joins an in-progress call via `login-url` (a new
+   `joinToken` for the same session), not by starting a second session.
+
+7. **Unjoined sessions auto-cancel.** If nobody connects within
+   `COMMUNICATION_SESSION_JOIN_TIMEOUT_SECONDS` (default 120), Backend
+   cancels the session (`CANCELLED`). Credential TTL (`joinToken` expiry)
+   is independent of this session timeout.
+
+## Audit (facts already owned; join/leave timestamps later)
+
+Medical audit of a call maps to existing Communication facts:
+
+| Audit need | Current owner |
+|---|---|
+| Call requested | `CommunicationSessionInitiated` |
+| Call started | `CallAttemptStarted` + session `CONNECTING` |
+| Call joined | `CommunicationSessionConnected` + `connected_at` |
+| Call finished | `CommunicationSessionEnded` (or Missed/Declined/Failed/Cancelled) |
+| Duration | `connected_at` → `ended_at` |
+| Who | `SessionParticipant` |
+
+Participant `joined_at` / `left_at` are **not** added in this phase. When
+media join/leave is implemented, those timestamps belong on
+`SessionParticipant` (or a future CallAudit entity), not on Skyroom.
+
 ## Consequences
 
 - Communication Domain remains replaceable at the transport layer.
-- Clients stay thin: JWT to Backend, then open the issued login URL.
+- Clients stay thin: JWT to Backend, then use the opaque `joinToken`.
 - Room reuse matches vendor guidance and avoids quota/rate-limit waste.
 - Switching providers is an infrastructure change, not a domain rewrite.
+- The elder experiences at most one active call at a time.

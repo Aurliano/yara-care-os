@@ -73,6 +73,7 @@ data class HubConfirmationResponseDto(
 data class HubRuntimeProcessResponseDto(
     @SerialName("due_occurrences") val dueOccurrences: Int = 0,
     @SerialName("workflow_timeouts") val workflowTimeouts: Int = 0,
+    @SerialName("communication_timeouts") val communicationTimeouts: Int = 0,
     @SerialName("events_processed") val eventsProcessed: Int = 0,
 )
 
@@ -166,4 +167,33 @@ data class HubProvisionStatusResponseDto(
 @Serializable
 data class HubProvisionRevokeRequestDto(
     @SerialName("device_id") val deviceId: String,
+)
+
+@Serializable
+data class CallStartRequestDto(
+    @SerialName("elder_id") val elderId: String,
+    val channel: String,
+    @SerialName("recipient_contact_id") val recipientContactId: String,
+)
+
+@Serializable
+data class CallEndRequestDto(
+    @SerialName("session_id") val sessionId: String,
+)
+
+@Serializable
+data class CallJoinTokenRequestDto(
+    @SerialName("elder_id") val elderId: String,
+)
+
+@Serializable
+data class CallJoinResponseDto(
+    val sessionId: String? = null,
+    val joinToken: String,
+    val expiresAt: String,
+)
+
+@Serializable
+data class CallEndResponseDto(
+    val status: String = "ended",
 )

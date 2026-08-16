@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 import uuid
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from django.db import transaction
 from django.utils import timezone
@@ -12,6 +12,7 @@ from django.utils import timezone
 from common.observability.logging import log_structured
 from common.observability.metrics import increment
 from domains.communication.enums import (
+    ACTIVE_SESSION_STATUSES,
     TERMINAL_SESSION_STATUSES,
     CallAttemptOutcome,
     CommunicationChannel,
@@ -20,6 +21,7 @@ from domains.communication.enums import (
     SessionStatus,
 )
 from domains.communication.exceptions import (
+    ActiveSessionExistsError,
     CallAttemptNotFoundError,
     EntitlementDeniedError,
     InvalidSessionStateError,
@@ -41,6 +43,19 @@ from domains.licensing.enums import EntitlementKey
 from domains.licensing.services.entitlements import can_use_feature
 
 logger = logging.getLogger("yara.communication")
+
+
+def get_active_session(*, elder_id: uuid.UUID) -> CommunicationSession | None:
+    return (
+        CommunicationSession.objects.filter(elder_id=elder_id, status__in=ACTIVE_SESSION_STATUSES)
+        .order_by("-initiated_at")
+        .first()
+    )
+
+
+def _ensure_no_active_session(*, elder_id: uuid.UUID) -> None:
+    if get_active_session(elder_id=elder_id) is not None:
+        raise ActiveSessionExistsError("An active communication session already exists for this elder.")
 
 
 def get_session(session_id: uuid.UUID) -> CommunicationSession:
@@ -108,6 +123,7 @@ def initiate_session(
         raise InvalidSessionStateError("Invalid communication channel.")
 
     _validate_channel_entitlement(elder_id=elder_id, channel=channel)
+    _ensure_no_active_session(elder_id=elder_id)
 
     recipient = Contact.objects.get(pk=recipient_contact_id, elder_id=elder_id)
     if initiator_contact_id is not None:
@@ -327,3 +343,26 @@ def get_call_attempt(attempt_id: uuid.UUID) -> CallAttempt:
         return CallAttempt.objects.get(pk=attempt_id)
     except CallAttempt.DoesNotExist as exc:
         raise CallAttemptNotFoundError("Call attempt not found.") from exc
+
+
+def auto_cancel_unjoined_sessions(*, now: datetime | None = None, timeout_seconds: int | None = None) -> int:
+    """Cancel sessions that never connected within the join timeout."""
+    from django.conf import settings
+
+    now = now or timezone.now()
+    timeout = timeout_seconds if timeout_seconds is not None else int(
+        getattr(settings, "COMMUNICATION_SESSION_JOIN_TIMEOUT_SECONDS", 120)
+    )
+    cutoff = now - timedelta(seconds=timeout)
+    stale_ids = list(
+        CommunicationSession.objects.filter(
+            status__in=[SessionStatus.INITIATED, SessionStatus.CONNECTING],
+            connected_at__isnull=True,
+            initiated_at__lte=cutoff,
+        ).values_list("id", flat=True)
+    )
+    cancelled = 0
+    for session_id in stale_ids:
+        cancel_session(session_id=session_id)
+        cancelled += 1
+    return cancelled

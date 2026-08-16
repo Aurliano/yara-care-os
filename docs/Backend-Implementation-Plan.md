@@ -69,7 +69,12 @@ Sprint III Phase A adds Backend communication *transport* infrastructure
 without changing frozen Communication aggregates:
 
 - `CommunicationProvider` port (ADR-013)
-- Skyroom adapter (API key, room/user reuse, login URL)
+- Skyroom adapter (API key, room/user reuse, opaque `joinToken`)
 - `POST /api/v1/communication/call/start|end` and `POST /api/v1/communication/login-url`
+- One active session per Elder (409 on conflict)
+- Auto-cancel of unjoined sessions after the join timeout
 
-Hub Runtime, UI, and WebRTC remain out of scope for this phase.
+Sprint III Phase B connects Hub Runtime (`CommunicationGateway`,
+`CommunicationRepository`, `CommunicationRuntime`) to those Backend APIs.
+No WebRTC, media player, or vendor SDK on the Hub. The Hub persists the
+current `CallSession` for reconnect and process-death recovery.

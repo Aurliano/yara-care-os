@@ -21,6 +21,10 @@ class InvalidSessionStateError(CommunicationError):
     """Raised when a session operation conflicts with current status."""
 
 
+class ActiveSessionExistsError(InvalidSessionStateError):
+    """Raised when an elder already has a non-terminal communication session."""
+
+
 class InvalidContactStateError(CommunicationError):
     """Raised when a contact operation is not allowed."""
 

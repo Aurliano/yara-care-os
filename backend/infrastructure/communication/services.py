@@ -16,6 +16,7 @@ from domains.communication.providers import CommunicationProvider, ProviderLogin
 from domains.communication.services.sessions import (
     cancel_session,
     end_session,
+    get_active_session,
     get_session,
     initiate_session,
     record_call_attempt,
@@ -33,8 +34,7 @@ DEFAULT_PROVIDER_NAME = "skyroom"
 
 @dataclass(frozen=True, slots=True)
 class CallJoinResult:
-    room_id: uuid.UUID
-    login_url: str
+    join_token: str
     expires_at: datetime
     session_id: uuid.UUID | None = None
 
@@ -180,8 +180,7 @@ def start_call(
         user_binding=user_binding,
     )
     return CallJoinResult(
-        room_id=room_binding.id,
-        login_url=login.login_url,
+        join_token=login.login_url,
         expires_at=login.expires_at,
         session_id=session.id,
     )
@@ -221,8 +220,9 @@ def issue_login_url(
         provider=active_provider,
     )
     login = _issue_login(room=room, user=user, provider=active_provider)
+    active = get_active_session(elder_id=elder_id)
     return CallJoinResult(
-        room_id=room_binding.id,
-        login_url=login.login_url,
+        join_token=login.login_url,
         expires_at=login.expires_at,
+        session_id=active.id if active is not None else None,
     )
