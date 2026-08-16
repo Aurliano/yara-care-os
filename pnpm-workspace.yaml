@@ -2,3 +2,6 @@ packages:
   - apps/*
   - backend
   - packages/*
+
+allowBuilds:
+  unrs-resolver: false
