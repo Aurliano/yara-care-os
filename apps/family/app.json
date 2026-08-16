@@ -1,0 +1,41 @@
+{
+  "expo": {
+    "name": "YARA",
+    "slug": "yara-family",
+    "scheme": "yara-family",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/yara-logo.png",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/images/yara-logo.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#F5FAF8"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "ir.sayda.yara.family"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/yara-logo.png",
+        "backgroundColor": "#F5FAF8"
+      },
+      "package": "ir.sayda.yara.family"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      "expo-font",
+      "expo-localization"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "supportsRTL": true,
+      "forcesRTL": true
+    }
+  }
+}
