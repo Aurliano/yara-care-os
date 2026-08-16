@@ -5,10 +5,6 @@ export function listPlans(): Promise<Plan[]> {
   return apiRequest("/plans/");
 }
 
-export function getElderLicense(elderId: string): Promise<License> {
-  return apiRequest(`/elders/${elderId}/license/`);
-}
-
 export function getEntitlements(elderId: string): Promise<{ entitlements: EntitlementMap }> {
   return apiRequest(`/elders/${elderId}/entitlements/`);
 }

@@ -27,7 +27,7 @@ export default function SettingsScreen() {
 
   return (
     <Screen>
-      <TopAppBar title={t.settings} showBack showBell={false} />
+      <TopAppBar title={t.settings} showBack />
       <Card>
         <View style={styles.profile}>
           <Avatar name={user?.full_name ?? "?"} />

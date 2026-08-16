@@ -19,3 +19,17 @@ export function createContact(
 export function archiveContact(contactId: string): Promise<Contact> {
   return apiRequest(`/contacts/${contactId}/archive/`, { method: "POST" });
 }
+
+export type CallStartResult = {
+  sessionId: string;
+  joinToken: string;
+  expiresAt: string;
+};
+
+export function startCall(body: {
+  elder_id: string;
+  channel: "VOICE" | "VIDEO" | "MESSAGE";
+  recipient_contact_id: string;
+}): Promise<CallStartResult> {
+  return apiRequest("/communication/call/start/", { method: "POST", body });
+}

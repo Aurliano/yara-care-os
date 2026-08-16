@@ -42,6 +42,7 @@ describe("device command policy", () => {
 describe("deep links", () => {
   it("routes a future push payload to an alert", () => {
     expect(routeFromPushPayload({ alert_id: "abc" })).toBe("/(app)/alerts/abc");
+    expect(routeFromPushPayload({ type: "alert" })).toBe("/(app)/alerts");
   });
 });
 

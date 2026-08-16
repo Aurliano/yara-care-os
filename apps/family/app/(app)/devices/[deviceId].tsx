@@ -37,7 +37,7 @@ export default function DeviceDetailScreen() {
   if (device.isError || !device.data) {
     return (
       <Screen>
-        <TopAppBar title={t.devicesTitle} showBack showBell={false} />
+        <TopAppBar title={t.devicesTitle} showBack />
         <EmptyState title={t.devicesUnavailableTitle} body={t.devicesUnavailableBody} />
       </Screen>
     );
@@ -48,7 +48,7 @@ export default function DeviceDetailScreen() {
 
   return (
     <Screen>
-      <TopAppBar title={t.viewDetails} showBack showBell={false} />
+      <TopAppBar title={t.viewDetails} showBack />
       <Card accent={device.data.operational_status === "ACTIVE" ? "success" : "error"}>
         <AppText variant="title">{device.data.serial_number}</AppText>
         <StatusBadge

@@ -15,6 +15,20 @@ type Props = {
 
 export function TopAppBar({ title = t.brand, showBell = true, showBack = false, trailing }: Props) {
   const router = useRouter();
+  const bell = showBell ? (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={t.navAlerts}
+      hitSlop={8}
+      onPress={() => router.push("/(app)/alerts")}
+      style={styles.hit}
+    >
+      <Icon name="bell" width={16} height={20} color={colors.primary} />
+    </Pressable>
+  ) : (
+    <View style={styles.hit} />
+  );
+
   return (
     <View style={styles.bar}>
       {showBack ? (
@@ -27,23 +41,16 @@ export function TopAppBar({ title = t.brand, showBell = true, showBack = false, 
         >
           <Icon name="chevron" width={16} height={16} color={colors.primary} />
         </Pressable>
-      ) : showBell ? (
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={t.navAlerts}
-          hitSlop={8}
-          onPress={() => router.push("/(app)/(tabs)/alerts")}
-          style={styles.hit}
-        >
-          <Icon name="bell" width={16} height={20} color={colors.primary} />
-        </Pressable>
       ) : (
-        <View style={styles.hit} />
+        bell
       )}
       <AppText variant="headline" color={colors.primary} align="center" style={styles.title}>
         {title}
       </AppText>
-      <View style={styles.hit}>{trailing}</View>
+      <View style={styles.trailing}>
+        {trailing}
+        {showBack ? bell : <View style={styles.hit} />}
+      </View>
     </View>
   );
 }
@@ -61,6 +68,13 @@ const styles = StyleSheet.create({
   hit: {
     width: sizes.touch,
     height: sizes.touch,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  trailing: {
+    minWidth: sizes.touch,
+    minHeight: sizes.touch,
+    flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
   },

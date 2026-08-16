@@ -1,7 +1,7 @@
-import { StyleSheet, View } from "react-native";
+import { Share, StyleSheet, View } from "react-native";
 import { useRouter } from "expo-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { t } from "../../src/i18n";
+import { formatPersianDate, t } from "../../src/i18n";
 import { colors, spacing } from "../../src/theme/tokens";
 import {
   AppText,
@@ -21,14 +21,12 @@ import { queryKeys } from "../../src/api/queryKeys";
 import { useElderStore } from "../../src/stores/elderStore";
 import { usePermissions } from "../../src/permissions/usePermission";
 import { PERMISSIONS } from "../../src/permissions/codes";
-import type { RoleCode } from "../../src/api/types";
-
-function roleLabel(code: RoleCode | string): string {
-  if (code === "PRIMARY_CAREGIVER") return t.rolePrimary;
-  if (code === "CAREGIVER") return t.roleCaregiver;
-  if (code === "VIEWER") return t.roleViewer;
-  return code;
-}
+import {
+  invitationShareMessage,
+  pendingInvitationTitle,
+  roleLabel,
+} from "../../src/services/family/invitationDisplay";
+import type { Invitation } from "../../src/api/types";
 
 export default function FamilyScreen() {
   const router = useRouter();
@@ -64,9 +62,16 @@ export default function FamilyScreen() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.members(elderId as string) }),
   });
 
+  async function shareInvitation(invite: Invitation) {
+    await Share.share({
+      message: invitationShareMessage(roleLabel(invite.role_code), invite.invite_code),
+    });
+  }
+
   if (members.isPending) {
     return (
       <Screen>
+        <TopAppBar title={t.familyTitle} showBack />
         <LoadingSkeleton />
       </Screen>
     );
@@ -74,6 +79,7 @@ export default function FamilyScreen() {
   if (members.isError) {
     return (
       <Screen>
+        <TopAppBar title={t.familyTitle} showBack />
         <ErrorState onRetry={() => void members.refetch()} />
       </Screen>
     );
@@ -81,7 +87,7 @@ export default function FamilyScreen() {
 
   return (
     <Screen>
-      <TopAppBar title={t.familyTitle} showBack showBell={false} />
+      <TopAppBar title={t.familyTitle} showBack />
       <AppText variant="body" color={colors.textSecondary}>
         {t.familySubtitle}
       </AppText>
@@ -108,9 +114,15 @@ export default function FamilyScreen() {
             ?.filter((item) => item.status === "PENDING")
             .map((invite) => (
               <Card key={invite.id}>
-                <AppText variant="label">{invite.invite_code}</AppText>
-                <StatusBadge label={t.pendingInvite} tone="warning" />
-                <Button label={t.revokeInvite} variant="ghost" onPress={() => revokeInv.mutate(invite.id)} />
+                <AppText variant="label">{pendingInvitationTitle()}</AppText>
+                <StatusBadge label={roleLabel(invite.role_code)} tone="warning" />
+                <AppText variant="caption" color={colors.textSecondary}>
+                  {t.expiresAt}: {formatPersianDate(invite.expires_at)}
+                </AppText>
+                <View style={styles.actions}>
+                  <Button label={t.inviteShare} variant="secondary" onPress={() => void shareInvitation(invite)} />
+                  <Button label={t.revokeInvite} variant="danger" onPress={() => revokeInv.mutate(invite.id)} />
+                </View>
               </Card>
             ))
         : null}
@@ -129,7 +141,7 @@ export default function FamilyScreen() {
               {contact.display_name}
             </AppText>
             <AppText variant="caption" color={colors.textSecondary} align="center">
-              {contact.preferred_channel}
+              {contact.phone || t.trustedContacts}
             </AppText>
           </Card>
         ))

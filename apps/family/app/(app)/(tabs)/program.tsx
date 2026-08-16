@@ -14,6 +14,7 @@ import {
   ErrorState,
   LoadingSkeleton,
   Screen,
+  SetupActions,
   TopAppBar,
 } from "../../../src/components";
 import { Icon } from "../../../src/components/Icon";
@@ -21,7 +22,6 @@ import { useElderStore } from "../../../src/stores/elderStore";
 import { usePermissions } from "../../../src/permissions/usePermission";
 import { PERMISSIONS } from "../../../src/permissions/codes";
 import { visualKindFor } from "../../../src/services/program/activityKind";
-import { MEDICATION_REGIMEN_GAP } from "../../../src/services/program/medicationRegimen";
 import type { CareActivity, Occurrence, Prescription } from "../../../src/api/types";
 
 export default function ProgramScreen() {
@@ -82,7 +82,8 @@ export default function ProgramScreen() {
   }
 
   const data = query.data;
-  const empty = !data?.items.length;
+  const emptyToday = !data?.items.length;
+  const setupRequired = !data?.activities.length;
 
   return (
     <Screen>
@@ -108,10 +109,19 @@ export default function ProgramScreen() {
       <AppText variant="caption" color={colors.textMuted}>
         {t.today}
       </AppText>
-      {empty ? (
-        <EmptyState title={t.empty} body={t.firstSetupBody} />
+      {setupRequired ? (
+        <>
+          <EmptyState title={t.firstSetupTitle} body={t.firstSetupBody} />
+          <SetupActions
+            onAddMedication={() => router.push("/(app)/program/add?kind=medication")}
+            onAddAppointment={() => router.push("/(app)/program/add?kind=appointment")}
+            onConnectDevice={() => router.push("/(app)/(tabs)/devices")}
+          />
+        </>
+      ) : emptyToday ? (
+        <EmptyState title={t.empty} body={t.emptyTodayProgram} />
       ) : (
-        data.items.map((item) => {
+        (data?.items ?? []).map((item) => {
           const kind = visualKindFor(item.activity.activity_type, item.activity.display_title);
           return (
             <Pressable
@@ -133,16 +143,11 @@ export default function ProgramScreen() {
           );
         })
       )}
-      {!MEDICATION_REGIMEN_GAP.available ? (
-        <AppText variant="caption" color={colors.textMuted}>
-          {t.regimenGap}
-        </AppText>
-      ) : null}
-      {can(PERMISSIONS.MANAGE_MEDICATION) ? (
+      {can(PERMISSIONS.MANAGE_MEDICATION) && !setupRequired ? (
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={t.addMedication}
-          onPress={() => router.push("/(app)/program/add")}
+          onPress={() => router.push("/(app)/program/add?kind=medication")}
           style={styles.fab}
         >
           <Icon name="plus" color={colors.primaryOn} width={14} height={14} />
