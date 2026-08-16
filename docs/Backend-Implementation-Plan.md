@@ -74,5 +74,10 @@ without changing frozen Communication aggregates:
 - One active session per Elder (409 on conflict)
 - Auto-cancel of unjoined sessions after the join timeout
 
+Sprint III Phase B connects Hub Runtime (`CommunicationGateway`,
+`CommunicationRepository`, `CommunicationRuntime`) to those Backend APIs.
+The Hub persists the current `CallSession` for reconnect and process-death
+recovery.
+
 Sprint III Phase C adds Hub `SkyroomCallEngine`. The Hub consumes the
 Backend `joinToken` as `loginUrl` and never calls Skyroom REST.
