@@ -7,5 +7,6 @@ export { formatClock, formatRelative, formatPersianDate } from "./dates";
 export {
   careActivityStatusLabel,
   completionStateLabel,
+  entitlementLabel,
   occurrenceStatusLabel,
 } from "./labels";

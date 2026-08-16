@@ -39,7 +39,7 @@ export default function PairingScreen() {
 
   return (
     <Screen>
-      <TopAppBar title={t.pairingPending} showBack showBell={false} />
+      <TopAppBar title={t.pairingPending} showBack />
       <Card>
         <AppText variant="title">
           {status === "ACTIVE"

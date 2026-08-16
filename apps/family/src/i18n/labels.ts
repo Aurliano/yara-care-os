@@ -1,4 +1,4 @@
-import type { CareActivityStatus, CompletionState, OccurrenceStatus } from "../api/types";
+import type { CareActivityStatus, CompletionState, EntitlementKey, OccurrenceStatus } from "../api/types";
 import { fa as t } from "./fa";
 
 export function careActivityStatusLabel(status: CareActivityStatus | string): string {
@@ -47,5 +47,24 @@ export function occurrenceStatusLabel(status: OccurrenceStatus | string): string
       return t.occurrenceSkipped;
     default:
       return t.unknownValue;
+  }
+}
+
+export function entitlementLabel(key: EntitlementKey | string): string {
+  switch (key) {
+    case "MAX_CAREGIVERS":
+      return t.entitlementMaxCaregivers;
+    case "MAX_HUBS":
+      return t.entitlementMaxHubs;
+    case "MAX_PILLBOXES":
+      return t.entitlementMaxPillboxes;
+    case "PILLBOX_SUPPORT":
+      return t.entitlementPillbox;
+    case "SENSOR_SUPPORT":
+      return t.entitlementSensor;
+    case "VIDEO_CALL":
+      return t.entitlementVideoCall;
+    default:
+      return t.entitlementOther;
   }
 }

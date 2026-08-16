@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { StyleSheet, View } from "react-native";
+import { Share, StyleSheet, View } from "react-native";
 import { useRouter } from "expo-router";
 import { AppText, Button, Card, Screen, TopAppBar } from "../../../src/components";
 import { t } from "../../../src/i18n";
@@ -9,14 +9,19 @@ import { useElderStore } from "../../../src/stores/elderStore";
 import { usePermissions } from "../../../src/permissions/usePermission";
 import { PERMISSIONS } from "../../../src/permissions/codes";
 import { PermissionDenied } from "../../../src/components/PermissionDenied";
-import { toPersianDigits } from "../../../src/i18n/numerals";
+import {
+  invitationShareMessage,
+  pendingInvitationTitle,
+  roleLabel,
+} from "../../../src/services/family/invitationDisplay";
+import type { Invitation } from "../../../src/api/types";
 
 export default function InviteScreen() {
   const router = useRouter();
   const elderId = useElderStore((s) => s.selectedElderId);
   const { can } = usePermissions();
   const [role, setRole] = useState("CAREGIVER");
-  const [code, setCode] = useState<string | null>(null);
+  const [invitation, setInvitation] = useState<Invitation | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -31,11 +36,11 @@ export default function InviteScreen() {
     try {
       const expires = new Date();
       expires.setDate(expires.getDate() + 7);
-      const invitation = await createInvitation(elderId, {
+      const created = await createInvitation(elderId, {
         role_code: role,
         expires_at: expires.toISOString(),
       });
-      setCode(invitation.invite_code);
+      setInvitation(created);
     } catch {
       setError(t.accessDenied);
     } finally {
@@ -43,32 +48,52 @@ export default function InviteScreen() {
     }
   }
 
+  async function onShare() {
+    if (!invitation) return;
+    await Share.share({
+      message: invitationShareMessage(roleLabel(invitation.role_code), invitation.invite_code),
+    });
+  }
+
   return (
     <Screen>
-      <TopAppBar title={t.inviteMember} showBack showBell={false} />
+      <TopAppBar title={t.inviteMember} showBack />
       <Card>
         <View style={styles.form}>
-          <AppText variant="caption">{t.roleCode}</AppText>
-          {(["CAREGIVER", "VIEWER"] as const).map((item) => (
-            <Button
-              key={item}
-              label={item === "CAREGIVER" ? t.roleCaregiver : t.roleViewer}
-              variant={role === item ? "primary" : "secondary"}
-              onPress={() => setRole(item)}
-            />
-          ))}
-          {code ? (
-            <AppText variant="title" align="center">
-              {toPersianDigits(code)}
-            </AppText>
-          ) : null}
-          {error ? (
-            <AppText variant="caption" color={colors.error}>
-              {error}
-            </AppText>
-          ) : null}
-          <Button label={t.inviteMember} onPress={() => void onInvite()} loading={loading} />
-          <Button label={t.notNow} variant="secondary" onPress={() => router.back()} />
+          {invitation ? (
+            <>
+              <AppText variant="title" align="center">
+                {pendingInvitationTitle()}
+              </AppText>
+              <AppText variant="body" color={colors.textSecondary} align="center">
+                {t.inviteCreated}
+              </AppText>
+              <AppText variant="caption" align="center">
+                {roleLabel(invitation.role_code)}
+              </AppText>
+              <Button label={t.inviteShare} onPress={() => void onShare()} />
+              <Button label={t.notNow} variant="secondary" onPress={() => router.back()} />
+            </>
+          ) : (
+            <>
+              <AppText variant="caption">{t.roleCode}</AppText>
+              {(["CAREGIVER", "VIEWER"] as const).map((item) => (
+                <Button
+                  key={item}
+                  label={item === "CAREGIVER" ? t.roleCaregiver : t.roleViewer}
+                  variant={role === item ? "primary" : "secondary"}
+                  onPress={() => setRole(item)}
+                />
+              ))}
+              {error ? (
+                <AppText variant="caption" color={colors.error}>
+                  {error}
+                </AppText>
+              ) : null}
+              <Button label={t.inviteMember} onPress={() => void onInvite()} loading={loading} />
+              <Button label={t.notNow} variant="secondary" onPress={() => router.back()} />
+            </>
+          )}
         </View>
       </Card>
     </Screen>

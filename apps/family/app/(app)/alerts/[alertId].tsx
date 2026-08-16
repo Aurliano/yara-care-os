@@ -29,7 +29,7 @@ export default function AlertDetailScreen() {
 
   return (
     <Screen>
-      <TopAppBar title={t.alertsTitle} showBack showBell={false} />
+      <TopAppBar title={t.alertsTitle} showBack />
       {detail.data ? (
         <Card accent={detail.data.severity === "urgent" ? "error" : "warning"}>
           <AppText variant="title">{detail.data.title}</AppText>
@@ -50,7 +50,7 @@ export default function AlertDetailScreen() {
           title={t.alertsUnavailableTitle}
           body={t.alertsUnavailableBody}
           actionLabel={t.backHome}
-          onAction={() => router.replace("/(app)/(tabs)/alerts")}
+          onAction={() => router.replace("/(app)/alerts")}
         />
       )}
     </Screen>

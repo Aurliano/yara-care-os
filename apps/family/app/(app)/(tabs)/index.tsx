@@ -12,6 +12,7 @@ import {
   LoadingSkeleton,
   PermissionDenied,
   Screen,
+  SetupActions,
   StatusBadge,
   StaleBanner,
   TopAppBar,
@@ -96,7 +97,14 @@ export default function HomeScreen() {
       {stale && updatedAt ? <StaleBanner updatedLabel={formatRelative(updatedAt)} /> : null}
 
       {data.setupRequired && !stale ? (
-        <EmptyState title={t.firstSetupTitle} body={t.firstSetupBody} />
+        <>
+          <EmptyState title={t.firstSetupTitle} body={t.firstSetupBody} />
+          <SetupActions
+            onAddMedication={() => router.push("/(app)/program/add?kind=medication")}
+            onAddAppointment={() => router.push("/(app)/program/add?kind=appointment")}
+            onConnectDevice={() => router.push("/(app)/(tabs)/devices")}
+          />
+        </>
       ) : (
         <StatusHero tone={tone} elderName={data.elder.full_name} count={data.topAction ? 1 : 0} />
       )}
@@ -117,11 +125,13 @@ export default function HomeScreen() {
 
       <AppText variant="title">{t.todayProgram}</AppText>
       {data.today.length === 0 ? (
-        <Card>
-          <AppText variant="body" color={colors.textSecondary}>
-            {t.empty}
-          </AppText>
-        </Card>
+        data.setupRequired ? null : (
+          <Card>
+            <AppText variant="body" color={colors.textSecondary}>
+              {t.emptyTodayProgram}
+            </AppText>
+          </Card>
+        )
       ) : (
         data.today.slice(0, 4).map((item) => (
           <Pressable

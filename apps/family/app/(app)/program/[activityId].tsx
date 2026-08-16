@@ -78,7 +78,7 @@ export default function ActivityDetailScreen() {
 
   return (
     <Screen>
-      <TopAppBar title={t.details} showBack showBell={false} />
+      <TopAppBar title={t.details} showBack />
       <Card accent={kind === "medication" ? "medication" : kind === "appointment" ? "info" : "none"}>
         <AppText variant="title">{activity.display_title}</AppText>
         <AppText variant="body" color={colors.textSecondary}>

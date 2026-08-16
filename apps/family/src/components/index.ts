@@ -5,6 +5,7 @@ export { Button } from "./Button";
 export { Card } from "./Card";
 export { StatusBadge } from "./StatusBadge";
 export { EmptyState } from "./EmptyState";
+export { SetupActions } from "./SetupActions";
 export { LoadingSkeleton } from "./LoadingSkeleton";
 export { ErrorState } from "./ErrorState";
 export { PermissionDenied } from "./PermissionDenied";
