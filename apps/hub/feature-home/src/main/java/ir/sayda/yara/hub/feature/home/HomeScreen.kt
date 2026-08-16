@@ -54,6 +54,7 @@ fun HomeRoute(
     isDebugBuild: Boolean,
     onOpenDeveloperSettings: () -> Unit,
     onSettingsLongPress: () -> Unit,
+    onCallContact: (contactId: String, elderId: String, channel: String, displayName: String) -> Unit = { _, _, _, _ -> },
     modifier: Modifier = Modifier,
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
@@ -157,7 +158,17 @@ fun HomeRoute(
                                 )
                             }
                             items(snapshot.priorityContacts) { contact ->
-                                ContactCard(name = contact.displayName, onClick = {})
+                                ContactCard(
+                                    name = contact.displayName,
+                                    onClick = {
+                                        onCallContact(
+                                            contact.id,
+                                            contact.elderId,
+                                            contact.preferredChannel.ifBlank { "VOICE" },
+                                            contact.displayName,
+                                        )
+                                    },
+                                )
                             }
                             if (snapshot.showFamilyMessagesPlaceholder()) {
                                 item {

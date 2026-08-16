@@ -552,6 +552,106 @@ fun ContactCard(name: String, onClick: () -> Unit) {
     )
 }
 
+@Composable
+fun CallActionButton(
+    label: String,
+    onClick: () -> Unit,
+    containerColor: Color,
+    contentColor: Color = Color.White,
+    enabled: Boolean = true,
+    icon: ImageVector? = null,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        onClick = onClick,
+        enabled = enabled,
+        shape = RoundedCornerShape(28.dp),
+        color = if (enabled) containerColor else TextSecondary.copy(alpha = 0.2f),
+        modifier = modifier
+            .fillMaxWidth()
+            .heightIn(min = 88.dp),
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 28.dp, vertical = 20.dp),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            if (icon != null) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = if (enabled) contentColor else TextSecondary,
+                    modifier = Modifier.size(36.dp),
+                )
+                Spacer(modifier = Modifier.width(16.dp))
+            }
+            Text(
+                text = label,
+                style = MaterialTheme.typography.titleLarge,
+                color = if (enabled) contentColor else TextSecondary,
+                fontWeight = FontWeight.Bold,
+            )
+        }
+    }
+}
+
+@Composable
+fun CallIconButton(
+    label: String,
+    icon: ImageVector,
+    onClick: () -> Unit,
+    containerColor: Color,
+    contentColor: Color,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Surface(
+            onClick = onClick,
+            shape = CircleShape,
+            color = containerColor,
+            modifier = Modifier.size(96.dp),
+        ) {
+            Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = label,
+                    tint = contentColor,
+                    modifier = Modifier.size(44.dp),
+                )
+            }
+        }
+        Spacer(modifier = Modifier.height(12.dp))
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelMedium,
+            color = TextPrimary,
+            fontWeight = FontWeight.Medium,
+        )
+    }
+}
+
+@Composable
+fun CallAvatar(name: String, modifier: Modifier = Modifier) {
+    val initial = name.trim().firstOrNull()?.toString() ?: "خ"
+    Box(
+        modifier = modifier
+            .size(168.dp)
+            .clip(CircleShape)
+            .background(YaraLightGreen),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = initial,
+            style = MaterialTheme.typography.displayMedium,
+            color = YaraGreen,
+            fontWeight = FontWeight.Bold,
+        )
+    }
+}
+
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun SettingsButton(

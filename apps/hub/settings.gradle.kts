@@ -31,4 +31,5 @@ include(
     ":ui",
     ":feature-home",
     ":feature-reminder",
+    ":feature-communication",
 )
