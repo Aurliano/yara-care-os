@@ -1,31 +1,33 @@
 import { useState } from "react";
 import { StyleSheet, View } from "react-native";
-import { useRouter } from "expo-router";
-import { useQuery } from "@tanstack/react-query";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { useQueryClient } from "@tanstack/react-query";
 import { AppText, Button, Card, Screen, TextField, TopAppBar } from "../../../src/components";
 import { t } from "../../../src/i18n";
-import { toLatinDigits } from "../../../src/i18n/numerals";
 import { colors, spacing } from "../../../src/theme/tokens";
 import { useElderStore } from "../../../src/stores/elderStore";
-import { listCareActivities, createPrescription } from "../../../src/api/endpoints/care";
+import { createCareActivity, createPrescription } from "../../../src/api/endpoints/care";
 import { queryKeys } from "../../../src/api/queryKeys";
 import { usePermissions } from "../../../src/permissions/usePermission";
 import { PERMISSIONS } from "../../../src/permissions/codes";
 import { PermissionDenied } from "../../../src/components/PermissionDenied";
+import { firstParam } from "../../../src/navigation/params";
+import { resolveCareWorkflowDefinitionId } from "../../../src/services/program/workflowDefinition";
+import { combineTehranDateTime, onceRecurrence, TEHRAN_TIMEZONE, todayPartsInTehran } from "../../../src/services/program/onceSchedule";
 
-export default function AddMedicationScreen() {
+export default function AddCareScreen() {
   const router = useRouter();
+  const queryClient = useQueryClient();
+  const params = useLocalSearchParams<{ kind?: string }>();
+  const kind = firstParam(params.kind) === "appointment" ? "appointment" : "medication";
   const elderId = useElderStore((s) => s.selectedElderId);
   const { can } = usePermissions();
-  const activities = useQuery({
-    queryKey: elderId ? queryKeys.careActivities(elderId) : ["care-activities"],
-    enabled: Boolean(elderId),
-    queryFn: () => listCareActivities(elderId as string),
-  });
+  const today = todayPartsInTehran();
   const [title, setTitle] = useState("");
   const [dosage, setDosage] = useState("");
   const [description, setDescription] = useState("");
-  const [time, setTime] = useState("08:00");
+  const [date, setDate] = useState(today.date);
+  const [time, setTime] = useState(today.time);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -33,29 +35,49 @@ export default function AddMedicationScreen() {
     return <PermissionDenied />;
   }
 
-  const workflowId = activities.data?.find((item) => item.activity_type === "MEDICATION")?.workflow_definition_id;
-
   async function onSave() {
     if (!elderId) {
       return;
     }
-    if (!workflowId) {
-      setError(t.workflowCatalogMissing);
+    const startAt = combineTehranDateTime(date, time);
+    if (!startAt) {
+      setError(t.invalidDateTime);
       return;
     }
     setLoading(true);
     setError(null);
     try {
-      await createPrescription(elderId, {
-        workflow_definition_id: workflowId,
-        recurrence_definition: { type: "daily", time: toLatinDigits(time) },
-        timezone_name: "Asia/Tehran",
-        start_at: new Date().toISOString(),
-        display_title: title,
-        medication_reference: title,
-        dosage_information: dosage,
-        elder_friendly_description: description,
-      });
+      const workflowId = await resolveCareWorkflowDefinitionId(elderId);
+      if (!workflowId) {
+        setError(t.programNotEnabled);
+        return;
+      }
+      if (kind === "appointment") {
+        await createCareActivity(elderId, {
+          activity_type: "GENERAL",
+          workflow_definition_id: workflowId,
+          recurrence_definition: onceRecurrence(),
+          timezone_name: TEHRAN_TIMEZONE,
+          start_at: startAt,
+          display_title: title.trim(),
+        });
+      } else {
+        await createPrescription(elderId, {
+          workflow_definition_id: workflowId,
+          recurrence_definition: onceRecurrence(),
+          timezone_name: TEHRAN_TIMEZONE,
+          start_at: startAt,
+          display_title: title.trim(),
+          medication_reference: title.trim(),
+          dosage_information: dosage.trim() || t.asDirected,
+          elder_friendly_description: description.trim() || title.trim(),
+        });
+      }
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeys.careActivities(elderId) }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.prescriptions(elderId) }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.dashboard(elderId) }),
+      ]);
       router.back();
     } catch {
       setError(t.errorBody);
@@ -66,15 +88,25 @@ export default function AddMedicationScreen() {
 
   return (
     <Screen>
-      <TopAppBar title={t.addMedication} showBack showBell={false} />
+      <TopAppBar title={kind === "appointment" ? t.addAppointment : t.addMedication} showBack />
       <Card>
         <View style={styles.form}>
           <TextField label={t.title} value={title} onChangeText={setTitle} persianValue={false} />
-          <TextField label={t.dosage} value={dosage} onChangeText={setDosage} persianValue={false} />
-          <TextField label={t.description} value={description} onChangeText={setDescription} persianValue={false} />
-          <TextField label={t.dailyTime} value={time} onChangeText={setTime} keyboardType="numeric" />
+          {kind === "medication" ? (
+            <>
+              <TextField label={t.dosage} value={dosage} onChangeText={setDosage} persianValue={false} />
+              <TextField
+                label={t.description}
+                value={description}
+                onChangeText={setDescription}
+                persianValue={false}
+              />
+            </>
+          ) : null}
+          <TextField label={t.occurrenceDate} value={date} onChangeText={setDate} />
+          <TextField label={t.occurrenceTime} value={time} onChangeText={setTime} keyboardType="numeric" />
           <AppText variant="caption" color={colors.textMuted}>
-            {t.regimenGap}
+            {t.dateHint}
           </AppText>
           {error ? (
             <AppText variant="caption" color={colors.error}>

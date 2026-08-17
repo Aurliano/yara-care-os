@@ -11,7 +11,6 @@ export const queryKeys = {
   completions: (activityId: string) => ["care-activity", activityId, "completions"] as const,
   occurrences: (scheduleId: string, range: string) =>
     ["schedule", scheduleId, "occurrences", range] as const,
-  license: (elderId: string) => ["elder", elderId, "license"] as const,
   entitlements: (elderId: string) => ["elder", elderId, "entitlements"] as const,
   contacts: (elderId: string) => ["elder", elderId, "contacts"] as const,
   dashboard: (elderId: string) => ["elder", elderId, "dashboard"] as const,

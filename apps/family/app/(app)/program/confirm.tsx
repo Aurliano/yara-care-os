@@ -53,7 +53,7 @@ export default function ConfirmScreen() {
 
   return (
     <Screen>
-      <TopAppBar title={t.confirm} showBack showBell={false} />
+      <TopAppBar title={t.confirm} showBack />
       <Card>
         <AppText variant="title">
           {params.kind === "end" ? t.endActivity : t.rescheduleOnce}

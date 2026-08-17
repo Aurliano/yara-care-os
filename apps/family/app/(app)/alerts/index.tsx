@@ -17,7 +17,7 @@ export default function AlertsScreen() {
 
   return (
     <Screen>
-      <TopAppBar title={t.alertsTitle} />
+      <TopAppBar title={t.alertsTitle} showBack />
       <EmptyState
         title={t.alertsUnavailableTitle}
         body={t.alertsUnavailableBody}

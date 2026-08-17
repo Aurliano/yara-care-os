@@ -3,16 +3,7 @@ import { usePathname, useRouter } from "expo-router";
 import { colors, elevation, radius, sizes, spacing } from "../theme/tokens";
 import { AppText } from "./AppText";
 import { Icon } from "./Icon";
-import type { IconKey } from "../ui/iconXml";
-import { t } from "../i18n";
-
-const TABS: { href: string; label: string; icon: IconKey; match: string }[] = [
-  { href: "/(app)/(tabs)", label: t.navHome, icon: "nav_home", match: "/(app)/(tabs)" },
-  { href: "/(app)/(tabs)/program", label: t.navProgram, icon: "nav_program", match: "program" },
-  { href: "/(app)/(tabs)/alerts", label: t.navAlerts, icon: "nav_alerts", match: "alerts" },
-  { href: "/(app)/(tabs)/devices", label: t.navDevices, icon: "nav_devices", match: "devices" },
-  { href: "/(app)/(tabs)/more", label: t.navMore, icon: "nav_more", match: "more" },
-];
+import { APP_TABS } from "../navigation/tabs";
 
 export function BottomNav() {
   const pathname = usePathname();
@@ -20,9 +11,9 @@ export function BottomNav() {
 
   return (
     <View style={styles.bar}>
-      {TABS.map((tab) => {
+      {APP_TABS.map((tab) => {
         const active =
-          tab.match === "/(app)/(tabs)"
+          tab.match === "home"
             ? pathname === "/" || pathname.endsWith("/(tabs)") || pathname === "/(app)/(tabs)"
             : pathname.includes(tab.match);
         return (

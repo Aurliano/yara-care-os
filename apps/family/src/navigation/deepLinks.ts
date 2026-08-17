@@ -7,7 +7,7 @@ export function routeFromPushPayload(payload: Record<string, unknown>): string {
     return `/(app)/alerts/${alertId}`;
   }
   if (payload.type === "alert") {
-    return "/(app)/(tabs)/alerts";
+    return "/(app)/alerts";
   }
   return "/(app)/(tabs)";
 }
