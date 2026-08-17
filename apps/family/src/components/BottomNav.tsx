@@ -1,5 +1,6 @@
 import { Pressable, StyleSheet, View } from "react-native";
 import { usePathname, useRouter } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { colors, elevation, radius, sizes, spacing } from "../theme/tokens";
 import { AppText } from "./AppText";
 import { Icon } from "./Icon";
@@ -8,9 +9,18 @@ import { APP_TABS } from "../navigation/tabs";
 export function BottomNav() {
   const pathname = usePathname();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
 
   return (
-    <View style={styles.bar}>
+    <View
+      style={[
+        styles.bar,
+        {
+          height: sizes.nav + insets.bottom,
+          paddingBottom: spacing.xs + insets.bottom,
+        },
+      ]}
+    >
       {APP_TABS.map((tab) => {
         const active =
           tab.match === "home"
