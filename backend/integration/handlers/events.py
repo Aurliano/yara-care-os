@@ -6,10 +6,8 @@ import uuid
 from typing import Any
 
 from domains.care.enums import WorkflowExecutionResultType
-from domains.care.services.activities import get_care_activity
 from domains.care.services.interpretation import interpret_execution_result
 from domains.care.services.occurrence_due import handle_occurrence_due_event
-from domains.care.services.prescriptions import get_prescription
 from domains.care.services.sync_export import build_care_activity_sync_delta
 from domains.workflow.services.evidence import submit_domain_event_evidence
 from integration.context import IntegrationContext
@@ -17,7 +15,6 @@ from integration.observability import logging as integration_logging
 from integration.observability.metrics import increment
 from integration.runtime.action_handlers.registry import REGISTRY
 from integration.runtime.adapters.synchronization import submit_care_delta_for_replica
-from integration.services.hub_provisioning import get_assigned_hub_replica_identifier
 
 
 def handle_occurrence_due(ctx: IntegrationContext, payload: dict[str, Any]) -> None:
@@ -85,71 +82,6 @@ def handle_communication_session_ended(ctx: IntegrationContext, payload: dict[st
     increment("integration.event.communication_session_ended")
 
 
-def _submit_care_activity_delta(
-    ctx: IntegrationContext,
-    *,
-    care_activity_id: uuid.UUID,
-    idempotency_key: str,
-    elder_id: uuid.UUID | None = None,
-) -> None:
-    replica_id = ctx.replica_id
-    if replica_id is None:
-        resolved_elder_id = elder_id
-        if resolved_elder_id is None:
-            resolved_elder_id = get_care_activity(care_activity_id).elder_id
-        replica_id = get_assigned_hub_replica_identifier(elder_id=resolved_elder_id)
-    if replica_id is None:
-        integration_logging.log_orchestration_step(ctx, "sync_skipped_no_replica")
-        return
-    ctx = ctx.with_replica(replica_id)
-    delta = build_care_activity_sync_delta(care_activity_id=care_activity_id)
-    submit_care_delta_for_replica(
-        ctx,
-        delta=delta,
-        idempotency_key=idempotency_key,
-    )
-
-
-def handle_care_activity_created(ctx: IntegrationContext, payload: dict[str, Any]) -> None:
-    care_activity_id = uuid.UUID(payload["care_activity_id"])
-    elder_id = uuid.UUID(payload["elder_id"]) if payload.get("elder_id") else None
-    _submit_care_activity_delta(
-        ctx,
-        care_activity_id=care_activity_id,
-        idempotency_key=f"care-created:{payload['event_id']}",
-        elder_id=elder_id,
-    )
-    increment("integration.event.care_activity_created")
-
-
-def handle_care_activity_updated(ctx: IntegrationContext, payload: dict[str, Any]) -> None:
-    _submit_care_activity_delta(
-        ctx,
-        care_activity_id=uuid.UUID(payload["care_activity_id"]),
-        idempotency_key=f"care-updated:{payload['event_id']}",
-    )
-    increment("integration.event.care_activity_updated")
-
-
-def handle_prescription_created(ctx: IntegrationContext, payload: dict[str, Any]) -> None:
-    _submit_care_activity_delta(
-        ctx,
-        care_activity_id=uuid.UUID(payload["care_activity_id"]),
-        idempotency_key=f"prescription-created:{payload['event_id']}",
-    )
-    increment("integration.event.prescription_created")
-
-
-def handle_prescription_updated(ctx: IntegrationContext, payload: dict[str, Any]) -> None:
-    prescription = get_prescription(uuid.UUID(payload["prescription_id"]))
-    _submit_care_activity_delta(
-        ctx,
-        care_activity_id=prescription.care_activity_id,
-        idempotency_key=f"prescription-updated:{payload['event_id']}",
-    )
-    increment("integration.event.prescription_updated")
-
-
 def handle_medication_taken(ctx: IntegrationContext, payload: dict[str, Any]) -> None:
     care_activity_id = uuid.UUID(payload["care_activity_id"])
     if ctx.replica_id is None:
@@ -185,10 +117,6 @@ EVENT_HANDLERS = {
     "ExecutionMissed": handle_execution_missed,
     "DeviceCommandCompleted": handle_device_command_completed,
     "CommunicationSessionEnded": handle_communication_session_ended,
-    "CareActivityCreated": handle_care_activity_created,
-    "CareActivityUpdated": handle_care_activity_updated,
-    "PrescriptionCreated": handle_prescription_created,
-    "PrescriptionUpdated": handle_prescription_updated,
     "MedicationTaken": handle_medication_taken,
     "MedicationMissed": handle_medication_missed,
 }
