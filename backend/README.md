@@ -21,9 +21,12 @@ source .venv/bin/activate
 pip install -e ".[dev]"
 
 cp env.example .env
+# Set DATABASE_URL / TEST_DATABASE_URL to your real Postgres user and password.
+# Django reads that password from .env; it does not use the createdb prompt.
 
-createdb yara
-createdb yara_test
+# Skip these if the databases already exist.
+createdb -U postgres -h localhost yara
+createdb -U postgres -h localhost yara_test
 
 python manage.py migrate
 python manage.py seed_identity_access
