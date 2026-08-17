@@ -27,6 +27,8 @@ class Command(BaseCommand):
             capability_codes=[
                 DeviceCapabilityCode.DISPLAY,
                 DeviceCapabilityCode.SPEAKER,
+                DeviceCapabilityCode.MICROPHONE,
+                DeviceCapabilityCode.CAMERA,
                 DeviceCapabilityCode.BLE,
                 DeviceCapabilityCode.BATTERY,
             ],

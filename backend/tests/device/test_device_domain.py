@@ -23,7 +23,12 @@ from domains.device.exceptions import (
     InvalidCommandStateError,
 )
 from domains.device.models import DeviceCapabilityOverride, DeviceCommand
-from domains.device.services.assignments import assign_device, get_assignments, return_device
+from domains.device.services.assignments import (
+    assign_device,
+    get_assignments,
+    list_elder_assigned_devices,
+    return_device,
+)
 from domains.device.services.commands import (
     cancel_command,
     complete_command,
@@ -102,6 +107,22 @@ def test_assignment_history_preserved(hub_device, licensed_elder):
     assert len(history) == 1
     assert history[0].status == AssignmentStatus.RETURNED
     assert history[0].unassigned_at is not None
+
+
+@pytest.mark.django_db
+def test_list_elder_assigned_devices_active_only(hub_device, licensed_elder):
+    assign_device(
+        device_id=hub_device.id,
+        elder_id=licensed_elder.id,
+        assignment_type=AssignmentType.OWNED,
+    )
+    items = list_elder_assigned_devices(elder_id=licensed_elder.id)
+    assert len(items) == 1
+    assert items[0]["id"] == hub_device.id
+    assert items[0]["kind"] == "HUB"
+    assert items[0]["connectivity"] == "online"
+    return_device(device_id=hub_device.id)
+    assert list_elder_assigned_devices(elder_id=licensed_elder.id) == []
 
 
 @pytest.mark.django_db

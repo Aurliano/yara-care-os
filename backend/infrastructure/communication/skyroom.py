@@ -51,6 +51,7 @@ class SkyroomCommunicationProvider:
                 "name": room_key,
                 "title": title,
                 "guest_login": False,
+                "op_login_first": False,
                 "max_users": DEFAULT_MAX_USERS,
             },
         )
@@ -102,6 +103,7 @@ class SkyroomCommunicationProvider:
                 "nickname": user.display_name or user.key,
                 "access": DEFAULT_ACCESS,
                 "concurrent": 1,
+                "language": "fa",
                 "ttl": ttl_seconds,
             },
         )

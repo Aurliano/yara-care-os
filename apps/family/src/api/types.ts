@@ -230,6 +230,17 @@ export type License = {
   created_at: ISODateTime;
 };
 
+export type CommunicationSession = {
+  id: UUID;
+  elder_id: UUID;
+  channel: "VOICE" | "VIDEO" | "MESSAGE" | string;
+  status: string;
+  outcome: string;
+  initiated_at: ISODateTime;
+  connected_at: ISODateTime | null;
+  ended_at: ISODateTime | null;
+};
+
 export type Contact = {
   id: UUID;
   elder_id: UUID;

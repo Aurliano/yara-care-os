@@ -15,7 +15,10 @@ import ir.sayda.yara.hub.core.communication.SkyroomClient
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
@@ -32,6 +35,8 @@ class AndroidSkyroomClient @Inject constructor(
 ) : SkyroomClient {
     private val events = MutableSharedFlow<CallMediaEvent>(replay = 1, extraBufferCapacity = 16)
     private val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+    private val _surface = MutableStateFlow<WebView?>(null)
+    val surface: StateFlow<WebView?> = _surface.asStateFlow()
     private var webView: WebView? = null
     private var joined = false
 
@@ -42,6 +47,7 @@ class AndroidSkyroomClient @Inject constructor(
             leaveInternal()
             val view = createWebView()
             webView = view
+            _surface.value = view
             suspendCancellableCoroutine { continuation ->
                 view.webViewClient = object : WebViewClient() {
                     override fun onPageFinished(view: WebView?, url: String?) {
@@ -122,6 +128,7 @@ class AndroidSkyroomClient @Inject constructor(
 
     private fun leaveInternal() {
         joined = false
+        _surface.value = null
         webView?.stopLoading()
         webView?.destroy()
         webView = null

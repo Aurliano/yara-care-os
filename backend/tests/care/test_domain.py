@@ -117,6 +117,57 @@ def test_prescription_shared_primary_key(elder, workflow_definition, recurrence_
 
 
 @pytest.mark.django_db
+def test_care_delta_includes_prescription_fields(
+    elder,
+    workflow_definition,
+    recurrence_definition,
+    schedule_start_at,
+):
+    from domains.care.services.sync_export import build_care_activity_sync_delta
+
+    prescription = create_prescription(
+        elder_id=elder.id,
+        workflow_definition_id=workflow_definition.id,
+        recurrence_definition=recurrence_definition,
+        timezone_name="UTC",
+        start_at=schedule_start_at,
+        display_title="Aspirin",
+        medication_reference="med-aspirin",
+        dosage_information="1 tablet",
+        elder_friendly_description="Take your morning aspirin",
+        media_reference=None,
+    )
+    delta = build_care_activity_sync_delta(care_activity_id=prescription.care_activity_id)
+    assert delta["payload_type"] == "care.activity.delta"
+    nested = delta["payload"]["prescription"]
+    assert nested["medication_reference"] == "med-aspirin"
+    assert nested["dosage_information"] == "1 tablet"
+    assert nested["elder_friendly_description"] == "Take your morning aspirin"
+
+
+@pytest.mark.django_db
+def test_care_delta_omits_prescription_for_general_activity(
+    elder,
+    workflow_definition,
+    recurrence_definition,
+    schedule_start_at,
+):
+    from domains.care.services.sync_export import build_care_activity_sync_delta
+
+    activity = create_care_activity(
+        elder_id=elder.id,
+        activity_type=CareActivityType.GENERAL,
+        workflow_definition_id=workflow_definition.id,
+        recurrence_definition=recurrence_definition,
+        timezone_name="UTC",
+        start_at=schedule_start_at,
+        display_title="Morning walk",
+    )
+    delta = build_care_activity_sync_delta(care_activity_id=activity.id)
+    assert "prescription" not in delta["payload"]
+
+
+@pytest.mark.django_db
 def test_get_active_prescriptions(elder, workflow_definition, recurrence_definition, schedule_start_at):
     create_prescription(
         elder_id=elder.id,

@@ -16,6 +16,10 @@ if (localPropertiesFile.exists()) {
 val hubBackendUrl = localProperties.getProperty("hub.backend.url")?.trim()?.let { url ->
     if (url.endsWith("/")) url else "$url/"
 } ?: "http://10.0.2.2:8000/api/v1/"
+val hubProvisionPhone = localProperties.getProperty("hub.provision.phone")?.trim()
+    ?: "+989136666666"
+val hubProvisionPassword = localProperties.getProperty("hub.provision.password")?.trim()
+    ?: "securepass123"
 
 android {
     namespace = "ir.sayda.yara.hub"
@@ -31,8 +35,8 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("String", "HUB_DEVICE_MODEL_CODE", "\"YARA-HUB-TABLET\"")
         buildConfigField("String", "HUB_BACKEND_URL", "\"$hubBackendUrl\"")
-        buildConfigField("String", "PROVISION_PHONE", "\"+989136666666\"")
-        buildConfigField("String", "PROVISION_PASSWORD", "\"securepass123\"")
+        buildConfigField("String", "PROVISION_PHONE", "\"$hubProvisionPhone\"")
+        buildConfigField("String", "PROVISION_PASSWORD", "\"$hubProvisionPassword\"")
     }
 
     buildTypes {

@@ -53,6 +53,7 @@ class SyncPayloadParser @Inject constructor() {
         val activity: CareActivity,
         val schedule: ScheduleDefinition?,
         val occurrences: List<Occurrence>,
+        val prescription: Prescription? = null,
     )
 
     fun parseCareActivityBundle(payloadJson: String, aggregateVersion: String): CareActivityBundle {
@@ -61,10 +62,12 @@ class SyncPayloadParser @Inject constructor() {
         val occurrences = payload["occurrences"]?.jsonArray?.mapNotNull { element ->
             parseOccurrence(element.jsonObject)
         } ?: emptyList()
+        val prescription = payload["prescription"]?.jsonObject?.let(::parsePrescription)
         return CareActivityBundle(
             activity = parseCareActivity(payloadJson, aggregateVersion),
             schedule = schedule,
             occurrences = occurrences,
+            prescription = prescription,
         )
     }
 

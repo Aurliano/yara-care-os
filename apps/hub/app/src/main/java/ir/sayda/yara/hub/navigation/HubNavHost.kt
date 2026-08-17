@@ -13,6 +13,10 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import ir.sayda.yara.hub.BuildConfig
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.ui.Alignment
+import ir.sayda.yara.hub.communication.CallMediaSurface
 import ir.sayda.yara.hub.feature.communication.CallRoute
 import ir.sayda.yara.hub.feature.communication.CallViewArgs
 import ir.sayda.yara.hub.feature.home.HomeRoute
@@ -127,17 +131,20 @@ fun HubNavHost(
                 },
             ),
         ) { backStackEntry ->
-            CallRoute(
-                args = CallViewArgs(
-                    contactId = backStackEntry.arguments?.getString("contactId").orEmpty(),
-                    elderId = backStackEntry.arguments?.getString("elderId").orEmpty(),
-                    channel = backStackEntry.arguments?.getString("channel").orEmpty(),
-                    contactName = backStackEntry.arguments?.getString("contactName").orEmpty(),
-                ),
-                onReturnHome = {
-                    navController.popBackStack(HubRoutes.HOME, inclusive = false)
-                },
-            )
+            Box(modifier = Modifier.fillMaxSize()) {
+                CallRoute(
+                    args = CallViewArgs(
+                        contactId = backStackEntry.arguments?.getString("contactId").orEmpty(),
+                        elderId = backStackEntry.arguments?.getString("elderId").orEmpty(),
+                        channel = backStackEntry.arguments?.getString("channel").orEmpty(),
+                        contactName = backStackEntry.arguments?.getString("contactName").orEmpty(),
+                    ),
+                    onReturnHome = {
+                        navController.popBackStack(HubRoutes.HOME, inclusive = false)
+                    },
+                )
+                CallMediaSurface(modifier = Modifier.align(Alignment.TopCenter))
+            }
         }
     }
 }

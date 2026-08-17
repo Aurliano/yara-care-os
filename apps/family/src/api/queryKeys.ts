@@ -13,6 +13,7 @@ export const queryKeys = {
     ["schedule", scheduleId, "occurrences", range] as const,
   entitlements: (elderId: string) => ["elder", elderId, "entitlements"] as const,
   contacts: (elderId: string) => ["elder", elderId, "contacts"] as const,
+  sessions: (elderId: string) => ["elder", elderId, "sessions"] as const,
   dashboard: (elderId: string) => ["elder", elderId, "dashboard"] as const,
   devices: (elderId: string) => ["elder", elderId, "devices"] as const,
   deviceState: (deviceId: string) => ["device", deviceId, "state"] as const,

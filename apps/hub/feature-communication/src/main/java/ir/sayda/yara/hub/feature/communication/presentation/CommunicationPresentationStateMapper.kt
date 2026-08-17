@@ -126,7 +126,7 @@ object CommunicationPresentationStateMapper {
                 cameraOn = cameraOn && video,
                 showWaitingIndicator = false,
                 bannerKind = null,
-                showVoicePlaceholders = true,
+                showVoicePlaceholders = !video,
             )
             CallScreenKind.ConnectionLost -> CommunicationPresentationState(
                 kind = kind,

@@ -104,6 +104,7 @@ class ReplicaChangeApplier @Inject constructor(
             localVersion = current?.aggregateVersion?.toString(),
         ) {
             careReplicaRepository.upsertCareActivity(bundle.activity)
+            bundle.prescription?.let { careReplicaRepository.upsertPrescription(it) }
             val schedule = bundle.schedule
             if (schedule != null) {
                 schedulingReplicaRepository.upsertScheduleDefinition(schedule)

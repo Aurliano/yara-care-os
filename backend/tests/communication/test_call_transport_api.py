@@ -58,6 +58,25 @@ def test_call_start_returns_join_credentials(authenticated_client, licensed_elde
 
 
 @pytest.mark.django_db
+def test_video_call_start_requires_entitlement(authenticated_client, licensed_elder):
+    contact = create_contact(
+        elder_id=licensed_elder.id,
+        display_name="Video Contact",
+        preferred_channel=CommunicationChannel.VIDEO,
+    )
+    response = authenticated_client.post(
+        "/api/v1/communication/call/start/",
+        {
+            "elder_id": str(licensed_elder.id),
+            "channel": CommunicationChannel.VIDEO,
+            "recipient_contact_id": str(contact.id),
+        },
+        format="json",
+    )
+    assert response.status_code == 403
+
+
+@pytest.mark.django_db
 def test_second_call_start_conflicts_while_active(authenticated_client, licensed_elder):
     contact = create_contact(
         elder_id=licensed_elder.id,

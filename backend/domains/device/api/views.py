@@ -2,6 +2,7 @@
 
 import uuid
 
+from django.shortcuts import get_object_or_404
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
@@ -18,6 +19,7 @@ from domains.device.api.serializers import (
     DeviceCommandSerializer,
     DeviceCreateSerializer,
     DeviceSerializer,
+    ElderAssignedDeviceSerializer,
     PairingCreateSerializer,
     PairingSerializer,
     CompartmentSerializer,
@@ -34,7 +36,12 @@ from domains.device.exceptions import (
     InvalidDeviceStateError,
     PairingNotFoundError,
 )
-from domains.device.services.assignments import assign_device, get_assignments, return_device
+from domains.device.services.assignments import (
+    assign_device,
+    get_assignments,
+    list_elder_assigned_devices,
+    return_device,
+)
 from domains.device.services.commands import (
     cancel_command,
     complete_command,
@@ -49,6 +56,9 @@ from domains.device.services.commands import (
 from domains.device.services.compartments import get_compartments
 from domains.device.services.devices import create_device, get_device, get_device_state
 from domains.device.services.pairing import create_pairing, get_pairings, revoke_pairing
+from domains.identity_access.api.permissions import HasElderAccess
+from domains.identity_access.models import Elder
+from domains.identity_access.services.authorization import can
 
 
 def _device_error_response(exc: DeviceError) -> Response:
@@ -79,6 +89,17 @@ class DeviceListCreateView(APIView):
         except DeviceError as exc:
             return _device_error_response(exc)
         return Response(DeviceSerializer(device).data, status=status.HTTP_201_CREATED)
+
+
+class ElderDeviceListView(APIView):
+    permission_classes = [IsAuthenticated, HasElderAccess]
+
+    def get(self, request: Request, elder_id: uuid.UUID) -> Response:
+        elder = get_object_or_404(Elder, pk=elder_id)
+        if not can(request.user, "VIEW_ELDER_STATUS", elder):
+            return Response(status=status.HTTP_403_FORBIDDEN)
+        devices = list_elder_assigned_devices(elder_id=elder_id)
+        return Response(ElderAssignedDeviceSerializer(devices, many=True).data)
 
 
 class DeviceDetailView(APIView):

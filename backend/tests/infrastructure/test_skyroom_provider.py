@@ -47,6 +47,7 @@ def test_ensure_room_creates_then_reuses():
         if action == "getRoom" and len([c for c in calls if c["action"] == "getRoom"]) == 1:
             return _FakeHTTPResponse({"ok": False, "error_code": 15, "error_message": "not found"})
         if action == "createRoom":
+            assert payload["params"]["op_login_first"] is False
             return _FakeHTTPResponse({"ok": True, "result": 41})
         if action == "getRoom":
             return _FakeHTTPResponse({"ok": True, "result": {"id": 41, "name": "yara-elder-abc"}})
@@ -92,6 +93,8 @@ def test_generate_login_url_ttl_and_no_api_key_in_url():
             return _FakeHTTPResponse({"ok": True, "result": 1})
         if payload["action"] == "createLoginUrl":
             assert payload["params"]["ttl"] == 120
+            assert payload["params"]["language"] == "fa"
+            assert payload["params"]["access"] == 3
             return _FakeHTTPResponse({"ok": True, "result": "https://www.skyroom.online/ch/join/token"})
         raise AssertionError(payload["action"])
 
