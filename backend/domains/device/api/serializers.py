@@ -77,6 +77,18 @@ class DeviceAssignmentSerializer(serializers.ModelSerializer):
         ]
 
 
+class ElderAssignedDeviceSerializer(serializers.Serializer):
+    id = serializers.UUIDField()
+    kind = serializers.CharField()
+    serial_number = serializers.CharField()
+    operational_status = serializers.CharField()
+    last_seen_at = serializers.DateTimeField(allow_null=True)
+    battery_percent = serializers.IntegerField(allow_null=True)
+    pairing_status = serializers.CharField(allow_null=True)
+    connectivity = serializers.CharField()
+    assignment_type = serializers.CharField()
+
+
 class AssignDeviceSerializer(serializers.Serializer):
     elder_id = serializers.UUIDField()
     assignment_type = serializers.CharField(max_length=16)

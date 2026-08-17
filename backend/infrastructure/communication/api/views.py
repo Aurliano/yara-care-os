@@ -42,8 +42,8 @@ def _error_response(exc: CommunicationError) -> Response:
         exc,
         base_type=CommunicationError,
         not_found=(ContactNotFoundError, SessionNotFoundError, CallAttemptNotFoundError),
-        conflict=(InvalidSessionStateError, EntitlementDeniedError),
-        forbidden=(AuthorizationDeniedError,),
+        conflict=(InvalidSessionStateError,),
+        forbidden=(AuthorizationDeniedError, EntitlementDeniedError),
     )
 
 

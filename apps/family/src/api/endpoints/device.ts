@@ -1,6 +1,22 @@
 import { apiRequest } from "../client";
 import type { Device, DeviceState, Pairing } from "../types";
 
+export type ElderDeviceSummary = {
+  id: string;
+  kind: "HUB" | "PILLBOX" | "OTHER";
+  serial_number: string;
+  operational_status: string;
+  last_seen_at: string | null;
+  battery_percent: number | null;
+  pairing_status: string | null;
+  connectivity: "online" | "offline" | "unknown" | string;
+  assignment_type: string;
+};
+
+export function listElderDevices(elderId: string): Promise<ElderDeviceSummary[]> {
+  return apiRequest(`/elders/${elderId}/devices/`);
+}
+
 export function getDevice(deviceId: string): Promise<Device> {
   return apiRequest(`/devices/${deviceId}/`);
 }

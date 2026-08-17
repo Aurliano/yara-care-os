@@ -25,7 +25,13 @@ Queries:
 - GetCommandStatus -> get_command_status
 """
 
-from domains.device.services.assignments import assign_device, get_assignments, refurbish_device, return_device
+from domains.device.services.assignments import (
+    assign_device,
+    get_assignments,
+    list_elder_assigned_devices,
+    refurbish_device,
+    return_device,
+)
 from domains.device.services.commands import (
     cancel_command,
     complete_command,
@@ -91,6 +97,7 @@ __all__ = [
     "get_effective_capability_state",
     "get_pairing",
     "get_pairings",
+    "list_elder_assigned_devices",
     "record_compartment_closed",
     "record_compartment_opened",
     "refurbish_device",

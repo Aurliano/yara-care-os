@@ -60,6 +60,7 @@ class CommunicationPresentationStateMapperTest {
         assertTrue(ui.showMediaControls)
         assertTrue(ui.cameraEnabled)
         assertTrue(ui.cameraOn)
+        assertFalse(ui.showVoicePlaceholders)
     }
 
     @Test

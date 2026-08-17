@@ -214,6 +214,20 @@ def get_hub_provisioning_status(*, device_id: uuid.UUID) -> dict[str, Any]:
     }
 
 
+def get_assigned_hub_replica_identifier(*, elder_id: uuid.UUID) -> uuid.UUID | None:
+    """Return the Hub replica for an elder's active DeviceAssignment, if provisioned."""
+    for assignment in get_assignments(elder_id=elder_id):
+        if assignment.status != AssignmentStatus.ASSIGNED:
+            continue
+        blob = _provisioning_blob(assignment.device)
+        if blob.get("revoked"):
+            continue
+        raw = blob.get("replica_identifier")
+        if raw:
+            return uuid.UUID(str(raw))
+    return None
+
+
 @transaction.atomic
 def revoke_hub_provisioning(*, device_id: uuid.UUID) -> dict[str, Any]:
     """Revoke hub provisioning for a device."""

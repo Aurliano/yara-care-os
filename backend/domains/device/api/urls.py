@@ -16,10 +16,12 @@ from domains.device.api.views import (
     DevicePairingsView,
     DeviceReturnView,
     DeviceStateView,
+    ElderDeviceListView,
     PairingRevokeView,
 )
 
 urlpatterns = [
+    path("elders/<uuid:elder_id>/devices/", ElderDeviceListView.as_view(), name="elder-devices"),
     path("devices/", DeviceListCreateView.as_view(), name="device-list-create"),
     path("devices/<uuid:device_id>/", DeviceDetailView.as_view(), name="device-detail"),
     path("devices/<uuid:device_id>/state/", DeviceStateView.as_view(), name="device-state"),

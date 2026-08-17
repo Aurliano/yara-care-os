@@ -1,4 +1,6 @@
 import type { CallSession } from "./model";
+import { ApiError } from "../api/errors";
+import type { ApiErrorBody } from "../api/types";
 import { ActiveCallExistsError } from "./result";
 import type { AppResult } from "./result";
 
@@ -93,10 +95,14 @@ function mapHttpError(status: number, body: unknown): Error {
   if (status === 409) {
     return new ActiveCallExistsError();
   }
+  const apiBody = typeof body === "object" && body !== null ? (body as ApiErrorBody) : null;
   const detail =
-    typeof body === "object" && body !== null && "detail" in body
-      ? String((body as { detail: unknown }).detail)
+    apiBody && "detail" in apiBody && apiBody.detail != null
+      ? String(apiBody.detail)
       : `HTTP ${status}`;
+  if (status === 403) {
+    return new ApiError(403, apiBody, detail);
+  }
   return new Error(detail);
 }
 

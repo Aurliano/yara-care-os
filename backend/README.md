@@ -20,7 +20,7 @@ source .venv/bin/activate
 
 pip install -e ".[dev]"
 
-cp .env.example .env
+cp env.example .env
 
 createdb yara
 createdb yara_test
@@ -29,6 +29,7 @@ python manage.py migrate
 python manage.py seed_identity_access
 python manage.py seed_licensing
 python manage.py seed_hub_provision
+python manage.py seed_family_lab
 python manage.py seed_hub_dev_sync --device-id=<hub-device-uuid>
 python manage.py runserver
 ```
@@ -42,7 +43,7 @@ python manage.py runserver 0.0.0.0:8000
 ```
 
 Development settings allow LAN hosts by default (`DEV_ALLOW_LAN_HOSTS=true`).
-Use your machine's LAN IP in the Hub (e.g. `http://192.168.1.101:8000`).
+Use your machine's LAN IP in the Hub (e.g. `http://192.168.1.100:8000`).
 To restrict hosts, set `DEV_ALLOW_LAN_HOSTS=false` and list IPs in `ALLOWED_HOSTS`.
 
 ## Health & Readiness

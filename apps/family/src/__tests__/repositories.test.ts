@@ -6,6 +6,13 @@ import { BLOCKED_CAREGIVER_COMMANDS } from "../api/deviceCommandPolicy";
 import { routeFromPushPayload } from "../navigation/deepLinks";
 import { queryKeys } from "../api/queryKeys";
 import { hasEntitlement } from "../services/licensing/entitlements";
+import { listElderDevices } from "../api/endpoints/device";
+
+jest.mock("../api/endpoints/device", () => ({
+  listElderDevices: jest.fn(),
+}));
+
+const listElderDevicesMock = listElderDevices as jest.MockedFunction<typeof listElderDevices>;
 
 describe("backend gap repositories", () => {
   it("does not invent a notification inbox", async () => {
@@ -14,9 +21,23 @@ describe("backend gap repositories", () => {
     expect(inbox.items).toEqual([]);
   });
 
-  it("does not invent an elder device list", async () => {
+  it("maps the elder device list from Backend", async () => {
+    listElderDevicesMock.mockResolvedValue([
+      {
+        id: "hub-1",
+        kind: "HUB",
+        serial_number: "TAB-1",
+        operational_status: "ACTIVE",
+        last_seen_at: null,
+        battery_percent: 80,
+        pairing_status: null,
+        connectivity: "online",
+        assignment_type: "OWNED",
+      },
+    ]);
     const catalog = await loadElderDevices("elder-1");
-    expect(catalog.available).toBe(false);
+    expect(catalog.available).toBe(true);
+    expect(catalog.items[0]?.kind).toBe("HUB");
   });
 
   it("keeps MedicationRegimen isolated", () => {

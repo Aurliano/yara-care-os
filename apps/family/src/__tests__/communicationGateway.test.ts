@@ -62,6 +62,21 @@ describe("HttpCommunicationGateway", () => {
     expect(result.error).toBeInstanceOf(ActiveCallExistsError);
   });
 
+  it("maps HTTP 403 to ApiError", async () => {
+    const http = new FakeHttp();
+    http.next = { status: 403, body: { detail: "VIDEO_CALL entitlement is required for video sessions." } };
+    const gateway = new HttpCommunicationGateway(http);
+
+    const result = await gateway.startCall("elder-1", "VIDEO", "contact-1");
+
+    expect(result.ok).toBe(false);
+    if (result.ok) {
+      return;
+    }
+    expect(result.error.name).toBe("ApiError");
+    expect((result.error as { status?: number }).status).toBe(403);
+  });
+
   it("posts endCall with session_id", async () => {
     const http = new FakeHttp();
     http.next = { status: 200, body: { status: "ended" } };

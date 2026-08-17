@@ -80,6 +80,55 @@ def test_reminder_completed_end_to_end(
 
 
 @pytest.mark.django_db
+def test_prescription_created_submits_care_delta_for_assigned_hub(
+    licensed_elder,
+    hub_model,
+    workflow_definition,
+    recurrence_definition,
+    schedule_start_at,
+):
+    from integration.services.hub_provisioning import (
+        get_assigned_hub_replica_identifier,
+        register_hub_device,
+    )
+
+    registered = register_hub_device(
+        serial_number=f"HUB-CARE-{uuid.uuid4().hex[:8]}",
+        device_model_code=hub_model.model_code,
+    )
+    device_id = uuid.UUID(registered["device_id"])
+    assign_device(
+        device_id=device_id,
+        elder_id=licensed_elder.id,
+        assignment_type=AssignmentType.OWNED,
+    )
+    prescription = create_prescription(
+        elder_id=licensed_elder.id,
+        workflow_definition_id=workflow_definition.id,
+        recurrence_definition=recurrence_definition,
+        timezone_name="UTC",
+        start_at=schedule_start_at,
+        display_title="Lab pill",
+        medication_reference="med-lab",
+        dosage_information="1 tablet",
+        elder_friendly_description="Take the pill",
+    )
+
+    ctx = IntegrationContext.new()
+    process_pending_events(ctx, limit=500)
+
+    replica_id = get_assigned_hub_replica_identifier(elder_id=licensed_elder.id)
+    assert replica_id == uuid.UUID(registered["replica_identifier"])
+    operations = SynchronizationOperation.objects.filter(payload_type="care.activity.delta")
+    assert operations.exists()
+    payloads = [item.payload for item in operations]
+    assert any(
+        item.get("prescription", {}).get("dosage_information") == "1 tablet" for item in payloads
+    )
+    assert any(item.get("care_activity_id") == str(prescription.care_activity_id) for item in payloads)
+
+
+@pytest.mark.django_db
 def test_reminder_missed_end_to_end(
     licensed_elder,
     hub_device,

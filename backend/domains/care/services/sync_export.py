@@ -74,6 +74,16 @@ def build_care_activity_sync_delta(*, care_activity_id: uuid.UUID) -> dict[str, 
         "schedule_definition": _serialize_schedule(schedule),
         "occurrences": [_serialize_occurrence(item) for item in occurrences],
     }
+    prescription = getattr(activity, "prescription", None)
+    if prescription is not None:
+        payload["prescription"] = {
+            "care_activity_id": str(prescription.care_activity_id),
+            "medication_reference": prescription.medication_reference,
+            "dosage_information": prescription.dosage_information,
+            "elder_friendly_description": prescription.elder_friendly_description,
+            "personalized_description": prescription.personalized_description,
+            "media_reference": str(prescription.media_reference) if prescription.media_reference else None,
+        }
     return {
         "aggregate_reference": activity.id,
         "aggregate_version": str(activity.aggregate_version),

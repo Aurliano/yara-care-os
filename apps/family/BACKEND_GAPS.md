@@ -4,7 +4,7 @@ These items are documented because the family app is a thin client and must not 
 
 1. **Dashboard read-model** — `GET /elders/{id}/dashboard/` does not exist. Home composes elder, care activities, prescriptions, occurrences, completions, and entitlements in `src/services/dashboard/composeDashboard.ts`.
 2. **Notification inbox** — Notification domain/API is not present. Alerts stay behind the bell on every in-app screen (`/(app)/alerts`) and show an unavailable state. Acknowledgement is local-only and never resolves a care incident.
-3. **Elder device list** — Device routes are device-id scoped; `GET /elders/{id}/devices/` is missing. Hub/Pill Box summaries stay empty until that read-model exists. Battery/last-seen are shown only from `GET /devices/{id}/state/` when a device id is known.
+3. **Elder device list** — `GET /elders/{id}/devices/` lists assigned Hub/Pill Box devices. Home and Devices tab read that catalog.
 4. **Schedule list** — `GET /schedules/` is missing. Occurrences are loaded via each care activity’s `schedule_definition_id`.
 5. **MedicationRegimen** — Multi-time medication grouping is isolated in `src/services/program/medicationRegimen.ts` and not used in UI.
 6. **Invitation preview** — Accept takes `invite_code` only. There is no preview of elder name/relationship before accept. Pending invitation cards never treat `invite_code` as a person name.
