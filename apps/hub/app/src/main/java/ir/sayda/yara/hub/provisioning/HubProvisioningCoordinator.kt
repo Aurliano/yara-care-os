@@ -9,8 +9,6 @@ import ir.sayda.yara.hub.core.domain.repository.AuthRepository
 import ir.sayda.yara.hub.core.domain.repository.ConnectivityRepository
 import ir.sayda.yara.hub.core.domain.repository.ProvisioningRepository
 import ir.sayda.yara.hub.core.result.AppResult
-import ir.sayda.yara.hub.core.provisioning.HubDeviceCredentialsProvider
-import ir.sayda.yara.hub.core.runtime.RuntimeScheduler
 import ir.sayda.yara.hub.data.identity.SecureHubIdentityStore
 import ir.sayda.yara.hub.data.provisioning.ProvisioningStateMachine
 import kotlinx.coroutines.CoroutineScope
@@ -33,8 +31,6 @@ class HubProvisioningCoordinator @Inject constructor(
     private val identityStore: SecureHubIdentityStore,
     private val stateMachine: ProvisioningStateMachine,
     private val deviceModelCode: HubDeviceModelCode,
-    private val provisionCredentials: HubDeviceCredentialsProvider,
-    private val runtimeScheduler: RuntimeScheduler,
 ) {
     private val provisioningMutex = Mutex()
     private val provisionInFlight = AtomicBoolean(false)
@@ -77,11 +73,11 @@ class HubProvisioningCoordinator @Inject constructor(
         when (currentState) {
             ProvisioningState.UNPROVISIONED,
             ProvisioningState.REGISTERING,
-            -> registerAndAuthenticate()
+            -> registerDevice()
             ProvisioningState.ERROR -> resumeAfterError()
             ProvisioningState.REGISTERED,
             ProvisioningState.AUTHENTICATING,
-            -> authenticateExisting()
+            -> Unit
             ProvisioningState.READY -> authRepository.refreshTokenIfNeeded()
         }
     }
@@ -96,21 +92,20 @@ class HubProvisioningCoordinator @Inject constructor(
     private suspend fun retryIfNeeded() {
         when (stateMachine.currentState()) {
             ProvisioningState.ERROR -> resumeAfterError()
-            ProvisioningState.UNPROVISIONED -> registerAndAuthenticate()
-            ProvisioningState.REGISTERED -> authenticateExisting()
+            ProvisioningState.UNPROVISIONED -> registerDevice()
             else -> Unit
         }
     }
 
     private suspend fun resumeAfterError() {
         if (identityStore.readProvisioning()?.deviceId != null) {
-            authenticateExisting()
+            stateMachine.transitionTo(ProvisioningState.REGISTERED)
         } else {
-            registerAndAuthenticate()
+            registerDevice()
         }
     }
 
-    private suspend fun registerAndAuthenticate() {
+    private suspend fun registerDevice() {
         if (stateMachine.currentState() == ProvisioningState.READY) return
         if (!provisionInFlight.compareAndSet(false, true)) return
         try {
@@ -118,44 +113,10 @@ class HubProvisioningCoordinator @Inject constructor(
                 if (stateMachine.currentState() == ProvisioningState.READY) return@withLock
                 val serial = Settings.Secure.getString(context.contentResolver, Settings.Secure.ANDROID_ID)
                     ?: return@withLock
-                when (provisioningRepository.registerDevice(serial, deviceModelCode.value)) {
-                    is AppResult.Success -> authenticateWithinLock()
-                    is AppResult.Error -> Unit
-                }
+                provisioningRepository.registerDevice(serial, deviceModelCode.value)
             }
         } finally {
             provisionInFlight.set(false)
-        }
-    }
-
-    private suspend fun authenticateExisting() {
-        if (stateMachine.currentState() == ProvisioningState.READY) return
-        if (!provisionInFlight.compareAndSet(false, true)) return
-        try {
-            provisioningMutex.withLock {
-                if (stateMachine.currentState() == ProvisioningState.READY) return@withLock
-                authenticateWithinLock()
-            }
-        } finally {
-            provisionInFlight.set(false)
-        }
-    }
-
-    private suspend fun authenticateWithinLock() {
-        val deviceId = identityStore.readProvisioning()?.deviceId ?: return
-        val credentials = provisionCredentials.credentials() ?: return
-        when (
-            provisioningRepository.authenticate(
-                deviceId = deviceId,
-                phone = credentials.phone,
-                password = credentials.password,
-            )
-        ) {
-            is AppResult.Success -> {
-                connectivityRepository.refreshBackendReachability()
-                runtimeScheduler.scheduleOneTimeRuntimeWork()
-            }
-            is AppResult.Error -> Unit
         }
     }
 

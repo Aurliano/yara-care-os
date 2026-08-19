@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import ir.sayda.yara.hub.feature.home.presentation.emptyMedicationMessage
+import ir.sayda.yara.hub.feature.home.presentation.needsCaregiverLogin
 import ir.sayda.yara.hub.feature.home.presentation.showFamilyMessagesPlaceholder
 import ir.sayda.yara.hub.feature.home.presentation.toConnectionPresentation
 import ir.sayda.yara.hub.feature.home.presentation.toNextReminderPresentation
@@ -114,6 +115,19 @@ fun HomeRoute(
                                 Spacer(modifier = Modifier.height(24.dp))
                             }
 
+                            if (snapshot.needsCaregiverLogin()) {
+                                item {
+                                    CaregiverLoginCard(
+                                        phone = uiState.phone,
+                                        password = uiState.password,
+                                        isSubmitting = uiState.isSubmittingLogin,
+                                        errorMessage = uiState.loginError,
+                                        onPhoneChange = viewModel::onPhoneChange,
+                                        onPasswordChange = viewModel::onPasswordChange,
+                                        onSubmit = viewModel::submitCaregiverLogin,
+                                    )
+                                }
+                            } else {
                             item {
                                 NextReminderHighlightCard(
                                     title = nextReminder.title,
@@ -174,6 +188,7 @@ fun HomeRoute(
                                 item {
                                     HomeEmptyStateCard(message = "پیام جدیدی از خانواده ندارید")
                                 }
+                            }
                             }
 
                             item {

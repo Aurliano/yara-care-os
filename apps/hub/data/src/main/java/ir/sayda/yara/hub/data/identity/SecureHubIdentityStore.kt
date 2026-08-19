@@ -7,6 +7,7 @@ import androidx.security.crypto.MasterKey
 import dagger.hilt.android.qualifiers.ApplicationContext
 import ir.sayda.yara.hub.core.domain.model.HubIdentity
 import ir.sayda.yara.hub.core.domain.model.ProvisioningState
+import ir.sayda.yara.hub.core.provisioning.ProvisionCredential
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -100,6 +101,26 @@ class SecureHubIdentityStore @Inject constructor(
         editor.apply()
     }
 
+    fun readCaregiverCredentials(): ProvisionCredential? {
+        val phone = prefs.getString(Keys.CAREGIVER_PHONE, null)?.takeIf { it.isNotBlank() } ?: return null
+        val password = prefs.getString(Keys.CAREGIVER_PASSWORD, null)?.takeIf { it.isNotBlank() } ?: return null
+        return ProvisionCredential(phone = phone, password = password)
+    }
+
+    fun writeCaregiverCredentials(credential: ProvisionCredential) {
+        prefs.edit()
+            .putString(Keys.CAREGIVER_PHONE, credential.phone)
+            .putString(Keys.CAREGIVER_PASSWORD, credential.password)
+            .apply()
+    }
+
+    fun clearCaregiverCredentials() {
+        prefs.edit()
+            .remove(Keys.CAREGIVER_PHONE)
+            .remove(Keys.CAREGIVER_PASSWORD)
+            .apply()
+    }
+
     fun clear() {
         prefs.edit().clear().apply()
     }
@@ -151,6 +172,8 @@ class SecureHubIdentityStore @Inject constructor(
         const val PROVISIONED_AT = "provisioned_at"
         const val LAST_AUTHENTICATED_AT = "last_authenticated_at"
         const val PROVISIONING_STATE = "provisioning_state"
+        const val CAREGIVER_PHONE = "caregiver_phone"
+        const val CAREGIVER_PASSWORD = "caregiver_password"
     }
 
     companion object {

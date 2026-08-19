@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import pytest
+from django.test import override_settings
 
 from domains.communication.enums import CommunicationChannel, SessionStatus
 from domains.communication.models import CommunicationSession
@@ -215,6 +216,23 @@ def test_call_start_requires_authentication(api_client, licensed_elder):
         format="json",
     )
     assert response.status_code in {401, 403}
+
+
+@pytest.mark.django_db
+@override_settings(COMMUNICATION_PROVIDER="skyroom", SKYROOM_API_KEY="")
+def test_call_start_without_provider_key_returns_502(authenticated_client, licensed_elder):
+    contact = create_contact(
+        elder_id=licensed_elder.id,
+        display_name="Unconfigured Provider",
+        preferred_channel=CommunicationChannel.VOICE,
+    )
+    response = authenticated_client.post(
+        "/api/v1/communication/call/start/",
+        _start_payload(licensed_elder, contact),
+        format="json",
+    )
+    assert response.status_code == 502
+    assert response.json()["detail"] == "Communication provider is not configured."
 
 
 @pytest.mark.django_db

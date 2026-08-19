@@ -10,6 +10,7 @@ from domains.workflow.enums import ExecutionStatus
 from domains.workflow.evidence_types import APPROVED_EVIDENCE_TYPES
 from domains.workflow.exceptions import (
     EscalationNotAllowedError,
+    ExecutionNotFoundError,
     InvalidDefinitionError,
     InvalidEvidenceError,
     PostponeNotAllowedError,
@@ -104,6 +105,18 @@ def test_valid_evidence_confirms_execution(due_occurrence, workflow_definition):
     )
     assert confirmed.status == ExecutionStatus.CONFIRMED
     assert EventRecord.objects.filter(event_type="ExecutionConfirmed").count() == 1
+
+
+@pytest.mark.django_db
+def test_missing_execution_raises_not_found():
+    import uuid
+
+    with pytest.raises(ExecutionNotFoundError):
+        submit_direct_interaction_evidence(
+            execution_id=uuid.uuid4(),
+            evidence_type=HUB_CONFIRMATION,
+            interaction_reference="missing-execution",
+        )
 
 
 @pytest.mark.django_db
