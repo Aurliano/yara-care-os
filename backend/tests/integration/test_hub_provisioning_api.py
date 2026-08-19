@@ -81,6 +81,11 @@ def test_authenticate_hub_device_returns_tokens(api_client, hub_model, integrati
     assert payload["refresh"]
     assert payload["provisioning_state"] == "READY"
     assert payload["replica_identifier"] == registered["replica_identifier"]
+    from domains.device.models import Device
+
+    device = Device.objects.get(pk=registered["device_id"])
+    assert device.current_state.get("network") == "online"
+    assert device.last_seen_at is not None
 
 
 def test_provisioning_status_reflects_backend_state(api_client, hub_model, integration_user):

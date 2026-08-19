@@ -55,6 +55,7 @@ class YaraApplication : Application(), Configuration.Provider {
             reconcileRuntimeUseCase()
         }
         runtimeScheduler.schedulePeriodicRuntimeWork()
+        runtimeScheduler.scheduleRecurringSyncPoll()
         connectivitySyncTrigger.register()
     }
 

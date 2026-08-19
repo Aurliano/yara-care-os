@@ -110,6 +110,17 @@ class CommunicationPresentationStateMapperTest {
     }
 
     @Test
+    fun startFailureCanUseProviderStatusResource() {
+        val ui = CommunicationPresentationStateMapper.map(
+            session = null,
+            contactName = "پدر",
+            startFailed = true,
+            startFailedStatusRes = R.string.call_provider_not_configured,
+        )
+        assertEquals(R.string.call_provider_not_configured, ui.statusRes)
+    }
+
+    @Test
     fun awaitingOutgoingShowsOutgoingBeforeSession() {
         val ui = CommunicationPresentationStateMapper.map(
             session = null,

@@ -14,6 +14,8 @@
     <string name="call_retry_status">لطفاً کمی صبر کنید</string>
     <string name="call_failed_headline">تماس برقرار نشد</string>
     <string name="call_failed_status">الان نتوانستیم وصل شویم. دوباره تلاش کنید.</string>
+    <string name="call_provider_not_configured">تماس تصویری روی سرور تنظیم نشده است. کلید Skyroom را در backend/.env بگذارید.</string>
+    <string name="call_provider_unreachable">سرویس تماس در دسترس نیست. اتصال اینترنت سرور را بررسی کنید.</string>
     <string name="call_finished_headline">تماس پایان یافت</string>
     <string name="call_finished_status">می‌توانید به صفحه اصلی برگردید</string>
     <string name="call_action_answer">پاسخ</string>

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import uuid
 
 from django.shortcuts import get_object_or_404
@@ -33,6 +34,8 @@ from infrastructure.communication.api.serializers import (
 )
 from infrastructure.communication.models import ProviderSubjectType
 from infrastructure.communication.services import end_call, issue_login_url, start_call
+
+logger = logging.getLogger("yara.communication")
 
 
 def _error_response(exc: CommunicationError) -> Response:
@@ -103,6 +106,8 @@ class CallStartView(APIView):
                 user_display_name=_display_name(request, subject_type, elder),
             )
         except CommunicationError as exc:
+            if isinstance(exc, CommunicationProviderError):
+                logger.error("communication.call.start_failed detail=%s", str(exc))
             return _error_response(exc)
         return Response(_join_payload(result), status=status.HTTP_201_CREATED)
 

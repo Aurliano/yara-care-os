@@ -20,7 +20,7 @@ from domains.device.enums import AssignmentStatus, AssignmentType, DeviceOperati
 from domains.device.exceptions import DeviceModelNotFoundError, DeviceNotFoundError, InvalidDeviceStateError
 from domains.device.models import Device, DeviceAssignment, DeviceModel
 from domains.device.services.assignments import assign_device, return_device
-from domains.device.services.devices import create_device, get_device
+from domains.device.services.devices import create_device, get_device, touch_device_presence
 from domains.identity_access.enums import MembershipStatus
 from domains.identity_access.models import Membership
 from domains.synchronization.enums import ReplicaType
@@ -198,6 +198,7 @@ def authenticate_hub_device(
 
     if elder_id is None:
         elder_id = _active_elder_id(device.id)
+    touch_device_presence(device_id=device.id, is_online=True)
     return {
         "device_id": str(device.id),
         "replica_identifier": blob["replica_identifier"],

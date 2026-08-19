@@ -83,6 +83,7 @@ interface RuntimeScheduler {
     fun schedulePeriodicRuntimeWork()
     fun scheduleOneTimeRuntimeWork(occurrenceId: String? = null)
     fun scheduleDelayedRuntimeWork(occurrenceId: String, delayMs: Long)
+    fun scheduleRecurringSyncPoll(delayMs: Long = 60_000L)
 }
 
 const val RUNTIME_KERNEL_COMPONENT_ID = "__kernel__"

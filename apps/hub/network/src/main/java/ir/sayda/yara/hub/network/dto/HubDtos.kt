@@ -70,6 +70,19 @@ data class HubConfirmationResponseDto(
 )
 
 @Serializable
+data class HubDeviceStateRequestDto(
+    @SerialName("device_id") val deviceId: String,
+    @SerialName("current_state") val currentState: JsonObject,
+    @SerialName("is_online") val isOnline: Boolean = true,
+)
+
+@Serializable
+data class HubDeviceStateResponseDto(
+    @SerialName("device_id") val deviceId: String,
+    @SerialName("operational_status") val operationalStatus: String,
+)
+
+@Serializable
 data class HubRuntimeProcessResponseDto(
     @SerialName("due_occurrences") val dueOccurrences: Int = 0,
     @SerialName("workflow_timeouts") val workflowTimeouts: Int = 0,

@@ -36,6 +36,17 @@ class WorkManagerRuntimeScheduler @Inject constructor(
         enqueueRuntimeWork(occurrenceId = occurrenceId, delayMs = delayMs)
     }
 
+    override fun scheduleRecurringSyncPoll(delayMs: Long) {
+        val request = OneTimeWorkRequestBuilder<IntegrationRuntimeWorker>()
+            .setInitialDelay(delayMs.coerceAtLeast(1L), TimeUnit.MILLISECONDS)
+            .build()
+        WorkManager.getInstance(context).enqueueUniqueWork(
+            IntegrationRuntimeWorker.POLL_WORK_NAME,
+            ExistingWorkPolicy.REPLACE,
+            request,
+        )
+    }
+
     private fun enqueueRuntimeWork(occurrenceId: String?, delayMs: Long) {
         val input = if (occurrenceId.isNullOrBlank()) {
             Data.EMPTY

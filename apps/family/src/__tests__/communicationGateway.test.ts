@@ -1,5 +1,6 @@
 import {
   HttpCommunicationGateway,
+  mapCallFailureMessage,
   parseExpiresAt,
 } from "../communication/CommunicationGateway";
 import { ActiveCallExistsError } from "../communication/result";
@@ -75,6 +76,21 @@ describe("HttpCommunicationGateway", () => {
     }
     expect(result.error.name).toBe("ApiError");
     expect((result.error as { status?: number }).status).toBe(403);
+  });
+
+  it("maps HTTP 502 missing provider to a configured-message", async () => {
+    const http = new FakeHttp();
+    http.next = { status: 502, body: { detail: "Communication provider is not configured." } };
+    const gateway = new HttpCommunicationGateway(http);
+
+    const result = await gateway.startCall("elder-1", "VIDEO", "contact-1");
+
+    expect(result.ok).toBe(false);
+    if (result.ok) {
+      return;
+    }
+    expect(result.error.name).toBe("ApiError");
+    expect(mapCallFailureMessage(result.error)).toContain("Skyroom");
   });
 
   it("posts endCall with session_id", async () => {

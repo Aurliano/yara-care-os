@@ -11,10 +11,9 @@ import { queryKeys } from "../../../src/api/queryKeys";
 import { useElderStore } from "../../../src/stores/elderStore";
 import { usePermissions } from "../../../src/permissions/usePermission";
 import { PERMISSIONS } from "../../../src/permissions/codes";
-import { ApiError } from "../../../src/api/errors";
+import { mapCallFailureMessage } from "../../../src/communication/CommunicationGateway";
 import type { Contact } from "../../../src/api/types";
 import {
-  ActiveCallExistsError,
   createFamilyCommunicationRuntime,
   INCOMING_SESSION_STATUSES,
   isActiveCallState,
@@ -81,18 +80,12 @@ export default function CallScreen() {
     try {
       const result = await runtime.startCall(elderId, channel, contact.id);
       if (!result.ok) {
-        if (result.error instanceof ActiveCallExistsError) {
-          setError(t.callBusy);
-        } else if (result.error instanceof ApiError && result.error.status === 403) {
-          setError(t.callPermissionBody);
-        } else {
-          setError(t.callFailed);
-        }
+        setError(mapCallFailureMessage(result.error));
         return;
       }
       await joinMedia(result.data);
-    } catch {
-      setError(t.callFailed);
+    } catch (error) {
+      setError(mapCallFailureMessage(error));
     } finally {
       setBusyId(null);
     }
@@ -108,8 +101,8 @@ export default function CallScreen() {
         throw result.error;
       }
       await joinMedia(result.data);
-    } catch {
-      setError(t.callFailed);
+    } catch (error) {
+      setError(mapCallFailureMessage(error));
     } finally {
       setBusyId(null);
     }

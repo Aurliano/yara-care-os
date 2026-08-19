@@ -36,6 +36,7 @@ private data class CallViewBits(
     val muted: Boolean = false,
     val cameraOn: Boolean = false,
     val startFailed: Boolean = false,
+    val startFailedStatusRes: Int? = null,
     val fallbackName: String = "",
     val awaitingOutgoing: Boolean = false,
     val locallyFinished: Boolean = false,
@@ -68,6 +69,7 @@ class CallViewModel @Inject constructor(
                 muted = current.muted,
                 cameraOn = current.cameraOn,
                 startFailed = current.startFailed,
+                startFailedStatusRes = current.startFailedStatusRes,
                 awaitingOutgoing = current.awaitingOutgoing,
                 locallyFinished = current.locallyFinished,
             )
@@ -165,7 +167,7 @@ class CallViewModel @Inject constructor(
             bits.update { it.copy(startFailed = false) }
             if (communicationRuntime.reconnect() is AppResult.Error) {
                 if (bits.value.session?.runtimeState?.isActive() != true) {
-                    bits.update { it.copy(startFailed = true) }
+                    bits.update { it.copy(startFailed = true, startFailedStatusRes = R.string.call_failed_status) }
                 }
             }
         }
@@ -201,7 +203,7 @@ class CallViewModel @Inject constructor(
             val elderId = args.elderId.ifBlank { authRepository.getIdentity()?.elderId.orEmpty() }
             val channel = args.channel.ifBlank { "VOICE" }
             if (elderId.isBlank()) {
-                bits.update { it.copy(startFailed = true, awaitingOutgoing = false) }
+                bits.update { it.copy(startFailed = true, startFailedStatusRes = R.string.call_failed_status, awaitingOutgoing = false) }
                 return@launch
             }
             val current = bits.value.session
@@ -209,10 +211,25 @@ class CallViewModel @Inject constructor(
                 bits.update { it.copy(awaitingOutgoing = false) }
                 return@launch
             }
-            when (communicationRuntime.startCall(elderId, channel, args.contactId)) {
-                is AppResult.Success -> bits.update { it.copy(startFailed = false, awaitingOutgoing = false) }
-                is AppResult.Error -> bits.update { it.copy(startFailed = true, awaitingOutgoing = false) }
+            when (val result = communicationRuntime.startCall(elderId, channel, args.contactId)) {
+                is AppResult.Success -> bits.update { it.copy(startFailed = false, startFailedStatusRes = null, awaitingOutgoing = false) }
+                is AppResult.Error -> bits.update {
+                    it.copy(
+                        startFailed = true,
+                        startFailedStatusRes = callFailureStatusRes(result.exception),
+                        awaitingOutgoing = false,
+                    )
+                }
             }
         }
+    }
+}
+
+private fun callFailureStatusRes(error: Throwable): Int {
+    val detail = error.message.orEmpty()
+    return when {
+        detail.contains("not configured", ignoreCase = true) -> R.string.call_provider_not_configured
+        detail.contains("unreachable", ignoreCase = true) -> R.string.call_provider_unreachable
+        else -> R.string.call_failed_status
     }
 }

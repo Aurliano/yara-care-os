@@ -4,7 +4,7 @@ import { AppText, Card, EmptyState, LoadingSkeleton, Screen, StatusBadge, TopApp
 import { t, formatRelative, toPersianDigits } from "../../../src/i18n";
 import { spacing } from "../../../src/theme/tokens";
 import { getDevice, getDeviceState, listPairings } from "../../../src/api/endpoints/device";
-import { readBattery } from "../../../src/services/devices/deviceRepository";
+import { isDeviceConnected, normalizeConnectivity, readBattery } from "../../../src/services/devices/deviceRepository";
 import { queryKeys } from "../../../src/api/queryKeys";
 import { firstParam } from "../../../src/navigation/params";
 import { StyleSheet, View } from "react-native";
@@ -45,15 +45,17 @@ export default function DeviceDetailScreen() {
 
   const battery = state.data ? readBattery(state.data.current_state) : null;
   const lastSeen = state.data?.last_seen_at ?? device.data.last_seen_at;
+  const connectivity = normalizeConnectivity(state.data?.current_state?.network);
+  const connected = isDeviceConnected(connectivity);
 
   return (
     <Screen>
       <TopAppBar title={t.viewDetails} showBack />
-      <Card accent={device.data.operational_status === "ACTIVE" ? "success" : "error"}>
+      <Card accent={connected ? "success" : "error"}>
         <AppText variant="title">{device.data.serial_number}</AppText>
         <StatusBadge
-          label={device.data.operational_status === "ACTIVE" ? t.connected : t.disconnected}
-          tone={device.data.operational_status === "ACTIVE" ? "success" : "error"}
+          label={connected ? t.online : t.disconnected}
+          tone={connected ? "success" : "error"}
         />
         <View style={styles.row}>
           <AppText variant="caption">

@@ -126,6 +126,26 @@ def test_list_elder_assigned_devices_active_only(hub_device, licensed_elder):
 
 
 @pytest.mark.django_db
+def test_assigned_hub_without_network_state_is_not_listed_online(hub_device, licensed_elder):
+    from domains.device.services.devices import update_device_state
+
+    update_device_state(
+        device_id=hub_device.id,
+        current_state={"battery_percent": 40},
+        is_online=None,
+    )
+    assign_device(
+        device_id=hub_device.id,
+        elder_id=licensed_elder.id,
+        assignment_type=AssignmentType.OWNED,
+    )
+    items = list_elder_assigned_devices(elder_id=licensed_elder.id)
+    assert items[0]["connectivity"] == "unknown"
+    assert items[0]["battery_percent"] == 40
+    assert items[0]["operational_status"] == "ACTIVE"
+
+
+@pytest.mark.django_db
 def test_pairing_lifecycle(hub_device, peripheral_device):
     pairing = create_pairing(hub_device_id=hub_device.id, peripheral_device_id=peripheral_device.id)
     assert pairing.status == PairingStatus.PAIRING

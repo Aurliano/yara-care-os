@@ -3,12 +3,14 @@
 from __future__ import annotations
 
 import json
+import logging
 import uuid
 from datetime import timedelta
 from typing import Any
 
 from django.db import transaction
 from django.utils import timezone
+from common.observability.logging import log_structured
 
 from domains.care.models import CareActivity
 from domains.care.services.sync_export import build_care_activity_sync_delta
@@ -32,6 +34,7 @@ from integration.exceptions import ReplicaContextRequiredError
 from integration.services.hub_provisioning import get_download_scope_elder_id, set_download_scope_elder_id
 
 INCREMENTAL_HORIZON_DAYS = 7
+logger = logging.getLogger("yara.synchronization")
 
 
 def _epoch_millis(value) -> int:
@@ -87,34 +90,65 @@ def _record_replica_version(*, replica, aggregate_reference: uuid.UUID, aggregat
     )
 
 
-def _seed_replica_versions_for_scope(*, replica, elder_id: uuid.UUID, device_id: uuid.UUID | None) -> None:
-    for activity in CareActivity.objects.filter(elder_id=elder_id):
+def _parse_uuid(value: Any) -> uuid.UUID | None:
+    try:
+        return uuid.UUID(str(value))
+    except (ValueError, TypeError, AttributeError):
+        return None
+
+
+def _seed_replica_versions_from_snapshot(*, replica, payload: dict[str, Any]) -> None:
+    """Record versions only for aggregates that were actually in the snapshot payload.
+
+    Seeding from the live elder scope would mark later CareActivities as applied
+    even when the Hub never received them, so incremental download would skip them.
+    """
+    for item in payload.get("care_activities") or []:
+        activity_id = _parse_uuid(item.get("care_activity_id"))
+        if activity_id is None:
+            continue
+        activity = CareActivity.objects.filter(pk=activity_id).first()
+        if activity is None:
+            continue
         _record_replica_version(
             replica=replica,
             aggregate_reference=activity.id,
             aggregate_version=str(activity.aggregate_version),
         )
 
-    schedule_ids = _elder_schedule_ids(elder_id=elder_id)
-    occurrence_ids = _occurrence_ids_in_horizon(schedule_ids=schedule_ids)
-    if occurrence_ids:
-        for execution in WorkflowExecution.objects.filter(occurrence_id__in=occurrence_ids):
-            _record_replica_version(
-                replica=replica,
-                aggregate_reference=execution.id,
-                aggregate_version=str(execution.aggregate_version),
-            )
+    for item in payload.get("workflow_executions") or []:
+        execution_id = _parse_uuid(item.get("workflow_execution_id"))
+        if execution_id is None:
+            continue
+        execution = WorkflowExecution.objects.filter(pk=execution_id).first()
+        if execution is None:
+            continue
+        _record_replica_version(
+            replica=replica,
+            aggregate_reference=execution.id,
+            aggregate_version=str(execution.aggregate_version),
+        )
 
-    if device_id is not None:
-        device = Device.objects.filter(pk=device_id).first()
-        if device is not None:
-            _record_replica_version(
-                replica=replica,
-                aggregate_reference=device.id,
-                aggregate_version=str(device.aggregate_version),
-            )
+    for item in payload.get("devices") or []:
+        snapshot_device_id = _parse_uuid(item.get("device_id"))
+        if snapshot_device_id is None:
+            continue
+        device = Device.objects.filter(pk=snapshot_device_id).first()
+        if device is None:
+            continue
+        _record_replica_version(
+            replica=replica,
+            aggregate_reference=device.id,
+            aggregate_version=str(device.aggregate_version),
+        )
 
-    for session in CommunicationSession.objects.filter(elder_id=elder_id):
+    for item in payload.get("communication_sessions") or []:
+        session_id = _parse_uuid(item.get("communication_session_id") or item.get("id"))
+        if session_id is None:
+            continue
+        session = CommunicationSession.objects.filter(pk=session_id).first()
+        if session is None:
+            continue
         _record_replica_version(
             replica=replica,
             aggregate_reference=session.id,
@@ -446,14 +480,33 @@ def stage_hub_download_operations(*, ctx: IntegrationContext, session: Synchroni
             payload_type="hub.replica.snapshot",
             idempotency_key=f"hub-snapshot:{session.id}",
         )
+        log_structured(
+            logger,
+            "hub.download.snapshot_staged",
+            session_id=session.id,
+            replica_id=ctx.replica_id,
+            device_id=ctx.device_id,
+            elder_id=str(elder_id),
+            care_activities=len(payload.get("care_activities") or []),
+        )
         return 1
 
-    return _stage_incremental_deltas(
+    staged = _stage_incremental_deltas(
         session=session,
         replica=replica,
         elder_id=elder_id,
         device_id=ctx.device_id,
     )
+    log_structured(
+        logger,
+        "hub.download.incremental_staged",
+        session_id=session.id,
+        replica_id=ctx.replica_id,
+        device_id=ctx.device_id,
+        elder_id=str(elder_id),
+        staged=staged,
+    )
+    return staged
 
 
 @transaction.atomic
@@ -479,10 +532,12 @@ def complete_hub_download_session(*, ctx: IntegrationContext, session_id: uuid.U
         _complete_session(session)
         return {"status": session.status, "operations_applied": 0}
 
-    had_snapshot = any(
-        operation.operation_type == OperationType.SNAPSHOT or operation.payload_type.endswith(".snapshot")
-        for operation in pending
-    )
+    snapshot_payload: dict[str, Any] | None = None
+    for operation in pending:
+        if operation.operation_type == OperationType.SNAPSHOT or operation.payload_type.endswith(".snapshot"):
+            if isinstance(operation.payload, dict):
+                snapshot_payload = operation.payload
+            break
 
     for operation in pending:
         operation.status = OperationStatus.APPLIED
@@ -496,12 +551,8 @@ def complete_hub_download_session(*, ctx: IntegrationContext, session_id: uuid.U
             )
 
     elder_id = _resolve_elder_id(ctx)
-    if had_snapshot and elder_id is not None:
-        _seed_replica_versions_for_scope(
-            replica=replica,
-            elder_id=elder_id,
-            device_id=ctx.device_id,
-        )
+    if snapshot_payload is not None and elder_id is not None:
+        _seed_replica_versions_from_snapshot(replica=replica, payload=snapshot_payload)
         if ctx.device_id is not None:
             device = Device.objects.filter(pk=ctx.device_id).first()
             if device is not None:

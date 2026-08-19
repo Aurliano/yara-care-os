@@ -49,6 +49,7 @@ object CommunicationPresentationStateMapper {
         muted: Boolean = false,
         cameraOn: Boolean = false,
         startFailed: Boolean = false,
+        startFailedStatusRes: Int? = null,
         awaitingOutgoing: Boolean = false,
         locallyFinished: Boolean = false,
     ): CommunicationPresentationState {
@@ -151,7 +152,7 @@ object CommunicationPresentationStateMapper {
                     kind = kind,
                     contactName = name,
                     headlineRes = R.string.call_failed_headline,
-                    statusRes = R.string.call_failed_status,
+                    statusRes = startFailedStatusRes ?: R.string.call_failed_status,
                     showAnswer = false,
                     showDecline = false,
                     showHangup = false,

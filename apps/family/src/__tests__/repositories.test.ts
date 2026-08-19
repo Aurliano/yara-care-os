@@ -1,5 +1,5 @@
 import { loadAlertInbox } from "../services/alerts/alertRepository";
-import { loadElderDevices } from "../services/devices/deviceRepository";
+import { isDeviceConnected, loadElderDevices, normalizeConnectivity } from "../services/devices/deviceRepository";
 import { MEDICATION_REGIMEN_GAP, groupMedicationTimes } from "../services/program/medicationRegimen";
 import { visualKindFor } from "../services/program/activityKind";
 import { BLOCKED_CAREGIVER_COMMANDS } from "../api/deviceCommandPolicy";
@@ -38,6 +38,12 @@ describe("backend gap repositories", () => {
     const catalog = await loadElderDevices("elder-1");
     expect(catalog.available).toBe(true);
     expect(catalog.items[0]?.kind).toBe("HUB");
+  });
+
+  it("treats unknown connectivity as disconnected, not assigned-active", () => {
+    expect(normalizeConnectivity("ACTIVE")).toBe("unknown");
+    expect(isDeviceConnected("unknown")).toBe(false);
+    expect(isDeviceConnected("online")).toBe(true);
   });
 
   it("keeps MedicationRegimen isolated", () => {

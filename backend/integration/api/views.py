@@ -32,6 +32,7 @@ from integration.runtime.adapters.synchronization import (
     start_upload_session,
 )
 from integration.services.hub_download_staging import stage_hub_download_operations
+from domains.device.services.devices import touch_device_presence
 from integration.runtime.scheduler import run_integration_cycle
 
 
@@ -168,6 +169,8 @@ class HubSyncStartView(APIView):
                 stage_hub_download_operations(ctx=ctx, session=session)
             else:
                 session = start_upload_session(ctx, idempotency_key=idempotency_key)
+            if ctx.device_id is not None:
+                touch_device_presence(device_id=ctx.device_id, is_online=True)
         except Exception as exc:  # noqa: BLE001
             return hub_error_response(exc)
         return Response(

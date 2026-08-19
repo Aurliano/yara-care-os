@@ -3,7 +3,7 @@ export { ACTIVE_CALL_STATES, INCOMING_SESSION_STATUSES, isActiveCallState } from
 export { ActiveCallExistsError, IllegalTransitionError, err, ok } from "./result";
 export type { AppResult } from "./result";
 export { CommunicationStateMachine } from "./CommunicationStateMachine";
-export { HttpCommunicationGateway, parseExpiresAt } from "./CommunicationGateway";
+export { HttpCommunicationGateway, mapCallFailureMessage, parseExpiresAt } from "./CommunicationGateway";
 export type { CommunicationGateway, FamilyHttpClient, JoinCredentials } from "./CommunicationGateway";
 export {
   InMemoryKeyValueStore,
