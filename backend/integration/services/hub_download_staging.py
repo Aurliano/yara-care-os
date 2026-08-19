@@ -29,6 +29,7 @@ from domains.workflow.models import WorkflowDefinition, WorkflowExecution
 from domains.workflow.services.sync_export import build_workflow_execution_sync_delta
 from integration.context import IntegrationContext
 from integration.exceptions import ReplicaContextRequiredError
+from integration.services.hub_provisioning import get_download_scope_elder_id, set_download_scope_elder_id
 
 INCREMENTAL_HORIZON_DAYS = 7
 
@@ -408,6 +409,17 @@ def _stage_pending_operation(
     )
 
 
+def _should_stage_snapshot(*, replica, device_id: uuid.UUID | None, elder_id: uuid.UUID) -> bool:
+    if replica.checkpoint_sequence == 0:
+        return True
+    if device_id is None:
+        return False
+    device = Device.objects.filter(pk=device_id).first()
+    if device is None:
+        return False
+    return get_download_scope_elder_id(device) != str(elder_id)
+
+
 def stage_hub_download_operations(*, ctx: IntegrationContext, session: SynchronizationSession) -> int:
     """Populate pending operations for a hub DOWNLOAD session using existing sync contracts."""
     if ctx.replica_id is None:
@@ -421,9 +433,8 @@ def stage_hub_download_operations(*, ctx: IntegrationContext, session: Synchroni
         return 0
 
     replica = get_replica_state(replica_identifier=ctx.replica_id)
-    checkpoint = replica.checkpoint_sequence
 
-    if checkpoint == 0:
+    if _should_stage_snapshot(replica=replica, device_id=ctx.device_id, elder_id=elder_id):
         payload = _build_elder_snapshot_payload(elder_id=elder_id, device_id=ctx.device_id)
         aggregate_reference = uuid.uuid5(uuid.NAMESPACE_URL, f"hub-snapshot:{elder_id}")
         _stage_pending_operation(
@@ -491,6 +502,10 @@ def complete_hub_download_session(*, ctx: IntegrationContext, session_id: uuid.U
             elder_id=elder_id,
             device_id=ctx.device_id,
         )
+        if ctx.device_id is not None:
+            device = Device.objects.filter(pk=ctx.device_id).first()
+            if device is not None:
+                set_download_scope_elder_id(device, elder_id)
 
     _transition_session(session, SessionStatus.CHANGES_APPLIED)
     advance_checkpoint(

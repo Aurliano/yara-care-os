@@ -29,10 +29,14 @@ class DownloadSessionRunner @Inject constructor(
         val session = syncSessionStore.getCached()
             ?: return AppResult.Error(IllegalStateException("No active download session"))
         return synchronizationRepository.fetchPendingOperations(session.sessionId).map { operations ->
-            operations.filter {
-                it.operationType == SyncOperationType.SNAPSHOT || it.payloadType.endsWith(".snapshot")
-            }
+            operations.filter(::isSnapshotOperation)
         }
+    }
+
+    suspend fun downloadPendingOperations(): AppResult<List<SyncOperation>> {
+        val session = syncSessionStore.getCached()
+            ?: return AppResult.Error(IllegalStateException("No active download session"))
+        return synchronizationRepository.fetchPendingOperations(session.sessionId)
     }
 
     suspend fun applyAndFinalize(operations: List<SyncOperation>): AppResult<ApplySummary> {
@@ -61,3 +65,6 @@ private inline fun <T> AppResult<T>.map(transform: (T) -> T): AppResult<T> = whe
     is AppResult.Success -> AppResult.Success(transform(data))
     is AppResult.Error -> this
 }
+
+internal fun isSnapshotOperation(operation: SyncOperation): Boolean =
+    operation.operationType == SyncOperationType.SNAPSHOT || operation.payloadType.endsWith(".snapshot")

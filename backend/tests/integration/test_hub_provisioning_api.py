@@ -5,6 +5,11 @@ import uuid
 import pytest
 from rest_framework.test import APIClient
 
+from domains.device.enums import AssignmentStatus
+from domains.device.models import DeviceAssignment
+from domains.identity_access.services.profiles import create_elder, create_user
+from domains.licensing.services.licenses import activate_license
+
 
 @pytest.fixture
 def api_client():
@@ -178,4 +183,97 @@ def test_reregister_after_revoke_issues_new_replica(api_client, hub_model, integ
     assert reregistered["device_id"] == registered["device_id"]
     assert reregistered["replica_identifier"] != registered["replica_identifier"]
     assert reregistered["provisioning_state"] == "REGISTERED"
+
+
+def test_authenticate_reassigns_hub_to_authenticating_caregiver_elder(
+    api_client,
+    hub_model,
+    integration_user,
+    licensed_elder,
+):
+    serial = f"HUB-REBIND-{uuid.uuid4().hex[:8]}"
+    registered = api_client.post(
+        "/api/v1/hub/provision/register/",
+        {"serial_number": serial, "device_model_code": hub_model.model_code},
+        format="json",
+    ).json()
+    first = api_client.post(
+        "/api/v1/hub/provision/authenticate/",
+        {
+            "device_id": registered["device_id"],
+            "phone": integration_user.phone,
+            "password": "securepass123",
+        },
+        format="json",
+    )
+    assert first.status_code == 200
+    assert first.json()["elder_id"] == str(licensed_elder.id)
+
+    second_user = create_user(
+        phone="+989128888888",
+        password="familylab123",
+        full_name="Family Lab Caregiver",
+    )
+    second_elder = create_elder(actor=second_user, full_name="Family Lab Elder")
+    activate_license(elder_id=second_elder.id, plan_code="BASIC")
+
+    rebound = api_client.post(
+        "/api/v1/hub/provision/authenticate/",
+        {
+            "device_id": registered["device_id"],
+            "phone": second_user.phone,
+            "password": "familylab123",
+        },
+        format="json",
+    )
+    assert rebound.status_code == 200
+    assert rebound.json()["elder_id"] == str(second_elder.id)
+
+    assigned = DeviceAssignment.objects.filter(
+        device_id=registered["device_id"],
+        status=AssignmentStatus.ASSIGNED,
+    )
+    assert assigned.count() == 1
+    assert assigned.get().elder_id == second_elder.id
+
+    api_client.force_authenticate(user=second_user)
+    devices = api_client.get(f"/api/v1/elders/{second_elder.id}/devices/")
+    assert devices.status_code == 200
+    assert len(devices.json()) == 1
+    assert devices.json()[0]["id"] == registered["device_id"]
+
+    api_client.force_authenticate(user=integration_user)
+    previous = api_client.get(f"/api/v1/elders/{licensed_elder.id}/devices/")
+    assert previous.status_code == 200
+    assert previous.json() == []
+
+
+def test_hub_confirmation_unknown_execution_returns_404(api_client, hub_model, integration_user):
+    serial = f"HUB-CONF-{uuid.uuid4().hex[:8]}"
+    registered = api_client.post(
+        "/api/v1/hub/provision/register/",
+        {"serial_number": serial, "device_model_code": hub_model.model_code},
+        format="json",
+    ).json()
+    auth = api_client.post(
+        "/api/v1/hub/provision/authenticate/",
+        {
+            "device_id": registered["device_id"],
+            "phone": integration_user.phone,
+            "password": "securepass123",
+        },
+        format="json",
+    )
+    assert auth.status_code == 200
+    api_client.credentials(HTTP_AUTHORIZATION=f"Bearer {auth.json()['access']}")
+    response = api_client.post(
+        "/api/v1/hub/confirmations/",
+        {
+            "workflow_execution_id": str(uuid.uuid4()),
+            "interaction_reference": "stale-local-execution",
+        },
+        format="json",
+    )
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Workflow execution not found."
 

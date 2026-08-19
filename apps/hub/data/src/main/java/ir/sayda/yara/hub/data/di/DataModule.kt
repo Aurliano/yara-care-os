@@ -39,6 +39,7 @@ import ir.sayda.yara.hub.data.repository.ReminderRepositoryImpl
 import ir.sayda.yara.hub.data.identity.AuthRepositoryImpl
 import ir.sayda.yara.hub.data.identity.AuthTokenRefreshHandler
 import ir.sayda.yara.hub.data.identity.DataStoreReplicaIdentityProvider
+import ir.sayda.yara.hub.data.identity.PersistedHubDeviceCredentialsProvider
 import ir.sayda.yara.hub.data.provisioning.ProvisioningRepositoryImpl
 import ir.sayda.yara.hub.data.provisioning.RuntimeProvisioningGateImpl
 import ir.sayda.yara.hub.core.provisioning.RuntimeProvisioningGate
@@ -77,6 +78,9 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 abstract class RepositoryModule {
     @Binds @Singleton abstract fun bindAuthRepository(impl: AuthRepositoryImpl): AuthRepository
+    @Binds @Singleton abstract fun bindHubDeviceCredentialsProvider(
+        impl: PersistedHubDeviceCredentialsProvider,
+    ): ir.sayda.yara.hub.core.provisioning.HubDeviceCredentialsProvider
     @Binds @Singleton abstract fun bindTokenRefreshHandler(impl: AuthTokenRefreshHandler): TokenRefreshHandler
     @Binds @Singleton abstract fun bindProvisioningRepository(impl: ProvisioningRepositoryImpl): ProvisioningRepository
     @Binds @Singleton abstract fun bindRuntimeProvisioningGate(impl: RuntimeProvisioningGateImpl): RuntimeProvisioningGate

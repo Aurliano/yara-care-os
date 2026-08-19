@@ -6,7 +6,7 @@ import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import ir.sayda.yara.hub.BuildConfig
 import ir.sayda.yara.hub.core.di.HubBaseUrl
-import ir.sayda.yara.hub.core.provisioning.HubDeviceCredentialsProvider
+import ir.sayda.yara.hub.core.provisioning.HubLabCredentialDefaults
 import ir.sayda.yara.hub.core.provisioning.ProvisionCredential
 import ir.sayda.yara.hub.provisioning.HubDeviceModelCode
 import javax.inject.Singleton
@@ -26,16 +26,16 @@ object ProvisioningConfigModule {
 
     @Provides
     @Singleton
-    fun provideHubDeviceCredentialsProvider(): HubDeviceCredentialsProvider =
-        object : HubDeviceCredentialsProvider {
-        override fun credentials(): ProvisionCredential? {
-            if (BuildConfig.PROVISION_PHONE.isBlank() || BuildConfig.PROVISION_PASSWORD.isBlank()) {
-                return null
+    fun provideHubLabCredentialDefaults(): HubLabCredentialDefaults =
+        object : HubLabCredentialDefaults {
+            override fun defaults(): ProvisionCredential? {
+                if (BuildConfig.PROVISION_PHONE.isBlank() || BuildConfig.PROVISION_PASSWORD.isBlank()) {
+                    return null
+                }
+                return ProvisionCredential(
+                    phone = BuildConfig.PROVISION_PHONE,
+                    password = BuildConfig.PROVISION_PASSWORD,
+                )
             }
-            return ProvisionCredential(
-                phone = BuildConfig.PROVISION_PHONE,
-                password = BuildConfig.PROVISION_PASSWORD,
-            )
         }
-    }
 }

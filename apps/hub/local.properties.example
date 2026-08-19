@@ -4,6 +4,7 @@ hub.backend.url=http://192.168.1.100:8000/api/v1/
 
 # Authenticate as the Family lab caregiver so DeviceAssignment binds to that elder.
 # Seed with: python manage.py seed_family_lab
-# Leave unset to keep Hub-dev credentials (+989136666666).
+# These values only prefill the Hub caregiver login screen. They are not auto-submitted.
+# Leave unset to type the caregiver phone and password on the Hub.
 hub.provision.phone=+989121111111
 hub.provision.password=familylab123

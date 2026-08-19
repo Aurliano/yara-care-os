@@ -50,8 +50,8 @@ fun HomeRuntimeSnapshot.toConnectionPresentation(): ConnectionPresentation {
         )
         ProvisioningState.REGISTERED -> return ConnectionPresentation(
             state = ConnectionVisualState.Provisioning,
-            title = "در حال اتصال",
-            subtitle = "در حال اتصال",
+            title = "ورود مراقب",
+            subtitle = "با همان حساب اپ مراقب وارد شوید",
         )
     }
 
@@ -105,6 +105,13 @@ fun HomeRuntimeSnapshot.toNextReminderPresentation(
 
 fun HomeRuntimeSnapshot.todayRemindersSectionTitle(): String? =
     if (todayReminders.size > 1) "یادآورهای دیگر امروز" else null
+
+fun HomeRuntimeSnapshot.needsCaregiverLogin(): Boolean {
+    if (deviceId.isNullOrBlank()) return false
+    return provisioningState == ProvisioningState.REGISTERED ||
+        provisioningState == ProvisioningState.AUTHENTICATING ||
+        provisioningState == ProvisioningState.ERROR
+}
 
 fun HomeRuntimeSnapshot.emptyMedicationMessage(): String? = when {
     provisioningState != ProvisioningState.READY -> null
