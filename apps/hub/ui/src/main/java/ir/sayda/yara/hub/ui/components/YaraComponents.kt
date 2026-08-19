@@ -3,6 +3,7 @@ package ir.sayda.yara.hub.ui.components
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
@@ -27,7 +28,6 @@ import androidx.compose.material.icons.rounded.Call
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.ChevronLeft
-import androidx.compose.material.icons.rounded.Eco
 import androidx.compose.material.icons.rounded.Cloud
 import androidx.compose.material.icons.rounded.CloudOff
 import androidx.compose.material.icons.rounded.CloudQueue
@@ -42,6 +42,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -55,10 +56,15 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import ir.sayda.yara.hub.ui.R
 import ir.sayda.yara.hub.ui.presentation.ConnectionVisualState
 import ir.sayda.yara.hub.ui.presentation.formatEpochForDisplay
 import ir.sayda.yara.hub.ui.theme.Error
@@ -103,7 +109,6 @@ fun TodayBackground(modifier: Modifier = Modifier) {
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun BrandHeader(
     time: String,
@@ -125,44 +130,40 @@ fun BrandHeader(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.Top,
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Column(horizontalAlignment = Alignment.End) {
-                Text(
-                    text = "یارا",
-                    style = MaterialTheme.typography.titleLarge,
-                    color = YaraGreen,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 1.sp,
-                )
-                Text(
-                    text = "همدم هوشمند سالمندان",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = TextSecondary,
-                    fontSize = 12.sp,
-                    lineHeight = 18.sp,
-                )
-            }
-            Spacer(modifier = Modifier.width(16.dp))
-            Box(
-                modifier = Modifier
-                    .size(56.dp)
-                    .clip(CircleShape)
-                    .background(YaraLightGreen)
-                    .clickable {
-                        logoTapCount++
-                        if (logoTapCount >= 5) {
-                            onLogoActivated()
-                            logoTapCount = 0
-                        }
-                    },
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    imageVector = Icons.Rounded.Eco,
+        CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Image(
+                    painter = painterResource(R.drawable.yara_logo),
                     contentDescription = "لوگوی یارا",
-                    tint = YaraGreen,
-                    modifier = Modifier.size(36.dp),
+                    contentScale = ContentScale.Fit,
+                    modifier = Modifier
+                        .size(width = 56.dp, height = 60.dp)
+                        .clickable {
+                            logoTapCount++
+                            if (logoTapCount >= 5) {
+                                onLogoActivated()
+                                logoTapCount = 0
+                            }
+                        },
                 )
+                Spacer(modifier = Modifier.width(12.dp))
+                Column(horizontalAlignment = Alignment.Start) {
+                    Image(
+                        painter = painterResource(R.drawable.yara_typo),
+                        contentDescription = "یارا",
+                        contentScale = ContentScale.Fit,
+                        modifier = Modifier
+                            .height(28.dp)
+                            .width(115.dp),
+                    )
+                    Text(
+                        text = "همدم هوشمند سالمندان",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = TextSecondary,
+                        fontSize = 12.sp,
+                        lineHeight = 18.sp,
+                    )
+                }
             }
         }
         Column(horizontalAlignment = Alignment.Start) {

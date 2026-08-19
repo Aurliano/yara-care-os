@@ -1,5 +1,6 @@
 export { Screen } from "./Screen";
 export { TopAppBar } from "./TopAppBar";
+export { BrandLockup } from "./BrandLockup";
 export { BottomNav } from "./BottomNav";
 export { Button } from "./Button";
 export { Card } from "./Card";

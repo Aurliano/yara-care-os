@@ -1,8 +1,9 @@
 import { type ReactNode } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import { useRouter } from "expo-router";
-import { colors, sizes, spacing, typography } from "../theme/tokens";
+import { colors, sizes, spacing } from "../theme/tokens";
 import { AppText } from "./AppText";
+import { BrandLockup } from "./BrandLockup";
 import { Icon } from "./Icon";
 import { t } from "../i18n";
 
@@ -44,9 +45,15 @@ export function TopAppBar({ title = t.brand, showBell = true, showBack = false, 
       ) : (
         bell
       )}
-      <AppText variant="headline" color={colors.primary} align="center" style={styles.title}>
-        {title}
-      </AppText>
+      {title === t.brand ? (
+        <View style={styles.title}>
+          <BrandLockup size="sm" />
+        </View>
+      ) : (
+        <AppText variant="headline" color={colors.primary} align="center" style={styles.title}>
+          {title}
+        </AppText>
+      )}
       <View style={styles.trailing}>
         {trailing}
         {showBack ? bell : <View style={styles.hit} />}
@@ -64,7 +71,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     backgroundColor: colors.background,
   },
-  title: { flex: 1, ...typography.headline },
+  title: { flex: 1, alignItems: "center", justifyContent: "center" },
   hit: {
     width: sizes.touch,
     height: sizes.touch,

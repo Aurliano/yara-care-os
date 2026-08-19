@@ -37,7 +37,8 @@ export function LocalImage({
 }
 
 export const images = {
-  logo: require("../../assets/images/yara-logo.png"),
+  logo: require("../../assets/images/yara-logo-emblem.png"),
+  wordmark: require("../../assets/images/yara-wordmark.png"),
   noElder: require("../../assets/illustrations/no-elder.png"),
   permissionDenied: require("../../assets/illustrations/permission-denied.png"),
 };
