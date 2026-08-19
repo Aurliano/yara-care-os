@@ -108,6 +108,12 @@ def test_generate_login_url_ttl_and_no_api_key_in_url():
     assert API_KEY not in login.login_url
 
 
+def test_missing_api_key_is_not_configured():
+    with pytest.raises(CommunicationProviderError) as exc_info:
+        SkyroomCommunicationProvider(api_key="", base_url="https://www.skyroom.online/skyroom/api")
+    assert str(exc_info.value) == "Communication provider is not configured."
+
+
 def test_provider_error_does_not_include_api_key():
     def fake_urlopen(request, timeout=15):
         raise urllib.error.URLError(f"failed contacting {API_KEY}")

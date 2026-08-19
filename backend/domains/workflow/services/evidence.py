@@ -11,7 +11,7 @@ from django.utils import timezone
 from domains.workflow.definition_schema import get_accepted_evidence_types, validate_workflow_definition
 from domains.workflow.enums import EvidenceSourceType, ExecutionStatus
 from domains.workflow.evidence_types import is_approved_evidence_type
-from domains.workflow.exceptions import InvalidEvidenceError, InvalidExecutionStateError
+from domains.workflow.exceptions import ExecutionNotFoundError, InvalidEvidenceError, InvalidExecutionStateError
 from domains.workflow.models import ConfirmationEvidence, WorkflowExecution
 from domains.workflow.services.events import emit_execution_confirmed
 from domains.workflow.services.executions import _ensure_not_terminal
@@ -28,9 +28,12 @@ def submit_confirmation_evidence(
     actor_user_id: uuid.UUID | None = None,
     payload: dict[str, Any] | None = None,
 ) -> WorkflowExecution:
-    execution = WorkflowExecution.objects.select_for_update().select_related("workflow_definition").get(
-        pk=execution_id
-    )
+    try:
+        execution = WorkflowExecution.objects.select_for_update().select_related("workflow_definition").get(
+            pk=execution_id
+        )
+    except WorkflowExecution.DoesNotExist as exc:
+        raise ExecutionNotFoundError("Workflow execution not found.") from exc
 
     existing_evidence = ConfirmationEvidence.objects.filter(
         workflow_execution=execution,

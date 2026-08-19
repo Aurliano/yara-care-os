@@ -19,7 +19,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from domains.device.enums import AssignmentStatus, AssignmentType, DeviceOperationalStatus
 from domains.device.exceptions import DeviceModelNotFoundError, DeviceNotFoundError, InvalidDeviceStateError
 from domains.device.models import Device, DeviceAssignment, DeviceModel
-from domains.device.services.assignments import assign_device, get_assignments
+from domains.device.services.assignments import assign_device, return_device
 from domains.device.services.devices import create_device, get_device
 from domains.identity_access.enums import MembershipStatus
 from domains.identity_access.models import Membership
@@ -28,6 +28,7 @@ from domains.synchronization.services.replicas import get_or_create_replica_stat
 from integration.exceptions import HubProvisioningError
 
 PROVISIONING_CONFIG_KEY = "hub_provisioning"
+DOWNLOAD_SCOPE_ELDER_KEY = "download_scope_elder_id"
 
 
 def _provisioning_blob(device: Device) -> dict[str, Any]:
@@ -74,22 +75,41 @@ def _primary_elder_id_for_user(user) -> uuid.UUID | None:
     return membership.elder_id if membership else None
 
 
-def _ensure_hub_assigned_to_caregiver_elder(*, device_id: uuid.UUID, user) -> uuid.UUID | None:
-    active = _active_elder_id(device_id)
-    if active is not None:
-        return active
-    elder_id = _primary_elder_id_for_user(user)
+def get_download_scope_elder_id(device: Device) -> str | None:
+    scope = _provisioning_blob(device).get(DOWNLOAD_SCOPE_ELDER_KEY)
+    return str(scope) if scope else None
+
+
+def set_download_scope_elder_id(device: Device, elder_id: uuid.UUID | None) -> None:
+    blob = _provisioning_blob(device)
     if elder_id is None:
-        return None
-    existing = get_assignments(device_id=device_id)
-    if any(item.status == AssignmentStatus.ASSIGNED for item in existing):
-        return _active_elder_id(device_id)
+        blob.pop(DOWNLOAD_SCOPE_ELDER_KEY, None)
+    else:
+        blob[DOWNLOAD_SCOPE_ELDER_KEY] = str(elder_id)
+    _save_provisioning(device, blob)
+
+
+def _ensure_hub_assigned_to_caregiver_elder(*, device_id: uuid.UUID, user) -> uuid.UUID | None:
+    """Bind the hub to the authenticating caregiver's primary elder.
+
+    A previous lab session may have assigned the same hardware to another elder.
+    Authenticate must rebind so Family ``GET /elders/{id}/devices/`` and Hub
+    download staging share the same care scope.
+    """
+    target = _primary_elder_id_for_user(user)
+    active = _active_elder_id(device_id)
+    if target is None:
+        return active
+    if active == target:
+        return active
+    if active is not None:
+        return_device(device_id=device_id)
     assign_device(
         device_id=device_id,
-        elder_id=elder_id,
+        elder_id=target,
         assignment_type=AssignmentType.OWNED,
     )
-    return elder_id
+    return target
 
 
 @transaction.atomic
@@ -165,12 +185,15 @@ def authenticate_hub_device(
     if user is None:
         raise HubProvisioningError("Invalid credentials.")
 
+    previous_elder_id = _active_elder_id(device.id)
     elder_id = _ensure_hub_assigned_to_caregiver_elder(device_id=device.id, user=user)
 
     refresh = RefreshToken.for_user(user)
     now = timezone.now()
     blob["provisioning_state"] = "READY"
     blob["authenticated_at"] = now.isoformat()
+    if elder_id is not None and previous_elder_id != elder_id:
+        blob.pop(DOWNLOAD_SCOPE_ELDER_KEY, None)
     _save_provisioning(device, blob)
 
     if elder_id is None:

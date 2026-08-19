@@ -298,43 +298,12 @@ class SynchronizationClientImpl @Inject constructor(
 
         val localCheckpoint = replicaMetadataRepository.getReplicaState()?.checkpointSequence ?: 0L
 
-        val isFirstSync = localCheckpoint == 0L
-
-
-
-        val snapshots = if (isFirstSync) {
-
-            when (val snaps = downloadSnapshot()) {
-
-                is AppResult.Success -> snaps.data
-
-                is AppResult.Error -> return snaps.mapError()
-
-            }
-
-        } else {
-
-            emptyList()
-
+        val pending = when (val operations = downloadSessionRunner.downloadPendingOperations()) {
+            is AppResult.Success -> operations.data
+            is AppResult.Error -> return operations.mapError()
         }
-
-
-
-        val deltas = if (!isFirstSync) {
-
-            when (val changes = downloadChanges()) {
-
-                is AppResult.Success -> changes.data
-
-                is AppResult.Error -> return changes.mapError()
-
-            }
-
-        } else {
-
-            emptyList()
-
-        }
+        val snapshots = pending.filter(::isSnapshotOperation)
+        val deltas = pending.filterNot(::isSnapshotOperation)
 
 
 

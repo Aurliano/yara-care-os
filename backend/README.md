@@ -49,6 +49,13 @@ Development settings allow LAN hosts by default (`DEV_ALLOW_LAN_HOSTS=true`).
 Use your machine's LAN IP in the Hub (e.g. `http://192.168.1.100:8000`).
 To restrict hosts, set `DEV_ALLOW_LAN_HOSTS=false` and list IPs in `ALLOWED_HOSTS`.
 
+Hub registers the tablet, then shows a caregiver login. Use the same phone and
+password as the Family app (`seed_family_lab`). That authenticate call assigns
+the Hub to that caregiver's elder so prescriptions and contacts can download.
+
+Video calls need `SKYROOM_API_KEY` in `backend/.env`. An empty key returns HTTP 502
+`Communication provider is not configured.` The key stays on the Backend only.
+
 ## Health & Readiness
 
 | Endpoint | Auth | Purpose |

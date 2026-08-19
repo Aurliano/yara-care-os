@@ -38,6 +38,7 @@ class SkyroomCommunicationProvider:
             )
         )
         if not self._api_key:
+            logger.error("communication.provider.not_configured")
             raise CommunicationProviderError("Communication provider is not configured.")
 
     def ensure_room(self, *, room_key: str, title: str) -> ProviderRoom:
