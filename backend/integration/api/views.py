@@ -91,11 +91,13 @@ class HubConfirmationView(APIView):
         ctx = _ctx_from_request(request)
         data = request.data
         try:
+            occurrence_id = data.get("occurrence_id")
             result = submit_hub_confirmation(
                 ctx,
                 execution_id=uuid.UUID(data["workflow_execution_id"]),
                 interaction_reference=data["interaction_reference"],
                 evidence_type=data.get("evidence_type", "HUB_CONFIRMATION"),
+                occurrence_id=uuid.UUID(occurrence_id) if occurrence_id else None,
             )
         except Exception as exc:  # noqa: BLE001
             return hub_error_response(exc)

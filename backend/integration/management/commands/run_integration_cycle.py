@@ -1,7 +1,7 @@
 """Operational integration cycle runner."""
 
 import sys
-import warnings
+import time
 
 from django.core.management.base import BaseCommand
 
@@ -24,18 +24,37 @@ class Command(BaseCommand):
             action="store_true",
             help="Report configured cycle without executing domain side effects.",
         )
+        parser.add_argument(
+            "--interval",
+            type=int,
+            default=None,
+            help="Repeat the cycle every N seconds (lab use on Windows without cron).",
+        )
 
     def handle(self, *args, **options) -> None:
         event_limit = options["event_limit"]
+        interval = options["interval"]
         if options["dry_run"]:
+            suffix = f" every {interval}s" if interval else ""
             self.stdout.write(
                 self.style.WARNING(
-                    f"Dry run: would execute integration cycle with event_limit={event_limit}"
+                    f"Dry run: would execute integration cycle with event_limit={event_limit}{suffix}"
                 )
             )
             return
 
-        ctx = IntegrationContext.new()
-        result = run_integration_cycle(ctx, event_limit=event_limit)
-        self.stdout.write(self.style.SUCCESS(f"Integration cycle: {result}"))
-        sys.exit(0)
+        if interval is not None and interval < 1:
+            self.stderr.write(self.style.ERROR("--interval must be a positive number of seconds."))
+            sys.exit(1)
+
+        while True:
+            ctx = IntegrationContext.new()
+            result = run_integration_cycle(ctx, event_limit=event_limit)
+            self.stdout.write(self.style.SUCCESS(f"Integration cycle: {result}"))
+            if interval is None:
+                sys.exit(0)
+            try:
+                time.sleep(interval)
+            except KeyboardInterrupt:
+                self.stdout.write("Stopped integration cycle loop.")
+                sys.exit(0)

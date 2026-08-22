@@ -70,6 +70,7 @@ Top-level `status`: `ok`, `degraded`, or `error` (database failure returns HTTP 
 | Command | Purpose |
 |---------|---------|
 | `run_integration_cycle` | **Primary production cycle** — due occurrences, workflow timeouts, event dispatch |
+| `check_skyroom` | Lab check: key reached settings (length only) and Skyroom `getServices` |
 | `process_due_occurrences` | Scheduling-only due scan |
 | `process_workflow_timeouts` | Workflow-only timeout scan |
 | `process_occurrence_due_events` | **Deprecated** — use `run_integration_cycle` |
@@ -82,10 +83,21 @@ Recommended cron (example):
 python manage.py run_integration_cycle --event-limit=200
 ```
 
+On Windows lab machines without cron, keep a loop running:
+
+```bash
+python manage.py run_integration_cycle --interval=60
+```
+
+The Hub also calls `POST /hub/runtime/process/` at the start of each online sync
+cycle, so due occurrences and timeouts still advance if this command is not
+running. Keep the command (or `--interval`) for a machine whose Hub is offline.
+
 Options:
 
 - `--event-limit` — cap events processed per dispatch batch (default 100)
 - `--dry-run` — print planned cycle without side effects
+- `--interval` — repeat every N seconds (lab / Windows)
 
 ## Settings
 

@@ -8,6 +8,7 @@ from common.api.errors import domain_error_response
 from domains.care.exceptions import CareError
 from domains.communication.exceptions import CommunicationError
 from domains.device.exceptions import DeviceError
+from domains.scheduling.exceptions import SchedulingError
 from domains.synchronization.exceptions import SynchronizationError
 from domains.workflow.exceptions import WorkflowError
 from integration.exceptions import HubProvisioningError, IntegrationError
@@ -34,6 +35,10 @@ def hub_error_response(exc: Exception) -> Response:
         from domains.care.api.views import _care_error_response
 
         return _care_error_response(exc)
+    if isinstance(exc, SchedulingError):
+        from domains.scheduling.api.views import _scheduling_error_response
+
+        return _scheduling_error_response(exc)
     if isinstance(exc, HubProvisioningError):
         return domain_error_response(exc, base_type=HubProvisioningError, bad_request=(HubProvisioningError,))
     if isinstance(exc, IntegrationError):

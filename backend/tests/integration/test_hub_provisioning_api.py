@@ -1,14 +1,25 @@
 """Integration tests for hub provisioning API."""
 
 import uuid
+from datetime import timedelta
 
 import pytest
+from django.utils import timezone
 from rest_framework.test import APIClient
 
+from domains.care.models import CareCompletion
+from domains.care.services.prescriptions import create_prescription
 from domains.device.enums import AssignmentStatus
 from domains.device.models import DeviceAssignment
 from domains.identity_access.services.profiles import create_elder, create_user
 from domains.licensing.services.licenses import activate_license
+from domains.scheduling.enums import OccurrenceStatus
+from domains.scheduling.models import Occurrence
+from domains.workflow.enums import ExecutionStatus
+from domains.workflow.identity import compute_execution_id
+from domains.workflow.models import WorkflowExecution
+from integration.context import IntegrationContext
+from integration.runtime.dispatcher import process_pending_events
 
 
 @pytest.fixture
@@ -281,4 +292,126 @@ def test_hub_confirmation_unknown_execution_returns_404(api_client, hub_model, i
     )
     assert response.status_code == 404
     assert response.json()["detail"] == "Workflow execution not found."
+
+
+def _authenticate_hub(api_client, hub_model, integration_user):
+    serial = f"HUB-CONF-{uuid.uuid4().hex[:8]}"
+    registered = api_client.post(
+        "/api/v1/hub/provision/register/",
+        {"serial_number": serial, "device_model_code": hub_model.model_code},
+        format="json",
+    ).json()
+    auth = api_client.post(
+        "/api/v1/hub/provision/authenticate/",
+        {
+            "device_id": registered["device_id"],
+            "phone": integration_user.phone,
+            "password": "securepass123",
+        },
+        format="json",
+    )
+    assert auth.status_code == 200
+    api_client.credentials(HTTP_AUTHORIZATION=f"Bearer {auth.json()['access']}")
+    return registered
+
+
+def _scheduled_prescription_occurrence(
+    licensed_elder,
+    workflow_definition,
+    recurrence_definition,
+    schedule_start_at,
+    *,
+    scheduled_for,
+):
+    prescription = create_prescription(
+        elder_id=licensed_elder.id,
+        workflow_definition_id=workflow_definition.id,
+        recurrence_definition=recurrence_definition,
+        timezone_name="UTC",
+        start_at=schedule_start_at,
+        display_title="Lab pill",
+        medication_reference="med-lab",
+        dosage_information="1 tablet",
+        elder_friendly_description="Take pill",
+    )
+    occurrence = Occurrence.objects.filter(
+        schedule_definition_id=prescription.care_activity.schedule_definition_id
+    ).first()
+    occurrence.status = OccurrenceStatus.SCHEDULED
+    occurrence.scheduled_for = scheduled_for
+    occurrence.save(update_fields=["status", "scheduled_for"])
+    return prescription, occurrence
+
+
+def test_hub_confirmation_reconciles_local_execution_without_cloud_cycle(
+    api_client,
+    hub_model,
+    integration_user,
+    licensed_elder,
+    workflow_definition,
+    recurrence_definition,
+    schedule_start_at,
+):
+    _authenticate_hub(api_client, hub_model, integration_user)
+    prescription, occurrence = _scheduled_prescription_occurrence(
+        licensed_elder,
+        workflow_definition,
+        recurrence_definition,
+        schedule_start_at,
+        scheduled_for=timezone.now() - timedelta(minutes=5),
+    )
+    assert WorkflowExecution.objects.filter(occurrence_id=occurrence.id).count() == 0
+    execution_id = compute_execution_id(occurrence_id=occurrence.id)
+
+    response = api_client.post(
+        "/api/v1/hub/confirmations/",
+        {
+            "workflow_execution_id": str(execution_id),
+            "occurrence_id": str(occurrence.id),
+            "interaction_reference": "hub-local-confirm",
+        },
+        format="json",
+    )
+    assert response.status_code == 200
+    assert response.json()["status"] == ExecutionStatus.CONFIRMED
+    assert response.json()["workflow_execution_id"] == str(execution_id)
+
+    process_pending_events(IntegrationContext.new(), limit=200)
+    completion = CareCompletion.objects.get(workflow_execution_id=execution_id)
+    assert completion.care_activity_id == prescription.care_activity_id
+    assert completion.occurrence_id == occurrence.id
+
+
+def test_hub_confirmation_does_not_pull_future_occurrence_forward(
+    api_client,
+    hub_model,
+    integration_user,
+    licensed_elder,
+    workflow_definition,
+    recurrence_definition,
+    schedule_start_at,
+):
+    _authenticate_hub(api_client, hub_model, integration_user)
+    _prescription, occurrence = _scheduled_prescription_occurrence(
+        licensed_elder,
+        workflow_definition,
+        recurrence_definition,
+        schedule_start_at,
+        scheduled_for=timezone.now() + timedelta(hours=2),
+    )
+    execution_id = compute_execution_id(occurrence_id=occurrence.id)
+
+    response = api_client.post(
+        "/api/v1/hub/confirmations/",
+        {
+            "workflow_execution_id": str(execution_id),
+            "occurrence_id": str(occurrence.id),
+            "interaction_reference": "hub-future-confirm",
+        },
+        format="json",
+    )
+    assert response.status_code == 404
+    occurrence.refresh_from_db()
+    assert occurrence.status == OccurrenceStatus.SCHEDULED
+    assert WorkflowExecution.objects.filter(occurrence_id=occurrence.id).count() == 0
 

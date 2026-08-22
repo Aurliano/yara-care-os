@@ -16,6 +16,7 @@ import ir.sayda.yara.hub.core.sync.OutboxEntryStatus
 import ir.sayda.yara.hub.core.sync.OutboxOperationType
 import ir.sayda.yara.hub.core.sync.PendingEvidenceStatus
 import ir.sayda.yara.hub.core.sync.SyncDirection
+import ir.sayda.yara.hub.core.sync.UploadRetryPolicy
 import ir.sayda.yara.hub.database.HubDatabase
 import ir.sayda.yara.hub.core.runtime.RUNTIME_KERNEL_COMPONENT_ID
 import ir.sayda.yara.hub.database.mapper.toDomain
@@ -103,8 +104,20 @@ class OutboxRepositoryImpl @Inject constructor(
         return entry
     }
 
-    override suspend fun getPendingEntries(limit: Int): List<OutboxEntry> =
-        dao.getPending(limit).map { it.toDomain() }
+    override suspend fun getPendingEntries(limit: Int): List<OutboxEntry> {
+        val now = System.currentTimeMillis()
+        return dao.getPending(limit.coerceAtLeast(1) * 4)
+            .map { it.toDomain() }
+            .filter {
+                UploadRetryPolicy.isReady(
+                    status = it.status,
+                    retryCount = it.retryCount,
+                    lastAttemptAtEpochMillis = it.lastAttemptAtEpochMillis,
+                    nowEpochMillis = now,
+                )
+            }
+            .take(limit)
+    }
 
     override suspend fun markInFlight(entryId: String) {
         val entry = dao.getById(entryId) ?: return
@@ -181,8 +194,20 @@ class PendingEvidenceRepositoryImpl @Inject constructor(
         return evidence
     }
 
-    override suspend fun getPending(limit: Int): List<PendingEvidence> =
-        dao.getPending(limit).map { it.toDomain() }
+    override suspend fun getPending(limit: Int): List<PendingEvidence> {
+        val now = System.currentTimeMillis()
+        return dao.getPending(limit.coerceAtLeast(1) * 4)
+            .map { it.toDomain() }
+            .filter {
+                UploadRetryPolicy.isReady(
+                    status = it.status,
+                    retryCount = it.retryCount,
+                    lastAttemptAtEpochMillis = it.lastAttemptAtEpochMillis,
+                    nowEpochMillis = now,
+                )
+            }
+            .take(limit)
+    }
 
     override suspend fun findHubConfirmationEvidence(workflowExecutionId: String): PendingEvidence? =
         dao.getHubConfirmationByExecution(workflowExecutionId)?.toDomain()
@@ -451,6 +476,7 @@ class IntegrationRuntimeRepositoryImpl @Inject constructor(
         workflowExecutionId: String,
         interactionReference: String,
         evidenceType: String,
+        occurrenceId: String?,
     ): AppResult<Unit> {
         return try {
             hubIntegrationApi.submitConfirmation(
@@ -458,14 +484,20 @@ class IntegrationRuntimeRepositoryImpl @Inject constructor(
                     workflowExecutionId = workflowExecutionId,
                     interactionReference = interactionReference,
                     evidenceType = evidenceType,
+                    occurrenceId = occurrenceId,
                 ),
             )
             AppResult.Success(Unit)
         } catch (exception: Exception) {
+            val occurrenceJson = if (occurrenceId.isNullOrBlank()) {
+                ""
+            } else {
+                ""","occurrence_id":"$occurrenceId""""
+            }
             outboxRepository.enqueue(
                 operationType = OutboxOperationType.HUB_CONFIRMATION,
                 payloadJson = """
-                    {"workflow_execution_id":"$workflowExecutionId","interaction_reference":"$interactionReference","evidence_type":"$evidenceType"}
+                    {"workflow_execution_id":"$workflowExecutionId","interaction_reference":"$interactionReference","evidence_type":"$evidenceType"$occurrenceJson}
                 """.trimIndent(),
                 idempotencyKey = "confirmation:$workflowExecutionId:$interactionReference",
             )

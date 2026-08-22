@@ -61,6 +61,7 @@ data class HubConfirmationRequestDto(
     @SerialName("workflow_execution_id") val workflowExecutionId: String,
     @SerialName("interaction_reference") val interactionReference: String,
     @SerialName("evidence_type") val evidenceType: String = "HUB_CONFIRMATION",
+    @SerialName("occurrence_id") val occurrenceId: String? = null,
 )
 
 @Serializable

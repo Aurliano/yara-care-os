@@ -64,8 +64,19 @@ class PendingEvidenceFinalizationTest {
 
         fun lastStatus(id: String) = items[id]?.status
 
-        override suspend fun getPending(limit: Int): List<PendingEvidence> =
-            items.values.filter { it.status == PendingEvidenceStatus.PENDING.name }
+        override suspend fun getPending(limit: Int): List<PendingEvidence> {
+            val now = System.currentTimeMillis()
+            return items.values
+                .filter {
+                    ir.sayda.yara.hub.core.sync.UploadRetryPolicy.isReady(
+                        status = it.status,
+                        retryCount = it.retryCount,
+                        lastAttemptAtEpochMillis = it.lastAttemptAtEpochMillis,
+                        nowEpochMillis = now,
+                    )
+                }
+                .take(limit)
+        }
 
         override suspend fun findHubConfirmationEvidence(workflowExecutionId: String): PendingEvidence? =
             items.values.lastOrNull { it.workflowExecutionId == workflowExecutionId }

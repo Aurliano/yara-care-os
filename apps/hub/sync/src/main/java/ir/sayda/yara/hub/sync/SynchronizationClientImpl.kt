@@ -4,6 +4,8 @@ package ir.sayda.yara.hub.sync
 
 import ir.sayda.yara.hub.core.domain.repository.AuthRepository
 
+import ir.sayda.yara.hub.core.domain.repository.IntegrationRuntimeRepository
+
 import ir.sayda.yara.hub.core.domain.repository.ReplicaMetadataRepository
 
 import ir.sayda.yara.hub.core.domain.repository.SynchronizationRepository
@@ -66,6 +68,8 @@ class SynchronizationClientImpl @Inject constructor(
     private val replicaStateInitializer: ReplicaStateInitializer,
 
     private val syncApplyTransaction: SyncApplyTransaction,
+
+    private val integrationRuntimeRepository: IntegrationRuntimeRepository,
 
 ) : SynchronizationClient {
 
@@ -277,6 +281,11 @@ class SynchronizationClientImpl @Inject constructor(
             is AppResult.Success -> Unit
 
         }
+
+        // Advance cloud due/timeout processing before uploading Hub-local
+        // confirmations so the execution usually exists; occurrence_id on the
+        // confirmation still reconciles if this call is skipped or fails.
+        integrationRuntimeRepository.processRuntimeCycle()
 
         uploadPendingEvidence()
 
