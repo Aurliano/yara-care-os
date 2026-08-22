@@ -124,6 +124,23 @@ def test_generate_login_url_ttl_and_no_api_key_in_url():
     assert API_KEY not in login.login_url
 
 
+def test_generate_login_url_accepts_object_result():
+    def fake_urlopen(request, timeout=15):
+        payload = json.loads(request.data.decode("utf-8"))
+        assert payload["action"] == "createLoginUrl"
+        return _FakeHTTPResponse(
+            {"ok": True, "result": {"url": "https://www.skyroom.online/ch/join/token"}}
+        )
+
+    adapter = _provider()
+    room = ProviderRoom(key="room", external_id="41")
+    user = ProviderUser(key="user", external_id="", display_name="Ali")
+    with patch("infrastructure.communication.skyroom.urllib.request.urlopen", side_effect=fake_urlopen):
+        login = adapter.generate_login_url(room=room, user=user, ttl_seconds=120)
+
+    assert login.login_url == "https://www.skyroom.online/ch/join/token"
+
+
 def test_missing_api_key_is_not_configured():
     with pytest.raises(CommunicationProviderError) as exc_info:
         SkyroomCommunicationProvider(api_key="", base_url="https://www.skyroom.online/skyroom/api")

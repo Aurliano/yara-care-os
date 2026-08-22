@@ -213,6 +213,9 @@ def test_pause_and_resume():
     assert schedule.__class__.objects.get(pk=schedule.id).status == ScheduleStatus.ACTIVE
     assert EventRecord.objects.filter(event_type="SchedulePaused").exists()
     assert EventRecord.objects.filter(event_type="ScheduleResumed").exists()
+    pause_schedule(schedule.id)
+    assert schedule.__class__.objects.get(pk=schedule.id).status == ScheduleStatus.PAUSED
+    assert EventRecord.objects.filter(event_type="SchedulePaused").count() == 2
 
 
 @pytest.mark.django_db
@@ -239,6 +242,17 @@ def test_skip_occurrence():
     skipped = skip_occurrence(occurrence_id=occurrence.id)
     assert skipped.status == OccurrenceStatus.SKIPPED
     assert EventRecord.objects.filter(event_type="OccurrenceSkipped").exists()
+
+
+@pytest.mark.django_db
+def test_skip_due_occurrence():
+    schedule = _daily_schedule()
+    occurrence = Occurrence.objects.filter(schedule_definition=schedule, status=OccurrenceStatus.SCHEDULED).first()
+    mark_occurrence_due(occurrence)
+    skipped = skip_occurrence(occurrence_id=occurrence.id)
+    assert skipped.status == OccurrenceStatus.SKIPPED
+    again = skip_occurrence(occurrence_id=occurrence.id)
+    assert again.status == OccurrenceStatus.SKIPPED
 
 
 @pytest.mark.django_db
@@ -344,6 +358,25 @@ def test_schedule_exception_reschedule():
     target.refresh_from_db()
     assert target.id == original_id
     assert target.scheduled_for == replacement
+
+
+@pytest.mark.django_db
+def test_reschedule_due_occurrence_moves_scheduled_for():
+    schedule = _daily_schedule()
+    target = Occurrence.objects.filter(schedule_definition=schedule, status=OccurrenceStatus.SCHEDULED).first()
+    original_id = target.id
+    mark_occurrence_due(target)
+    replacement = timezone.now() + timedelta(hours=3)
+    add_schedule_exception(
+        schedule.id,
+        original_time=target.scheduled_for,
+        exception_type=ScheduleExceptionType.RESCHEDULE,
+        replacement_time=replacement,
+    )
+    target.refresh_from_db()
+    assert target.id == original_id
+    assert target.scheduled_for == replacement
+    assert target.status == OccurrenceStatus.SCHEDULED
 
 
 @pytest.mark.django_db

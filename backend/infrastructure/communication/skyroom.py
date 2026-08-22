@@ -97,19 +97,24 @@ class SkyroomCommunicationProvider:
         user: ProviderUser,
         ttl_seconds: int,
     ) -> ProviderLogin:
-        login_url = self._call(
-            "createLoginUrl",
-            {
-                "room_id": int(room.external_id),
-                "user_id": user.key,
-                "nickname": user.display_name or user.key,
-                "access": DEFAULT_ACCESS,
-                "concurrent": 1,
-                "language": "fa",
-                "ttl": ttl_seconds,
-            },
-        )
-        if not isinstance(login_url, str) or not login_url:
+        params = {
+            "room_id": int(room.external_id),
+            "user_id": user.key,
+            "nickname": user.display_name or user.key,
+            "access": DEFAULT_ACCESS,
+            "concurrent": 1,
+            "language": "fa",
+            "ttl": ttl_seconds,
+        }
+        result = self._call("createLoginUrl", params)
+        login_url = _coerce_login_url(result)
+        if login_url is None:
+            logger.error(
+                "skyroom.create_login_url.invalid_result room_id=%s result_type=%s preview=%s",
+                room.external_id,
+                type(result).__name__,
+                self._redact(_preview_result(result)),
+            )
             raise CommunicationProviderError(
                 "Provider did not return a login URL.",
                 reason=ProviderFailureReason.INVALID_RESPONSE,
@@ -216,6 +221,31 @@ class SkyroomCommunicationProvider:
         if self._api_key and self._api_key in text:
             return text.replace(self._api_key, "[redacted]")
         return text
+
+
+def _coerce_login_url(result: Any) -> str | None:
+    """Accept the documented string URL and the object/list shapes Skyroom also uses."""
+    if isinstance(result, str) and result.strip():
+        return result.strip()
+    if isinstance(result, dict):
+        for key in ("url", "login_url", "loginUrl", "href"):
+            value = result.get(key)
+            if isinstance(value, str) and value.strip():
+                return value.strip()
+    if isinstance(result, list) and result:
+        return _coerce_login_url(result[0])
+    return None
+
+
+def _preview_result(result: Any) -> str:
+    if result is None:
+        return "null"
+    if isinstance(result, dict):
+        return ",".join(sorted(str(key) for key in result))
+    if isinstance(result, list):
+        return f"list:{len(result)}"
+    text = str(result)
+    return text[:80]
 
 
 def _error_body(exc: urllib.error.HTTPError) -> str:
