@@ -40,13 +40,28 @@ logger = logging.getLogger("yara.communication")
 
 def _error_response(exc: CommunicationError) -> Response:
     if isinstance(exc, CommunicationProviderError):
-        return Response({"detail": str(exc)}, status=status.HTTP_502_BAD_GATEWAY)
+        return Response(
+            {"detail": str(exc), "reason": exc.reason},
+            status=status.HTTP_502_BAD_GATEWAY,
+        )
     return domain_error_response(
         exc,
         base_type=CommunicationError,
         not_found=(ContactNotFoundError, SessionNotFoundError, CallAttemptNotFoundError),
         conflict=(InvalidSessionStateError,),
         forbidden=(AuthorizationDeniedError, EntitlementDeniedError),
+    )
+
+
+def _log_provider_failure(operation: str, exc: CommunicationError) -> None:
+    if not isinstance(exc, CommunicationProviderError):
+        return
+    logger.error(
+        "communication.%s.provider_failed reason=%s provider_error_code=%s detail=%s",
+        operation,
+        exc.reason,
+        exc.error_code,
+        str(exc),
     )
 
 
@@ -106,8 +121,7 @@ class CallStartView(APIView):
                 user_display_name=_display_name(request, subject_type, elder),
             )
         except CommunicationError as exc:
-            if isinstance(exc, CommunicationProviderError):
-                logger.error("communication.call.start_failed detail=%s", str(exc))
+            _log_provider_failure("call.start", exc)
             return _error_response(exc)
         return Response(_join_payload(result), status=status.HTTP_201_CREATED)
 
@@ -148,5 +162,6 @@ class LoginUrlView(APIView):
                 user_display_name=_display_name(request, subject_type, elder),
             )
         except CommunicationError as exc:
+            _log_provider_failure("login_url", exc)
             return _error_response(exc)
         return Response(_join_payload(result))

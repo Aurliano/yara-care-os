@@ -3,6 +3,8 @@ package ir.sayda.yara.hub.feature.communication
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import ir.sayda.yara.hub.core.communication.CommunicationProviderException
+import ir.sayda.yara.hub.core.communication.ProviderFailureReason
 import ir.sayda.yara.hub.core.domain.model.CallRuntimeState
 import ir.sayda.yara.hub.core.domain.model.CallSession
 import ir.sayda.yara.hub.core.domain.model.Contact
@@ -225,7 +227,17 @@ class CallViewModel @Inject constructor(
     }
 }
 
-private fun callFailureStatusRes(error: Throwable): Int {
+internal fun callFailureStatusRes(error: Throwable): Int {
+    if (error is CommunicationProviderException) {
+        when (error.reason) {
+            ProviderFailureReason.NOT_CONFIGURED -> return R.string.call_provider_not_configured
+            ProviderFailureReason.UNREACHABLE -> return R.string.call_provider_unreachable
+            ProviderFailureReason.BUSY -> return R.string.call_provider_busy
+            ProviderFailureReason.REJECTED,
+            ProviderFailureReason.INVALID_RESPONSE,
+            -> return R.string.call_provider_rejected
+        }
+    }
     val detail = error.message.orEmpty()
     return when {
         detail.contains("not configured", ignoreCase = true) -> R.string.call_provider_not_configured

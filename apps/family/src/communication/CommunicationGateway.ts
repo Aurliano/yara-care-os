@@ -107,9 +107,24 @@ function mapHttpError(status: number, body: unknown): Error {
   return new Error(detail);
 }
 
+const PROVIDER_REASON_MESSAGES: Record<string, string> = {
+  PROVIDER_NOT_CONFIGURED: t.callProviderNotConfigured,
+  PROVIDER_UNREACHABLE: t.callProviderUnreachable,
+  PROVIDER_BUSY: t.callProviderBusy,
+  PROVIDER_REJECTED: t.callProviderRejected,
+  PROVIDER_INVALID_RESPONSE: t.callProviderRejected,
+};
+
 export function mapCallFailureMessage(error: unknown): string {
   if (error instanceof ActiveCallExistsError) {
     return t.callBusy;
+  }
+  if (error instanceof ApiError && error.status === 403) {
+    return t.callPermissionBody;
+  }
+  const reason = error instanceof ApiError ? String(error.body?.reason ?? "") : "";
+  if (reason && PROVIDER_REASON_MESSAGES[reason]) {
+    return PROVIDER_REASON_MESSAGES[reason];
   }
   const detail =
     error instanceof ApiError
@@ -117,9 +132,6 @@ export function mapCallFailureMessage(error: unknown): string {
       : error instanceof Error
         ? error.message
         : "";
-  if (error instanceof ApiError && error.status === 403) {
-    return t.callPermissionBody;
-  }
   if (detail.includes("not configured")) {
     return t.callProviderNotConfigured;
   }

@@ -37,12 +37,32 @@ class AuthorizationDeniedError(CommunicationError):
     """Raised when identity authorization blocks an operation."""
 
 
+class ProviderFailureReason:
+    """Stable, vendor-neutral reasons clients may branch on.
+
+    Vendor error codes stay server-side so clients never learn the provider.
+    """
+
+    NOT_CONFIGURED = "PROVIDER_NOT_CONFIGURED"
+    REJECTED = "PROVIDER_REJECTED"
+    UNREACHABLE = "PROVIDER_UNREACHABLE"
+    BUSY = "PROVIDER_BUSY"
+    INVALID_RESPONSE = "PROVIDER_INVALID_RESPONSE"
+
+
 class CommunicationProviderError(CommunicationError):
     """Raised when the transport provider cannot complete a request."""
 
-    def __init__(self, message: str, *, error_code: int | None = None) -> None:
+    def __init__(
+        self,
+        message: str,
+        *,
+        error_code: int | None = None,
+        reason: str = ProviderFailureReason.REJECTED,
+    ) -> None:
         super().__init__(message)
         self.error_code = error_code
+        self.reason = reason
 
 
 class ProviderRoomNotFoundError(CommunicationError):

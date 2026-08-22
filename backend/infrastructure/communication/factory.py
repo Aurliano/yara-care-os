@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from django.conf import settings
 
-from domains.communication.exceptions import CommunicationProviderError
+from domains.communication.exceptions import CommunicationProviderError, ProviderFailureReason
 from domains.communication.providers import CommunicationProvider
 
 _FAKE_SINGLETON = None
@@ -18,7 +18,10 @@ def get_communication_provider() -> CommunicationProvider:
         from infrastructure.communication.skyroom import SkyroomCommunicationProvider
 
         return SkyroomCommunicationProvider()
-    raise CommunicationProviderError(f"Unknown communication provider '{name}'.")
+    raise CommunicationProviderError(
+        f"Unknown communication provider '{name}'.",
+        reason=ProviderFailureReason.NOT_CONFIGURED,
+    )
 
 
 def _get_fake_provider():

@@ -90,7 +90,24 @@ describe("HttpCommunicationGateway", () => {
       return;
     }
     expect(result.error.name).toBe("ApiError");
-    expect(mapCallFailureMessage(result.error)).toContain("Skyroom");
+    expect(mapCallFailureMessage(result.error)).toContain("تنظیم نشده");
+  });
+
+  it("prefers the provider reason over the detail string", async () => {
+    const http = new FakeHttp();
+    http.next = {
+      status: 502,
+      body: { detail: "Communication provider is busy.", reason: "PROVIDER_BUSY" },
+    };
+    const gateway = new HttpCommunicationGateway(http);
+
+    const result = await gateway.startCall("elder-1", "VIDEO", "contact-1");
+
+    expect(result.ok).toBe(false);
+    if (result.ok) {
+      return;
+    }
+    expect(mapCallFailureMessage(result.error)).toContain("شلوغ");
   });
 
   it("posts endCall with session_id", async () => {

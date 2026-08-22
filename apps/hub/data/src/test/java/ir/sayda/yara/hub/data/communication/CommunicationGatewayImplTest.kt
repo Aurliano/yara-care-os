@@ -77,6 +77,21 @@ class CommunicationGatewayImplTest {
     }
 
     @Test
+    fun startCallKeepsProviderFailureReason() = runTest {
+        val api = mockk<CommunicationApi>()
+        coEvery { api.startCall(any()) } throws httpException(
+            502,
+            """{"detail":"Communication provider is busy.","reason":"PROVIDER_BUSY"}""",
+        )
+        val gateway = CommunicationGatewayImpl(api)
+
+        val result = gateway.startCall("elder-1", "VIDEO", "contact-1")
+
+        val exception = (result as AppResult.Error).exception as CommunicationProviderException
+        assertEquals("PROVIDER_BUSY", exception.reason)
+    }
+
+    @Test
     fun parseExpiresAtReadsIso8601() {
         val expected = java.time.Instant.parse("2026-08-16T08:00:00Z").toEpochMilli()
         val millis = parseExpiresAt("2026-08-16T08:00:00Z", fallbackNow = 0L)

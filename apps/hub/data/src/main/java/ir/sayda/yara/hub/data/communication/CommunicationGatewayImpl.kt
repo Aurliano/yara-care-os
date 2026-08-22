@@ -84,9 +84,12 @@ class CommunicationGatewayImpl @Inject constructor(
         if (exception.code() == 409) {
             return ActiveCallExistsException()
         }
-        val detail = readErrorDetail(exception)
-        if (exception.code() == 502 && detail.isNotBlank()) {
-            return CommunicationProviderException(detail)
+        if (exception.code() == 502) {
+            val body = readErrorBody(exception)
+            val detail = readJsonField(body, "detail").ifBlank { exception.message().orEmpty() }
+            if (detail.isNotBlank()) {
+                return CommunicationProviderException(detail, reason = readJsonField(body, "reason"))
+            }
         }
         return exception
     }
@@ -112,13 +115,13 @@ internal fun CallJoinResponseDto.toCallSession(
 internal fun parseExpiresAt(value: String, fallbackNow: Long): Long =
     runCatching { Instant.parse(value).toEpochMilli() }.getOrDefault(fallbackNow + DEFAULT_JOIN_TTL_MS)
 
-private fun readErrorDetail(exception: HttpException): String {
-    val raw = runCatching { exception.response()?.errorBody()?.string().orEmpty() }.getOrDefault("")
-    val detail = raw.substringAfter("\"detail\":\"", missingDelimiterValue = "")
+private fun readErrorBody(exception: HttpException): String =
+    runCatching { exception.response()?.errorBody()?.string().orEmpty() }.getOrDefault("")
+
+private fun readJsonField(body: String, field: String): String =
+    body.substringAfter("\"$field\":\"", missingDelimiterValue = "")
         .substringBefore("\"")
         .replace("\\u0027", "'")
         .replace("\\\"", "\"")
-    return detail.ifBlank { exception.message().orEmpty() }
-}
 
 private const val DEFAULT_JOIN_TTL_MS = 3_600_000L

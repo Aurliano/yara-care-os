@@ -233,6 +233,7 @@ def test_call_start_without_provider_key_returns_502(authenticated_client, licen
     )
     assert response.status_code == 502
     assert response.json()["detail"] == "Communication provider is not configured."
+    assert response.json()["reason"] == "PROVIDER_NOT_CONFIGURED"
 
 
 @pytest.mark.django_db
