@@ -9,6 +9,7 @@ ALLOWED_CROSS_DOMAIN_FKS: set[tuple[str, str, str, str]] = {
     ("device", "DeviceAssignment", "elder", "identity_access"),
     ("communication", "Contact", "elder", "identity_access"),
     ("communication", "CommunicationSession", "elder", "identity_access"),
+    ("notification", "CaregiverAlert", "elder", "identity_access"),
 }
 
 DOMAIN_APP_LABELS: set[str] = {
@@ -20,5 +21,6 @@ DOMAIN_APP_LABELS: set[str] = {
     "care",
     "device",
     "communication",
+    "notification",
     "synchronization",
 }

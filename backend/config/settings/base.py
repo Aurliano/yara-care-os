@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     "domains.care",
     "domains.device",
     "domains.communication",
+    "domains.notification",
     "domains.synchronization",
     "integration",
     "infrastructure",
@@ -194,6 +195,7 @@ DOMAIN_APPS: list[str] = [
     "domains.care",
     "domains.device",
     "domains.communication",
+    "domains.notification",
 ]
 
 COMMUNICATION_PROVIDER = env("COMMUNICATION_PROVIDER", default="skyroom")

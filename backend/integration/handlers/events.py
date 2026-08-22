@@ -6,10 +6,14 @@ import uuid
 from typing import Any
 
 from domains.care.enums import WorkflowExecutionResultType
+from domains.care.services.activities import get_care_activity
 from domains.care.services.interpretation import interpret_execution_result
 from domains.care.services.occurrence_due import handle_occurrence_due_event
 from domains.care.services.sync_export import build_care_activity_sync_delta
+from domains.notification.enums import AlertSeverity
+from domains.notification.services.alerts import record_caregiver_alert
 from domains.workflow.services.evidence import submit_domain_event_evidence
+from integration.runtime.action_handlers import InitiateCallHandler
 from integration.context import IntegrationContext
 from integration.observability import logging as integration_logging
 from integration.observability.metrics import increment
@@ -98,7 +102,24 @@ def handle_medication_taken(ctx: IntegrationContext, payload: dict[str, Any]) ->
 
 def handle_medication_missed(ctx: IntegrationContext, payload: dict[str, Any]) -> None:
     care_activity_id = uuid.UUID(payload["care_activity_id"])
+    activity = get_care_activity(care_activity_id)
+    record_caregiver_alert(
+        elder_id=activity.elder_id,
+        title=f"داروی {activity.display_title} انجام نشد",
+        body="این نوبت دارو به‌عنوان انجام‌نشده ثبت شد.",
+        severity=AlertSeverity.URGENT,
+        source_type="MEDICATION_MISSED",
+        source_reference=str(payload["care_completion_id"]),
+    )
+    InitiateCallHandler().handle(
+        ctx,
+        payload={
+            "workflow_execution_id": payload["workflow_execution_id"],
+            "dispatch_context": {"elder_id": payload["elder_id"]},
+        },
+    )
     if ctx.replica_id is None:
+        increment("integration.event.medication_missed")
         return
     delta = build_care_activity_sync_delta(care_activity_id=care_activity_id)
     submit_care_delta_for_replica(

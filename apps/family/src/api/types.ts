@@ -256,6 +256,14 @@ export type Contact = {
   updated_at: ISODateTime;
 };
 
+export type CaregiverAlert = {
+  id: UUID;
+  title: string;
+  body: string;
+  severity: "urgent" | "attention" | "reminder" | "informational";
+  occurred_at: ISODateTime;
+};
+
 export type ApiErrorBody = {
   detail?: string;
   [field: string]: unknown;

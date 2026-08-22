@@ -107,6 +107,8 @@ export const fa = {
   alertsUnavailableTitle: "صندوق هشدار هنوز آماده نیست",
   alertsUnavailableBody:
     "وقتی هشدارهای یارا برای این حساب فعال شود، از زنگوله بالای صفحه به آن‌ها می‌رسید.",
+  alertsEmptyTitle: "هشدار تازه‌ای نیست",
+  alertsEmptyBody: "اگر دارویی دیر بماند یا انجام نشود، اینجا می‌بینید. پیامک یا اعلان گوشی هنوز فعال نیست.",
   needsAction: "نیاز به اقدام",
   recent: "اخیر",
   acknowledge: "علامت به‌عنوان دیده‌شده",

@@ -3,7 +3,7 @@
 These items are documented because the family app is a thin client and must not invent APIs.
 
 1. **Dashboard read-model** — `GET /elders/{id}/dashboard/` does not exist. Home composes elder, care activities, prescriptions, occurrences, completions, and entitlements in `src/services/dashboard/composeDashboard.ts`.
-2. **Notification inbox** — Notification domain/API is not present. Alerts stay behind the bell on every in-app screen (`/(app)/alerts`) and show an unavailable state. Acknowledgement is local-only and never resolves a care incident.
+2. **Notification inbox** — `GET /elders/{id}/alerts/` lists in-app caregiver alerts (late reminder and missed dose). SMS and push are still out of scope. Acknowledgement is local-only and never resolves a care incident. See `docs/ADR-015-caregiver-alert-slice.md`.
 3. **Elder device list** — `GET /elders/{id}/devices/` lists assigned Hub/Pill Box devices. Home and Devices tab read that catalog.
 4. **Schedule list** — `GET /schedules/` is missing. Occurrences are loaded via each care activity’s `schedule_definition_id`.
 5. **MedicationRegimen** — Multi-time medication grouping is isolated in `src/services/program/medicationRegimen.ts` and not used in UI.
