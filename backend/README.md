@@ -71,6 +71,7 @@ Top-level `status`: `ok`, `degraded`, or `error` (database failure returns HTTP 
 |---------|---------|
 | `run_integration_cycle` | **Primary production cycle** — due occurrences, workflow timeouts, event dispatch |
 | `check_skyroom` | Lab check: key reached settings (length only) and Skyroom `getServices` |
+| `apply_medication_reminder_policy` | Idempotent: set existing medication workflows to +15/+30/+45/+60 timings |
 | `process_due_occurrences` | Scheduling-only due scan |
 | `process_workflow_timeouts` | Workflow-only timeout scan |
 | `process_occurrence_due_events` | **Deprecated** — use `run_integration_cycle` |

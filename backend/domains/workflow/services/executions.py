@@ -215,3 +215,22 @@ def create_workflow_definition(
         name=name,
         definition=definition,
     )
+
+
+@transaction.atomic
+def replace_workflow_definition(
+    *,
+    workflow_definition_id: uuid.UUID,
+    definition: dict[str, Any],
+) -> WorkflowDefinition:
+    """Replace definition JSON. Idempotent when the payload is unchanged."""
+    validate_workflow_definition(definition)
+    try:
+        workflow = WorkflowDefinition.objects.select_for_update().get(pk=workflow_definition_id)
+    except WorkflowDefinition.DoesNotExist as exc:
+        raise WorkflowNotFoundError("Workflow definition not found.") from exc
+    if workflow.definition == definition:
+        return workflow
+    workflow.definition = definition
+    workflow.save(update_fields=["definition", "updated_at"])
+    return workflow

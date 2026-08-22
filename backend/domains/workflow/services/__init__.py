@@ -14,6 +14,7 @@ from domains.workflow.services.executions import (
     get_execution_status,
     get_workflow_definition,
     get_workflow_definition_by_code,
+    replace_workflow_definition,
     start_execution,
 )
 from domains.workflow.services.postpone import postpone_execution
@@ -28,6 +29,7 @@ __all__ = [
     "get_execution_status",
     "get_workflow_definition",
     "get_workflow_definition_by_code",
+    "replace_workflow_definition",
     "mark_execution_missed",
     "postpone_execution",
     "process_workflow_timeouts",
