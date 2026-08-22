@@ -46,10 +46,10 @@ class HubWorkflowBootstrap @Inject constructor(
             {
               "initial_action": {"type": "SHOW_REMINDER"},
               "confirmation_policy": {"accepted_evidence_types": ["HUB_CONFIRMATION"]},
-              "step_timeout_seconds": 3600,
-              "retry": {"max_retries": 1, "action": {"type": "SHOW_REMINDER"}, "timeout_seconds": 60},
+              "step_timeout_seconds": 900,
+              "retry": {"max_retries": 2, "action": {"type": "SHOW_REMINDER"}, "timeout_seconds": 900},
               "postpone": {"allowed": true, "max_count": 2, "delay_seconds": 300},
-              "escalation_steps": []
+              "escalation_steps": [{"action": {"type": "NOTIFY_CAREGIVER"}, "timeout_seconds": 900}]
             }
         """.trimIndent()
     }

@@ -60,6 +60,7 @@ from domains.device.services.devices import (
     get_device,
     get_device_state,
     get_effective_capability_state,
+    touch_device_presence,
     update_device_state,
 )
 from domains.device.services.pairing import (
@@ -106,5 +107,6 @@ __all__ = [
     "return_device",
     "revoke_pairing",
     "start_command_execution",
+    "touch_device_presence",
     "update_device_state",
 ]

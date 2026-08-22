@@ -16,7 +16,7 @@ from domains.communication.models import Contact
 from domains.communication.services.contacts import create_contact
 from domains.identity_access.enums import MembershipStatus
 from domains.identity_access.models import Elder, Membership, User
-from domains.workflow.definition_schema import validate_workflow_definition
+from domains.workflow.medication_reminder_policy import medication_reminder_definition
 from domains.workflow.models import WorkflowDefinition
 from domains.workflow.services.executions import create_workflow_definition
 
@@ -28,16 +28,7 @@ DEV_CONTACT_NAME = "Dev Caregiver Contact"
 
 
 def _base_workflow_definition() -> dict:
-    definition = {
-        "initial_action": {"type": "SHOW_REMINDER"},
-        "confirmation_policy": {"accepted_evidence_types": ["HUB_CONFIRMATION"]},
-        "step_timeout_seconds": 60,
-        "retry": {"max_retries": 1, "action": {"type": "SHOW_REMINDER"}, "timeout_seconds": 60},
-        "postpone": {"allowed": True, "max_count": 2, "delay_seconds": 300},
-        "escalation_steps": [{"action": {"type": "NOTIFY_CAREGIVER"}, "timeout_seconds": 60}],
-    }
-    validate_workflow_definition(definition)
-    return definition
+    return medication_reminder_definition()
 
 
 def get_dev_elder_id() -> uuid.UUID | None:

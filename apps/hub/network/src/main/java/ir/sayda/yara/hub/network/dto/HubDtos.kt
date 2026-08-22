@@ -61,12 +61,26 @@ data class HubConfirmationRequestDto(
     @SerialName("workflow_execution_id") val workflowExecutionId: String,
     @SerialName("interaction_reference") val interactionReference: String,
     @SerialName("evidence_type") val evidenceType: String = "HUB_CONFIRMATION",
+    @SerialName("occurrence_id") val occurrenceId: String? = null,
 )
 
 @Serializable
 data class HubConfirmationResponseDto(
     @SerialName("workflow_execution_id") val workflowExecutionId: String,
     val status: String,
+)
+
+@Serializable
+data class HubDeviceStateRequestDto(
+    @SerialName("device_id") val deviceId: String,
+    @SerialName("current_state") val currentState: JsonObject,
+    @SerialName("is_online") val isOnline: Boolean = true,
+)
+
+@Serializable
+data class HubDeviceStateResponseDto(
+    @SerialName("device_id") val deviceId: String,
+    @SerialName("operational_status") val operationalStatus: String,
 )
 
 @Serializable

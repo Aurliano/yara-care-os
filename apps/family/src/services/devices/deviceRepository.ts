@@ -13,16 +13,25 @@ export type ElderDeviceCatalog =
   | { available: false; reason: "ELDER_DEVICE_LIST_MISSING"; items: [] }
   | { available: true; items: ElderDeviceItem[] };
 
+export function normalizeConnectivity(value: unknown): "online" | "offline" | "unknown" {
+  if (value === "online" || value === "offline") {
+    return value;
+  }
+  return "unknown";
+}
+
+export function isDeviceConnected(connectivity: "online" | "offline" | "unknown"): boolean {
+  return connectivity === "online";
+}
+
 function toCatalogItem(device: ElderDeviceSummary): ElderDeviceItem {
-  const connectivity =
-    device.connectivity === "online" || device.connectivity === "offline" ? device.connectivity : "unknown";
   return {
     id: device.id,
     kind: device.kind,
     lastSeenAt: device.last_seen_at,
     batteryPercent: device.battery_percent,
     pairingStatus: device.pairing_status,
-    connectivity,
+    connectivity: normalizeConnectivity(device.connectivity),
   };
 }
 

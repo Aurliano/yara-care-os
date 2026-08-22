@@ -4,6 +4,7 @@ import ir.sayda.yara.hub.core.domain.repository.IntegrationRuntimeRepository
 import ir.sayda.yara.hub.core.domain.repository.OutboxRepository
 import ir.sayda.yara.hub.core.domain.repository.PendingEvidenceRepository
 import ir.sayda.yara.hub.core.domain.repository.SynchronizationRepository
+import ir.sayda.yara.hub.core.domain.repository.WorkflowReplicaRepository
 import ir.sayda.yara.hub.core.result.AppResult
 import ir.sayda.yara.hub.core.sync.OutboxOperationType
 import ir.sayda.yara.hub.core.sync.SyncDirection
@@ -21,6 +22,7 @@ class UploadSessionRunner @Inject constructor(
     private val outboxRepository: OutboxRepository,
     private val pendingEvidenceRepository: PendingEvidenceRepository,
     private val integrationRuntimeRepository: IntegrationRuntimeRepository,
+    private val workflowReplicaRepository: WorkflowReplicaRepository,
     private val syncSessionStore: SyncSessionStore,
 ) {
     private val json = Json { ignoreUnknownKeys = true }
@@ -29,10 +31,14 @@ class UploadSessionRunner @Inject constructor(
         var processed = 0
         for (evidence in pending) {
             when (
+                val occurrenceId = workflowReplicaRepository
+                    .getExecution(evidence.workflowExecutionId)
+                    ?.occurrenceId
                 val result = integrationRuntimeRepository.submitHubConfirmation(
                     workflowExecutionId = evidence.workflowExecutionId,
                     interactionReference = evidence.interactionReference,
                     evidenceType = evidence.evidenceType,
+                    occurrenceId = occurrenceId,
                 )
             ) {
                 is AppResult.Success -> {
@@ -111,6 +117,7 @@ class UploadSessionRunner @Inject constructor(
             workflowExecutionId = payload.string("workflow_execution_id") ?: return false,
             interactionReference = payload.string("interaction_reference") ?: return false,
             evidenceType = payload.string("evidence_type") ?: "HUB_CONFIRMATION",
+            occurrenceId = payload.string("occurrence_id"),
         ) is AppResult.Success
     }
 

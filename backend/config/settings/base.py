@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     "domains.care",
     "domains.device",
     "domains.communication",
+    "domains.notification",
     "domains.synchronization",
     "integration",
     "infrastructure",
@@ -194,11 +195,14 @@ DOMAIN_APPS: list[str] = [
     "domains.care",
     "domains.device",
     "domains.communication",
+    "domains.notification",
 ]
 
 COMMUNICATION_PROVIDER = env("COMMUNICATION_PROVIDER", default="skyroom")
 SKYROOM_API_KEY = env("SKYROOM_API_KEY", default="")
 SKYROOM_API_BASE_URL = env("SKYROOM_API_BASE_URL", default="https://www.skyroom.online/skyroom/api")
+# Only required when the Skyroom account has more than one active service.
+SKYROOM_SERVICE_ID = env.int("SKYROOM_SERVICE_ID", default=0)
 COMMUNICATION_LOGIN_TTL_SECONDS = env.int("COMMUNICATION_LOGIN_TTL_SECONDS", default=3600)
 COMMUNICATION_SESSION_JOIN_TIMEOUT_SECONDS = env.int(
     "COMMUNICATION_SESSION_JOIN_TIMEOUT_SECONDS",

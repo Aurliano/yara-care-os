@@ -127,6 +127,12 @@ def test_reminder_missed_end_to_end(
     process_pending_events(ctx, limit=500)
 
     assert EventRecord.objects.filter(event_type="MedicationMissed").exists()
+    from domains.notification.models import CaregiverAlert
+
+    missed_alert = CaregiverAlert.objects.get(source_type="MEDICATION_MISSED")
+    assert missed_alert.elder_id == licensed_elder.id
+    assert missed_alert.severity == "urgent"
+    assert "انجام نشد" in missed_alert.title
 
 
 @pytest.mark.django_db

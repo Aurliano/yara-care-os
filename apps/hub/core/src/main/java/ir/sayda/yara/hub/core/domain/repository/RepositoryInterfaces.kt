@@ -231,6 +231,7 @@ interface IntegrationRuntimeRepository {
         workflowExecutionId: String,
         interactionReference: String,
         evidenceType: String = "HUB_CONFIRMATION",
+        occurrenceId: String? = null,
     ): AppResult<Unit>
 }
 

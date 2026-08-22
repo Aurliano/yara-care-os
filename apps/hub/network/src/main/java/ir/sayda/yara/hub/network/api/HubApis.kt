@@ -9,6 +9,8 @@ import ir.sayda.yara.hub.network.dto.HubProvisionRevokeRequestDto
 import ir.sayda.yara.hub.network.dto.HubProvisionStatusResponseDto
 import ir.sayda.yara.hub.network.dto.HubConfirmationRequestDto
 import ir.sayda.yara.hub.network.dto.HubConfirmationResponseDto
+import ir.sayda.yara.hub.network.dto.HubDeviceStateRequestDto
+import ir.sayda.yara.hub.network.dto.HubDeviceStateResponseDto
 import ir.sayda.yara.hub.network.dto.HubRuntimeProcessResponseDto
 import ir.sayda.yara.hub.network.dto.HubSyncCompleteResponseDto
 import ir.sayda.yara.hub.network.dto.HubSyncOperationResponseDto
@@ -46,6 +48,9 @@ interface HubIntegrationApi {
 
     @POST("hub/confirmations/")
     suspend fun submitConfirmation(@Body body: HubConfirmationRequestDto): HubConfirmationResponseDto
+
+    @POST("hub/device/state/")
+    suspend fun updateDeviceState(@Body body: HubDeviceStateRequestDto): HubDeviceStateResponseDto
 
     @POST("hub/sync/start/")
     suspend fun startSync(@Body body: HubSyncStartRequestDto): HubSyncStartResponseDto

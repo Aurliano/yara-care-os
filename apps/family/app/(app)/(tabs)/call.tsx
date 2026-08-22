@@ -11,10 +11,10 @@ import { queryKeys } from "../../../src/api/queryKeys";
 import { useElderStore } from "../../../src/stores/elderStore";
 import { usePermissions } from "../../../src/permissions/usePermission";
 import { PERMISSIONS } from "../../../src/permissions/codes";
-import { ApiError } from "../../../src/api/errors";
+import { mapCallFailureMessage } from "../../../src/communication/CommunicationGateway";
+import { voiceMessageAvailability } from "../../../src/services/communication/voiceMessageRepository";
 import type { Contact } from "../../../src/api/types";
 import {
-  ActiveCallExistsError,
   createFamilyCommunicationRuntime,
   INCOMING_SESSION_STATUSES,
   isActiveCallState,
@@ -32,6 +32,7 @@ export default function CallScreen() {
     () => createFamilyCommunicationRuntime({ onSession: setSession }),
     [],
   );
+  const voiceMessage = voiceMessageAvailability();
   const contacts = useQuery({
     queryKey: elderId ? queryKeys.contacts(elderId) : ["contacts"],
     enabled: Boolean(elderId) && can(PERMISSIONS.INITIATE_CALL),
@@ -81,18 +82,12 @@ export default function CallScreen() {
     try {
       const result = await runtime.startCall(elderId, channel, contact.id);
       if (!result.ok) {
-        if (result.error instanceof ActiveCallExistsError) {
-          setError(t.callBusy);
-        } else if (result.error instanceof ApiError && result.error.status === 403) {
-          setError(t.callPermissionBody);
-        } else {
-          setError(t.callFailed);
-        }
+        setError(mapCallFailureMessage(result.error));
         return;
       }
       await joinMedia(result.data);
-    } catch {
-      setError(t.callFailed);
+    } catch (error) {
+      setError(mapCallFailureMessage(error));
     } finally {
       setBusyId(null);
     }
@@ -108,8 +103,8 @@ export default function CallScreen() {
         throw result.error;
       }
       await joinMedia(result.data);
-    } catch {
-      setError(t.callFailed);
+    } catch (error) {
+      setError(mapCallFailureMessage(error));
     } finally {
       setBusyId(null);
     }
@@ -150,6 +145,11 @@ export default function CallScreen() {
       <AppText variant="body" color={colors.textSecondary}>
         {t.callSubtitle}
       </AppText>
+      {voiceMessage.available ? null : (
+        <AppText variant="caption" color={colors.textSecondary}>
+          {t.voiceMessageUnavailable}
+        </AppText>
+      )}
       {error ? (
         <AppText variant="caption" color={colors.error}>
           {error}
@@ -194,16 +194,16 @@ export default function CallScreen() {
               </View>
               <View style={styles.actions}>
                 <Button
-                  label={t.startVoiceCall}
-                  icon="phone"
-                  loading={busyId === `${contact.id}:VOICE`}
-                  onPress={() => void onCall(contact, "VOICE")}
-                />
-                <Button
                   label={t.startVideoCall}
                   icon="phone"
                   loading={busyId === `${contact.id}:VIDEO`}
                   onPress={() => void onCall(contact, "VIDEO")}
+                />
+                <Button
+                  label={t.sendVoiceMessage}
+                  variant="secondary"
+                  disabled={!voiceMessage.available}
+                  onPress={() => undefined}
                 />
               </View>
             </View>

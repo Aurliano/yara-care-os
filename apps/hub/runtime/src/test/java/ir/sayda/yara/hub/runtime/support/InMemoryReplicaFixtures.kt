@@ -15,6 +15,7 @@ import ir.sayda.yara.hub.core.domain.repository.SchedulingReplicaRepository
 import ir.sayda.yara.hub.core.domain.repository.WorkflowReplicaRepository
 import ir.sayda.yara.hub.core.scheduling.OccurrenceStatus
 import ir.sayda.yara.hub.core.scheduling.ScheduleStatus
+import ir.sayda.yara.hub.core.sync.UploadRetryPolicy
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -223,8 +224,19 @@ class InMemoryPendingEvidenceRepository : PendingEvidenceRepository {
     override fun observePendingCount(): Flow<Int> =
         MutableStateFlow(queued.count { it.status == "PENDING" }).asStateFlow()
 
-    override suspend fun getPending(limit: Int): List<PendingEvidence> =
-        queued.filter { it.status == "PENDING" }.take(limit)
+    override suspend fun getPending(limit: Int): List<PendingEvidence> {
+        val now = System.currentTimeMillis()
+        return queued
+            .filter {
+                UploadRetryPolicy.isReady(
+                    status = it.status,
+                    retryCount = it.retryCount,
+                    lastAttemptAtEpochMillis = it.lastAttemptAtEpochMillis,
+                    nowEpochMillis = now,
+                )
+            }
+            .take(limit)
+    }
 
     override suspend fun markSubmitted(id: String) {
         queued.replaceAll { if (it.id == id) it.copy(status = "SUBMITTED") else it }
@@ -245,6 +257,7 @@ class InMemoryPendingEvidenceRepository : PendingEvidenceRepository {
                     status = "FAILED",
                     retryCount = if (incrementRetry) it.retryCount + 1 else it.retryCount,
                     lastError = lastError,
+                    lastAttemptAtEpochMillis = System.currentTimeMillis(),
                 )
             } else {
                 it

@@ -1,4 +1,5 @@
 import type { CallSession } from "./model";
+import { t } from "../i18n";
 import { ApiError } from "../api/errors";
 import type { ApiErrorBody } from "../api/types";
 import { ActiveCallExistsError } from "./result";
@@ -100,10 +101,44 @@ function mapHttpError(status: number, body: unknown): Error {
     apiBody && "detail" in apiBody && apiBody.detail != null
       ? String(apiBody.detail)
       : `HTTP ${status}`;
-  if (status === 403) {
-    return new ApiError(403, apiBody, detail);
+  if (status === 403 || status === 502) {
+    return new ApiError(status, apiBody, detail);
   }
   return new Error(detail);
+}
+
+const PROVIDER_REASON_MESSAGES: Record<string, string> = {
+  PROVIDER_NOT_CONFIGURED: t.callProviderNotConfigured,
+  PROVIDER_UNREACHABLE: t.callProviderUnreachable,
+  PROVIDER_BUSY: t.callProviderBusy,
+  PROVIDER_REJECTED: t.callProviderRejected,
+  PROVIDER_INVALID_RESPONSE: t.callProviderRejected,
+};
+
+export function mapCallFailureMessage(error: unknown): string {
+  if (error instanceof ActiveCallExistsError) {
+    return t.callBusy;
+  }
+  if (error instanceof ApiError && error.status === 403) {
+    return t.callPermissionBody;
+  }
+  const reason = error instanceof ApiError ? String(error.body?.reason ?? "") : "";
+  if (reason && PROVIDER_REASON_MESSAGES[reason]) {
+    return PROVIDER_REASON_MESSAGES[reason];
+  }
+  const detail =
+    error instanceof ApiError
+      ? String(error.body?.detail ?? error.message)
+      : error instanceof Error
+        ? error.message
+        : "";
+  if (detail.includes("not configured")) {
+    return t.callProviderNotConfigured;
+  }
+  if (detail.includes("unreachable")) {
+    return t.callProviderUnreachable;
+  }
+  return t.callFailed;
 }
 
 function credentialsToSession(

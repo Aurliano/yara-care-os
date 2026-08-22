@@ -276,7 +276,14 @@ interface PendingEvidenceDao {
     @Query("SELECT * FROM pending_evidence WHERE id = :id LIMIT 1")
     suspend fun getById(id: String): PendingEvidenceEntity?
 
-    @Query("SELECT * FROM pending_evidence WHERE status = 'PENDING' ORDER BY created_at_epoch_millis LIMIT :limit")
+    @Query(
+        """
+        SELECT * FROM pending_evidence
+        WHERE status IN ('PENDING', 'FAILED') AND retry_count < 8
+        ORDER BY created_at_epoch_millis
+        LIMIT :limit
+        """,
+    )
     suspend fun getPending(limit: Int): List<PendingEvidenceEntity>
 
     @Query("SELECT * FROM pending_evidence WHERE status = 'IN_FLIGHT' ORDER BY created_at_epoch_millis LIMIT :limit")
@@ -334,7 +341,7 @@ interface OutboxDao {
     @Query(
         """
         SELECT * FROM outbox_entry
-        WHERE status = 'PENDING'
+        WHERE status IN ('PENDING', 'FAILED') AND retry_count < 8
         ORDER BY priority DESC, created_at_epoch_millis ASC
         LIMIT :limit
         """,

@@ -57,6 +57,15 @@ def get_care_activity_for_schedule(schedule_definition_id: uuid.UUID) -> CareAct
         raise CareActivityNotFoundError("No care activity is linked to this schedule.") from exc
 
 
+def list_medication_workflow_definition_ids() -> list[uuid.UUID]:
+    """Workflow definitions currently used by medication care activities."""
+    return list(
+        CareActivity.objects.filter(activity_type=CareActivityType.MEDICATION)
+        .values_list("workflow_definition_id", flat=True)
+        .distinct()
+    )
+
+
 def get_elder_care_activities(*, elder_id: uuid.UUID, status: str | None = None) -> list[CareActivity]:
     queryset = CareActivity.objects.filter(elder_id=elder_id).select_related(
         "schedule_definition",

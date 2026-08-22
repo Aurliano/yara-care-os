@@ -229,7 +229,7 @@ Priority: P3
 
 - Voice Calls
 - Video Calls
-- Voice Messages
+- Voice Messages — scoped in ADR-014. `UX_ARCHITECTURE.md` lists it under MVP; it stays here until that ADR is accepted, because it needs a Communication contract extension, audio storage, and offline audio sync.
 
 ---
 

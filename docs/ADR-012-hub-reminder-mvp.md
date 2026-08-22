@@ -21,11 +21,15 @@ Reason: matches Workflow domain contract; backend remains source of truth for ca
 Postpone reads policy from workflow definition JSON (`allowed`, `max_count`, `delay_seconds`), reschedules the occurrence to `SCHEDULED`, re-arms alarm, and releases in-memory reminder dispatch so the screen can fire again.  
 Reason: postpone is not completion; schedule definition is unchanged; cloud upload of postpone facts is deferred.
 
-**Decision 4 — Developer Settings stays in debug builds**  
+**Decision 4 — Confirmed doses leave the Home screen after 15 minutes**  
+A confirmed reminder keeps its «ثبت شد ✓» card for 15 minutes, then disappears from Home (`TodayReminderVisibility`). Only the UI hides it: the occurrence, execution, and pending-evidence rows stay in Room for history and upload.  
+Reason: the elder screen must stay calm and nearly empty; a card that lingers all day adds noise without adding meaning. The short window still lets the elder see that the dose was registered.
+
+**Decision 5 — Developer Settings stays in debug builds**  
 Force sync, schedule-local-test (1 min), and diagnostic export remain available for field debugging.  
 Reason: app is not production-complete; real-time QA and backend scheduling integration are follow-up work.
 
-**Decision 5 — Deferred to next slices**  
+**Decision 6 — Deferred to next slices**  
 - Reminder UI polish and accessibility pass  
 - Backend-authoritative scheduling (reduce local test/bootstrap reliance)  
 - Upload/sync of postpone and full execution lifecycle events  
@@ -35,5 +39,6 @@ Reason: app is not production-complete; real-time QA and backend scheduling inte
 ## Consequences
 
 - Confirm path works end-to-end locally with outbox evidence.  
+- Home shows a confirmed dose for 15 minutes only; adherence history still lives in the replica and in the cloud.  
 - Postpone works locally within policy limits; sync may overwrite rescheduled times until upload exists.  
 - Production readiness requires closing deferred items above before treating reminder as complete.

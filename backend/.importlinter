@@ -24,6 +24,7 @@ layers =
     domains.synchronization
     domains.device
     domains.communication
+    domains.notification
     domains.licensing
     domains.care
     domains.identity_access
@@ -106,6 +107,20 @@ forbidden_modules =
     domains.notification
     domains.synchronization
 
+[importlinter:contract:notification-independence]
+name = Notification must not import Care, Workflow, Device, Communication, or Synchronization
+type = forbidden
+source_modules =
+    domains.notification
+forbidden_modules =
+    domains.care
+    domains.workflow
+    domains.device
+    domains.communication
+    domains.synchronization
+    domains.scheduling
+    domains.licensing
+
 [importlinter:contract:communication-no-skyroom-client]
 name = Communication must not import the Skyroom HTTP client
 type = forbidden
@@ -146,6 +161,7 @@ forbidden_modules =
     domains.care.models
     domains.device.models
     domains.communication.models
+    domains.notification.models
     domains.synchronization.models
 
 [importlinter:contract:care-independence]

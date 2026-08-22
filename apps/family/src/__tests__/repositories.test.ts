@@ -1,5 +1,7 @@
 import { loadAlertInbox } from "../services/alerts/alertRepository";
-import { loadElderDevices } from "../services/devices/deviceRepository";
+import { listElderAlerts } from "../api/endpoints/alerts";
+import { voiceMessageAvailability } from "../services/communication/voiceMessageRepository";
+import { isDeviceConnected, loadElderDevices, normalizeConnectivity } from "../services/devices/deviceRepository";
 import { MEDICATION_REGIMEN_GAP, groupMedicationTimes } from "../services/program/medicationRegimen";
 import { visualKindFor } from "../services/program/activityKind";
 import { BLOCKED_CAREGIVER_COMMANDS } from "../api/deviceCommandPolicy";
@@ -11,14 +13,35 @@ import { listElderDevices } from "../api/endpoints/device";
 jest.mock("../api/endpoints/device", () => ({
   listElderDevices: jest.fn(),
 }));
+jest.mock("../api/endpoints/alerts", () => ({
+  listElderAlerts: jest.fn(),
+  getElderAlert: jest.fn(),
+}));
 
 const listElderDevicesMock = listElderDevices as jest.MockedFunction<typeof listElderDevices>;
 
 describe("backend gap repositories", () => {
-  it("does not invent a notification inbox", async () => {
+  it("maps caregiver alerts from Backend", async () => {
+    const listElderAlertsMock = listElderAlerts as jest.MockedFunction<typeof listElderAlerts>;
+    listElderAlertsMock.mockResolvedValue([
+      {
+        id: "alert-1",
+        title: "داروی صبح هنوز مصرف نشده",
+        body: "یادآوری روی هاب پاسخ داده نشده است.",
+        severity: "attention",
+        occurred_at: "2026-08-22T08:45:00Z",
+      },
+    ]);
     const inbox = await loadAlertInbox("elder-1");
-    expect(inbox.available).toBe(false);
-    expect(inbox.items).toEqual([]);
+    expect(inbox.available).toBe(true);
+    expect(inbox.items[0]?.id).toBe("alert-1");
+    expect(inbox.items[0]?.occurredAt).toBe("2026-08-22T08:45:00Z");
+  });
+
+  it("does not invent a voice message API", () => {
+    const availability = voiceMessageAvailability();
+    expect(availability.available).toBe(false);
+    expect(availability).toEqual({ available: false, reason: "VOICE_MESSAGE_API_MISSING" });
   });
 
   it("maps the elder device list from Backend", async () => {
@@ -38,6 +61,12 @@ describe("backend gap repositories", () => {
     const catalog = await loadElderDevices("elder-1");
     expect(catalog.available).toBe(true);
     expect(catalog.items[0]?.kind).toBe("HUB");
+  });
+
+  it("treats unknown connectivity as disconnected, not assigned-active", () => {
+    expect(normalizeConnectivity("ACTIVE")).toBe("unknown");
+    expect(isDeviceConnected("unknown")).toBe(false);
+    expect(isDeviceConnected("online")).toBe(true);
   });
 
   it("keeps MedicationRegimen isolated", () => {

@@ -19,9 +19,10 @@ import {
 } from "../../../src/components";
 import { StatusHero } from "../../../src/components/StatusHero";
 import { Icon } from "../../../src/components/Icon";
-import { t, formatClock, formatRelative } from "../../../src/i18n";
+import { t, formatClock, formatRelative, completionStateLabel, occurrenceStatusLabel } from "../../../src/i18n";
 import { composeDashboard } from "../../../src/services/dashboard/composeDashboard";
 import { hasEntitlement } from "../../../src/services/licensing/entitlements";
+import { isDeviceConnected } from "../../../src/services/devices/deviceRepository";
 import { useElderStore } from "../../../src/stores/elderStore";
 import { colors, radius, spacing } from "../../../src/theme/tokens";
 import { PERMISSIONS } from "../../../src/permissions/codes";
@@ -148,6 +149,13 @@ export default function HomeScreen() {
                   <AppText variant="body" color={colors.textSecondary}>
                     {item.prescription?.dosage_information || item.activity.display_subtitle}
                   </AppText>
+                  <AppText variant="caption" color={colors.textMuted}>
+                    {item.completion
+                      ? completionStateLabel(item.completion.completion_state)
+                      : item.occurrence.status === "DUE"
+                        ? t.waitingForConfirmation
+                        : occurrenceStatusLabel(item.occurrence.status)}
+                  </AppText>
                 </View>
                 <Icon name="pill_small" width={14} height={18} />
               </View>
@@ -168,8 +176,8 @@ export default function HomeScreen() {
                     {device.kind === "HUB" ? t.hub : t.pillBox}
                   </AppText>
                   <StatusBadge
-                    label={device.connectivity === "online" ? t.online : t.disconnected}
-                    tone={device.connectivity === "online" ? "success" : "error"}
+                    label={isDeviceConnected(device.connectivity) ? t.online : t.disconnected}
+                    tone={isDeviceConnected(device.connectivity) ? "success" : "error"}
                   />
                 </Card>
               </Pressable>

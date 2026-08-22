@@ -13,7 +13,7 @@ import {
   StatusBadge,
   TopAppBar,
 } from "../../../src/components";
-import { loadElderDevices } from "../../../src/services/devices/deviceRepository";
+import { loadElderDevices, isDeviceConnected } from "../../../src/services/devices/deviceRepository";
 import { queryKeys } from "../../../src/api/queryKeys";
 import { useElderStore } from "../../../src/stores/elderStore";
 import { usePermissions } from "../../../src/permissions/usePermission";
@@ -77,8 +77,8 @@ export default function DevicesScreen() {
                   </AppText>
                 </View>
                 <StatusBadge
-                  label={device.connectivity === "online" ? t.online : t.disconnected}
-                  tone={device.connectivity === "online" ? "success" : "error"}
+                  label={isDeviceConnected(device.connectivity) ? t.online : t.disconnected}
+                  tone={isDeviceConnected(device.connectivity) ? "success" : "error"}
                 />
               </View>
             </Card>

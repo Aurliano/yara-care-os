@@ -9,7 +9,7 @@ import {
 } from "../../../src/api/endpoints/care";
 import { listOccurrences, skipOccurrence } from "../../../src/api/endpoints/scheduling";
 import { AppText, Button, Card, ErrorState, LoadingSkeleton, Screen, TopAppBar } from "../../../src/components";
-import { t, formatClock, formatRelative, careActivityStatusLabel, completionStateLabel } from "../../../src/i18n";
+import { t, formatClock, formatRelative, careActivityStatusLabel, completionStateLabel, occurrenceStatusLabel } from "../../../src/i18n";
 import { firstParam } from "../../../src/navigation/params";
 import { colors, spacing } from "../../../src/theme/tokens";
 import { usePermissions } from "../../../src/permissions/usePermission";
@@ -75,6 +75,7 @@ export default function ActivityDetailScreen() {
   const canMutateMedication = isMedication && can(PERMISSIONS.MANAGE_MEDICATION);
   const kind = visualKindFor(activity.activity_type, activity.display_title);
   const next = occurrences.data?.[0];
+  const nextCompletion = (completions.data ?? []).find((item) => item.occurrence_id === next?.id);
 
   return (
     <Screen>
@@ -93,6 +94,13 @@ export default function ActivityDetailScreen() {
         <Card>
           <AppText variant="label">{t.next}</AppText>
           <AppText variant="time">{formatClock(next.scheduled_for)}</AppText>
+          <AppText variant="caption" color={colors.textMuted}>
+            {nextCompletion
+              ? completionStateLabel(nextCompletion.completion_state)
+              : next.status === "DUE"
+                ? t.waitingForConfirmation
+                : occurrenceStatusLabel(next.status)}
+          </AppText>
           {canMutateMedication ? (
             <View style={styles.actions}>
               <Button

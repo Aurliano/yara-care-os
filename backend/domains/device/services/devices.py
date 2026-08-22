@@ -81,6 +81,20 @@ def update_device_state(
     return device
 
 
+def touch_device_presence(*, device_id: uuid.UUID, is_online: bool = True) -> Device:
+    """Merge connectivity into current_state and refresh last_seen without dropping battery."""
+    device = get_device(device_id)
+    previous = (device.current_state or {}).get("network")
+    state = dict(device.current_state or {})
+    state["network"] = "online" if is_online else "offline"
+    emit_online: bool | None = None
+    if is_online and previous != "online":
+        emit_online = True
+    elif not is_online and previous != "offline":
+        emit_online = False
+    return update_device_state(device_id=device_id, current_state=state, is_online=emit_online)
+
+
 @transaction.atomic
 def add_capability_override(
     *,

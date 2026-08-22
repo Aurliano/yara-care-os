@@ -346,3 +346,179 @@ def test_download_stages_snapshot_after_hub_is_reassigned_to_another_elder(
     assert operations[0]["operation_type"] == OperationType.SNAPSHOT
     care_ids = [item["care_activity_id"] for item in operations[0]["payload"]["care_activities"]]
     assert str(activity.id) in care_ids
+
+
+@pytest.mark.django_db
+def test_incremental_download_stages_new_prescription_after_snapshot(
+    api_client: APIClient,
+    integration_user,
+    licensed_elder,
+    hub_model,
+    hub_device,
+    workflow_definition,
+    recurrence_definition,
+    schedule_start_at,
+):
+    from domains.care.services.prescriptions import create_prescription
+
+    api_client.force_authenticate(user=integration_user)
+    register = api_client.post(
+        "/api/v1/hub/provision/register/",
+        {
+            "serial_number": hub_device.serial_number,
+            "device_model_code": hub_model.model_code,
+        },
+        format="json",
+    )
+    replica_id = uuid.UUID(register.json()["replica_identifier"])
+    device_id = uuid.UUID(register.json()["device_id"])
+    assign_device(
+        device_id=device_id,
+        elder_id=licensed_elder.id,
+        assignment_type=AssignmentType.OWNED,
+    )
+    first = create_care_activity(
+        elder_id=licensed_elder.id,
+        activity_type=CareActivityType.MEDICATION,
+        workflow_definition_id=workflow_definition.id,
+        recurrence_definition=recurrence_definition,
+        timezone_name="UTC",
+        start_at=schedule_start_at,
+        display_title="Existing Medication",
+    )
+    api_client.post(
+        "/api/v1/hub/provision/authenticate/",
+        {
+            "device_id": str(device_id),
+            "phone": integration_user.phone,
+            "password": "securepass123",
+        },
+        format="json",
+    )
+    ctx = IntegrationContext(
+        device_id=device_id,
+        replica_id=replica_id,
+        correlation_id="new-prescription-correlation",
+    )
+    snapshot_session = start_download_session(ctx, idempotency_key="snapshot-before-new-rx")
+    assert stage_hub_download_operations(ctx=ctx, session=snapshot_session) == 1
+    complete_hub_download_session(ctx=ctx, session_id=snapshot_session.id)
+    replica = get_replica_state(replica_identifier=replica_id)
+    assert ReplicaVersion.objects.filter(replica_state=replica, aggregate_reference=first.id).exists()
+
+    created = create_prescription(
+        elder_id=licensed_elder.id,
+        workflow_definition_id=workflow_definition.id,
+        recurrence_definition=recurrence_definition,
+        timezone_name="UTC",
+        start_at=schedule_start_at,
+        display_title="Night Medication",
+        medication_reference="med-night",
+        dosage_information="1 tablet",
+        elder_friendly_description="Take the night tablet",
+    )
+    assert not ReplicaVersion.objects.filter(
+        replica_state=replica,
+        aggregate_reference=created.care_activity_id,
+    ).exists()
+
+    delta_session = start_download_session(ctx, idempotency_key="delta-after-new-rx")
+    staged = stage_hub_download_operations(ctx=ctx, session=delta_session)
+    assert staged >= 1
+    pending = api_client.get(
+        f"/api/v1/synchronization/sessions/{delta_session.id}/pending-operations/",
+    )
+    assert pending.status_code == 200
+    operations = pending.json()
+    care_ops = [item for item in operations if item["payload_type"] == "care.activity.delta"]
+    assert len(care_ops) == 1
+    assert care_ops[0]["payload"]["care_activity_id"] == str(created.care_activity_id)
+    assert care_ops[0]["payload"]["display_title"] == "Night Medication"
+    assert care_ops[0]["payload"]["prescription"]["medication_reference"] == "med-night"
+
+
+@pytest.mark.django_db
+def test_snapshot_complete_does_not_seed_care_created_after_staging(
+    api_client: APIClient,
+    integration_user,
+    licensed_elder,
+    hub_model,
+    hub_device,
+    workflow_definition,
+    recurrence_definition,
+    schedule_start_at,
+):
+    from domains.care.services.prescriptions import create_prescription
+
+    api_client.force_authenticate(user=integration_user)
+    register = api_client.post(
+        "/api/v1/hub/provision/register/",
+        {
+            "serial_number": hub_device.serial_number,
+            "device_model_code": hub_model.model_code,
+        },
+        format="json",
+    )
+    replica_id = uuid.UUID(register.json()["replica_identifier"])
+    device_id = uuid.UUID(register.json()["device_id"])
+    assign_device(
+        device_id=device_id,
+        elder_id=licensed_elder.id,
+        assignment_type=AssignmentType.OWNED,
+    )
+    create_care_activity(
+        elder_id=licensed_elder.id,
+        activity_type=CareActivityType.MEDICATION,
+        workflow_definition_id=workflow_definition.id,
+        recurrence_definition=recurrence_definition,
+        timezone_name="UTC",
+        start_at=schedule_start_at,
+        display_title="Snapshot Medication",
+    )
+    api_client.post(
+        "/api/v1/hub/provision/authenticate/",
+        {
+            "device_id": str(device_id),
+            "phone": integration_user.phone,
+            "password": "securepass123",
+        },
+        format="json",
+    )
+    ctx = IntegrationContext(
+        device_id=device_id,
+        replica_id=replica_id,
+        correlation_id="seed-scope-correlation",
+    )
+    snapshot_session = start_download_session(ctx, idempotency_key="snapshot-before-late-rx")
+    assert stage_hub_download_operations(ctx=ctx, session=snapshot_session) == 1
+
+    late = create_prescription(
+        elder_id=licensed_elder.id,
+        workflow_definition_id=workflow_definition.id,
+        recurrence_definition=recurrence_definition,
+        timezone_name="UTC",
+        start_at=schedule_start_at,
+        display_title="Late Medication",
+        medication_reference="med-late",
+        dosage_information="1 tablet",
+        elder_friendly_description="Take the late tablet",
+    )
+    complete_hub_download_session(ctx=ctx, session_id=snapshot_session.id)
+    replica = get_replica_state(replica_identifier=replica_id)
+    assert not ReplicaVersion.objects.filter(
+        replica_state=replica,
+        aggregate_reference=late.care_activity_id,
+    ).exists()
+
+    delta_session = start_download_session(ctx, idempotency_key="delta-late-rx")
+    staged = stage_hub_download_operations(ctx=ctx, session=delta_session)
+    assert staged >= 1
+    pending = api_client.get(
+        f"/api/v1/synchronization/sessions/{delta_session.id}/pending-operations/",
+    )
+    care_ids = [
+        item["payload"]["care_activity_id"]
+        for item in pending.json()
+        if item["payload_type"] == "care.activity.delta"
+    ]
+    assert str(late.care_activity_id) in care_ids
