@@ -30,10 +30,10 @@ class UploadSessionRunner @Inject constructor(
         val pending = pendingEvidenceRepository.getPending(limit)
         var processed = 0
         for (evidence in pending) {
+            val occurrenceId = workflowReplicaRepository
+                .getExecution(evidence.workflowExecutionId)
+                ?.occurrenceId
             when (
-                val occurrenceId = workflowReplicaRepository
-                    .getExecution(evidence.workflowExecutionId)
-                    ?.occurrenceId
                 val result = integrationRuntimeRepository.submitHubConfirmation(
                     workflowExecutionId = evidence.workflowExecutionId,
                     interactionReference = evidence.interactionReference,
