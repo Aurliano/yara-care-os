@@ -2,3 +2,5 @@ architecture
 common
 config
 domains
+infrastructure
+integration

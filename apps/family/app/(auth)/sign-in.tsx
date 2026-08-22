@@ -3,7 +3,7 @@ import { StyleSheet, View } from "react-native";
 import { Link, useRouter } from "expo-router";
 import { t } from "../../src/i18n";
 import { colors, spacing } from "../../src/theme/tokens";
-import { AppText, Button, Card, Screen, TextField } from "../../src/components";
+import { AppText, BrandLockup, Button, Card, Screen, TextField } from "../../src/components";
 import { useSessionStore } from "../../src/stores/sessionStore";
 import { ApiError } from "../../src/api/errors";
 
@@ -31,9 +31,7 @@ export default function SignInScreen() {
   return (
     <Screen>
       <View style={styles.brand}>
-        <AppText variant="headline" color={colors.primary} align="center">
-          {t.brand}
-        </AppText>
+        <BrandLockup size="lg" />
         <AppText variant="title" align="center">
           {t.tagline}
         </AppText>
