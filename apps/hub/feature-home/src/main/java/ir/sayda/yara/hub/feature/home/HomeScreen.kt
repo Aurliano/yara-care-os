@@ -43,6 +43,7 @@ import ir.sayda.yara.hub.ui.components.NextReminderHighlightCard
 import ir.sayda.yara.hub.ui.components.SettingsButton
 import ir.sayda.yara.hub.ui.components.TodayBackground
 import ir.sayda.yara.hub.ui.components.TodayReminderCard
+import ir.sayda.yara.hub.ui.components.VoiceMessageUnavailableCard
 import ir.sayda.yara.hub.ui.theme.TextSecondary
 import ir.sayda.yara.hub.ui.theme.WarmWhite
 import kotlinx.coroutines.delay
@@ -188,6 +189,11 @@ fun HomeRoute(
                                 item {
                                     HomeEmptyStateCard(message = "پیام جدیدی از خانواده ندارید")
                                 }
+                            }
+                            item {
+                                VoiceMessageUnavailableCard(
+                                    message = "پیام صوتی هنوز آماده نیست",
+                                )
                             }
                             }
 

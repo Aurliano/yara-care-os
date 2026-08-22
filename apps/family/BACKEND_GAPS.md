@@ -15,3 +15,4 @@ These items are documented because the family app is a thin client and must not 
 11. **License object vs entitlements** — `GET /elders/{id}/license/` returns 404 when there is no active license. Subscription UI reads only `GET /elders/{id}/entitlements/` and never calls `/license/`.
 12. **Billing / plan-change UX** — `change-plan` exists and requires `MANAGE_SUBSCRIPTION`, but no payment API is present. Subscription screen is entitlements-only.
 13. **Remote compartment open** — `OPEN_COMPARTMENT` exists on Device commands. The family app never sends it.
+14. **Voice message** — `channel = MESSAGE` is only a real-time session channel; there is no recorded-audio entity, upload endpoint, or storage. The call screen shows «پیام صوتی» as explicitly unavailable through `src/services/communication/voiceMessageRepository.ts`. See `docs/ADR-014-voice-message-slice.md`.

@@ -542,6 +542,49 @@ fun VoiceMessageCard(from: String, onClick: () -> Unit) {
     )
 }
 
+/** Voice messages are not deliverable yet (ADR-014); say so instead of hiding the feature. */
+@Composable
+fun VoiceMessageUnavailableCard(message: String, modifier: Modifier = Modifier) {
+    Surface(
+        shape = RoundedCornerShape(24.dp),
+        color = Color.White,
+        shadowElevation = 2.dp,
+        modifier = modifier
+            .fillMaxWidth()
+            .heightIn(min = 120.dp),
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 24.dp, vertical = 28.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(80.dp)
+                    .clip(CircleShape)
+                    .background(SurfaceGray),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = Icons.Rounded.PlayArrow,
+                    contentDescription = null,
+                    tint = TextSecondary,
+                    modifier = Modifier.size(48.dp),
+                )
+            }
+            Spacer(modifier = Modifier.width(24.dp))
+            Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.Start) {
+                Text(text = "پیام صوتی", style = MaterialTheme.typography.labelMedium, color = TextSecondary)
+                Text(
+                    text = message,
+                    style = MaterialTheme.typography.titleLarge,
+                    color = TextSecondary,
+                    lineHeight = 32.sp,
+                )
+            }
+        }
+    }
+}
+
 @Composable
 fun ContactCard(name: String, onClick: () -> Unit) {
     YaraBaseCard(

@@ -1,4 +1,5 @@
 import { loadAlertInbox } from "../services/alerts/alertRepository";
+import { voiceMessageAvailability } from "../services/communication/voiceMessageRepository";
 import { isDeviceConnected, loadElderDevices, normalizeConnectivity } from "../services/devices/deviceRepository";
 import { MEDICATION_REGIMEN_GAP, groupMedicationTimes } from "../services/program/medicationRegimen";
 import { visualKindFor } from "../services/program/activityKind";
@@ -19,6 +20,12 @@ describe("backend gap repositories", () => {
     const inbox = await loadAlertInbox("elder-1");
     expect(inbox.available).toBe(false);
     expect(inbox.items).toEqual([]);
+  });
+
+  it("does not invent a voice message API", () => {
+    const availability = voiceMessageAvailability();
+    expect(availability.available).toBe(false);
+    expect(availability).toEqual({ available: false, reason: "VOICE_MESSAGE_API_MISSING" });
   });
 
   it("maps the elder device list from Backend", async () => {

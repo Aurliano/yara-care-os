@@ -183,6 +183,8 @@ export const fa = {
   callSubtitle: "با عزیزتان حرف بزنید یا از مخاطبان مورد اعتماد کمک بگیرید.",
   startVoiceCall: "تماس صوتی",
   startVideoCall: "تماس تصویری",
+  sendVoiceMessage: "پیام صوتی",
+  voiceMessageUnavailable: "ارسال پیام صوتی هنوز روی سرور فعال نشده است. به‌محض آماده شدن، همین‌جا فعال می‌شود.",
   answerCall: "پاسخ",
   incomingCallTitle: "تماس ورودی",
   incomingCallBody: "هاب می‌خواهد با شما صحبت کند.",
