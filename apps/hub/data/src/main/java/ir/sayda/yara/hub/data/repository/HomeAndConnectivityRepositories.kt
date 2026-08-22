@@ -13,6 +13,7 @@ import ir.sayda.yara.hub.core.domain.model.ReminderPresentation
 import ir.sayda.yara.hub.core.domain.model.ReplicaState
 import ir.sayda.yara.hub.core.domain.model.RuntimeStateRecord
 import ir.sayda.yara.hub.core.domain.model.TodayReminderItem
+import ir.sayda.yara.hub.core.domain.model.TodayReminderVisibility
 import ir.sayda.yara.hub.core.domain.model.WorkflowExecution
 import ir.sayda.yara.hub.core.domain.repository.AuthRepository
 import ir.sayda.yara.hub.core.domain.repository.CareReplicaRepository
@@ -114,6 +115,7 @@ class HomeRepositoryImpl @Inject constructor(
                 val (careActivities, prescriptions, replicaState) = careInputs
                 buildSnapshot(
                     identity = identity,
+                    nowEpochMillis = nowEpochMillis,
                     executions = executions,
                     todayOccurrences = todayOccurrences,
                     nextOccurrence = nextOccurrence,
@@ -125,9 +127,9 @@ class HomeRepositoryImpl @Inject constructor(
                     contacts = runtimeInputs.contacts,
                     pendingEvidenceCount = runtimeInputs.pendingEvidenceCount,
                     registeredAlarmCount = occurrenceAlarmRegistry.queryRegisteredOccurrenceIds().size,
-                    locallyConfirmedExecutionIds = runtimeInputs.hubConfirmations
-                        .map { it.workflowExecutionId }
-                        .toSet(),
+                    confirmedAtByExecutionId = runtimeInputs.hubConfirmations
+                        .groupBy { it.workflowExecutionId }
+                        .mapValues { (_, evidence) -> evidence.minOf { it.createdAtEpochMillis } },
                     provisioning = runtimeInputs.provisioning,
                     connectivity = runtimeInputs.connectivity,
                     diagnostics = diagnostics,
@@ -154,6 +156,7 @@ class HomeRepositoryImpl @Inject constructor(
 
     private fun buildSnapshot(
         identity: HubIdentity?,
+        nowEpochMillis: Long,
         executions: List<WorkflowExecution>,
         todayOccurrences: List<Occurrence>,
         nextOccurrence: Occurrence?,
@@ -165,7 +168,7 @@ class HomeRepositoryImpl @Inject constructor(
         contacts: List<Contact>,
         pendingEvidenceCount: Int,
         registeredAlarmCount: Int,
-        locallyConfirmedExecutionIds: Set<String>,
+        confirmedAtByExecutionId: Map<String, Long>,
         provisioning: ir.sayda.yara.hub.core.domain.model.ProvisioningStatus,
         connectivity: ir.sayda.yara.hub.core.domain.model.ConnectivitySnapshot,
         diagnostics: ReplicaTableCounts,
@@ -173,9 +176,10 @@ class HomeRepositoryImpl @Inject constructor(
         val activityBySchedule = careActivities.associateBy { it.scheduleDefinitionId }
         val prescriptionByActivity = prescriptions.associateBy { it.careActivityId }
         val executionByOccurrence = executions.associateBy { it.occurrenceId }
-        val todayReminders = todayOccurrences.map { occurrence ->
+        val allTodayReminders = todayOccurrences.map { occurrence ->
             val activity = activityBySchedule[occurrence.scheduleDefinitionId]
             val prescription = activity?.let { prescriptionByActivity[it.id] }
+            val confirmedAt = executionByOccurrence[occurrence.id]?.id?.let { confirmedAtByExecutionId[it] }
             TodayReminderItem(
                 occurrenceId = occurrence.id,
                 executionId = executionByOccurrence[occurrence.id]?.id,
@@ -185,15 +189,20 @@ class HomeRepositoryImpl @Inject constructor(
                     ?: "",
                 scheduledForEpochMillis = occurrence.scheduledForEpochMillis,
                 status = occurrence.status,
-                localConfirmationRecorded = executionByOccurrence[occurrence.id]?.id
-                    ?.let { locallyConfirmedExecutionIds.contains(it) }
-                    ?: false,
+                localConfirmationRecorded = confirmedAt != null,
+                confirmedAtEpochMillis = confirmedAt,
             )
         }
+        val todayReminders = TodayReminderVisibility.visibleAt(allTodayReminders, nowEpochMillis)
+        val hiddenOccurrenceIds = allTodayReminders
+            .filterNot { TodayReminderVisibility.isVisible(it, nowEpochMillis) }
+            .map { it.occurrenceId }
+            .toSet()
+        val visibleNextOccurrence = nextOccurrence?.takeUnless { hiddenOccurrenceIds.contains(it.id) }
         val displayName = careActivities.firstOrNull { it.elderId == identity?.elderId }?.displayTitle
             ?: identity?.elderId
             ?: "سالمند"
-        val nextActivity = nextOccurrence?.let { activityBySchedule[it.scheduleDefinitionId] }
+        val nextActivity = visibleNextOccurrence?.let { activityBySchedule[it.scheduleDefinitionId] }
         return HomeRuntimeSnapshot(
             elderDisplayName = displayName,
             activeExecutions = executions,
@@ -203,7 +212,7 @@ class HomeRepositoryImpl @Inject constructor(
             runtimeHealth = runtimeHealth,
             lastSyncEpochMillis = replicaState?.lastSuccessfulSyncEpochMillis,
             isOnline = online,
-            nextReminderEpochMillis = nextOccurrence?.scheduledForEpochMillis,
+            nextReminderEpochMillis = visibleNextOccurrence?.scheduledForEpochMillis,
             nextReminderTitle = nextActivity?.displayTitle,
             pendingEvidenceCount = pendingEvidenceCount,
             synchronizationAvailable = online && provisioning.state == ProvisioningState.READY,
