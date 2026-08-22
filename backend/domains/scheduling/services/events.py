@@ -23,8 +23,13 @@ def publish_scheduling_fact(
     payload: dict[str, Any],
     correlation_id: str = "",
     causation_id: str = "",
+    discriminator: str = "",
 ) -> None:
-    event_id = compute_scheduling_event_id(event_type=event_type, subject_id=subject_id)
+    event_id = compute_scheduling_event_id(
+        event_type=event_type,
+        subject_id=subject_id,
+        discriminator=discriminator,
+    )
     event = record_event(
         EventInput(
             event_id=event_id,
@@ -55,10 +60,12 @@ def emit_schedule_created(*, schedule_id: uuid.UUID, owner_reference: str, timez
 
 
 def emit_schedule_updated(*, schedule_id: uuid.UUID, status: str) -> None:
+    occurred_at = timezone.now()
     publish_scheduling_fact(
         event_type="ScheduleUpdated",
         subject_id=schedule_id,
-        occurred_at=timezone.now(),
+        occurred_at=occurred_at,
+        discriminator=occurred_at.isoformat(),
         payload={
             "schedule_definition_id": str(schedule_id),
             "status": status,
@@ -67,19 +74,23 @@ def emit_schedule_updated(*, schedule_id: uuid.UUID, status: str) -> None:
 
 
 def emit_schedule_paused(*, schedule_id: uuid.UUID) -> None:
+    occurred_at = timezone.now()
     publish_scheduling_fact(
         event_type="SchedulePaused",
         subject_id=schedule_id,
-        occurred_at=timezone.now(),
+        occurred_at=occurred_at,
+        discriminator=occurred_at.isoformat(),
         payload={"schedule_definition_id": str(schedule_id)},
     )
 
 
 def emit_schedule_resumed(*, schedule_id: uuid.UUID) -> None:
+    occurred_at = timezone.now()
     publish_scheduling_fact(
         event_type="ScheduleResumed",
         subject_id=schedule_id,
-        occurred_at=timezone.now(),
+        occurred_at=occurred_at,
+        discriminator=occurred_at.isoformat(),
         payload={"schedule_definition_id": str(schedule_id)},
     )
 

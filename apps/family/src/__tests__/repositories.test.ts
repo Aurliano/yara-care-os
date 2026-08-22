@@ -9,6 +9,8 @@ import { routeFromPushPayload } from "../navigation/deepLinks";
 import { queryKeys } from "../api/queryKeys";
 import { hasEntitlement } from "../services/licensing/entitlements";
 import { listElderDevices } from "../api/endpoints/device";
+import { shouldShowOnTodayProgram } from "../services/program/todayProgram";
+import type { CareActivity, Occurrence } from "../api/types";
 
 jest.mock("../api/endpoints/device", () => ({
   listElderDevices: jest.fn(),
@@ -100,6 +102,37 @@ describe("query keys", () => {
   it("scopes server state by elder id", () => {
     expect(queryKeys.dashboard("e1")[1]).toBe("e1");
     expect(queryKeys.careActivities("e1")).not.toEqual(queryKeys.careActivities("e2"));
+  });
+});
+
+describe("today program visibility", () => {
+  const activity = (status: CareActivity["status"]): CareActivity =>
+    ({
+      id: "a1",
+      elder_id: "e1",
+      activity_type: "MEDICATION",
+      display_title: "Morning",
+      display_subtitle: "",
+      status,
+      schedule_definition_id: "s1",
+      workflow_definition_id: "w1",
+      confirmation_requirement: "HUB_CONFIRMATION",
+      compartment_assignment_reference: "",
+      aggregate_version: 1,
+    }) as CareActivity;
+  const occurrence = (status: Occurrence["status"]): Occurrence =>
+    ({
+      id: "o1",
+      schedule_definition_id: "s1",
+      scheduled_for: "2026-08-22T08:00:00Z",
+      status,
+    }) as Occurrence;
+
+  it("hides ended programs and skipped turns from today", () => {
+    expect(shouldShowOnTodayProgram(activity("ACTIVE"), occurrence("SCHEDULED"))).toBe(true);
+    expect(shouldShowOnTodayProgram(activity("PAUSED"), occurrence("DUE"))).toBe(true);
+    expect(shouldShowOnTodayProgram(activity("ENDED"), occurrence("SCHEDULED"))).toBe(false);
+    expect(shouldShowOnTodayProgram(activity("ACTIVE"), occurrence("SKIPPED"))).toBe(false);
   });
 });
 

@@ -95,3 +95,23 @@ class Command(BaseCommand):
             self.stdout.write(self.style.ERROR(f"ensure_room failed [{exc.reason}] code={exc.error_code}: {exc}"))
             return
         self.stdout.write(self.style.SUCCESS(f"Room ready: key={room.key} external_id={room.external_id}"))
+
+        from domains.communication.providers import ProviderUser
+
+        try:
+            login = provider.generate_login_url(
+                room=room,
+                user=ProviderUser(key="yara-check", external_id="", display_name="Yara"),
+                ttl_seconds=60,
+            )
+        except CommunicationProviderError as exc:
+            self.stdout.write(
+                self.style.ERROR(
+                    f"createLoginUrl failed [{exc.reason}] code={exc.error_code}: {exc}"
+                )
+            )
+            return
+        scheme = "https" if login.login_url.startswith("https://") else "other"
+        self.stdout.write(
+            self.style.SUCCESS(f"Login URL issued length={len(login.login_url)} scheme={scheme}")
+        )

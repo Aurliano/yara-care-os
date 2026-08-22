@@ -1,16 +1,21 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
 import { StyleSheet, View } from "react-native";
+import { useQueryClient } from "@tanstack/react-query";
 import { endCareActivity } from "../../../src/api/endpoints/care";
 import { createScheduleException } from "../../../src/api/endpoints/scheduling";
 import { AppText, Button, Card, Screen, TextField, TopAppBar } from "../../../src/components";
 import { t } from "../../../src/i18n";
 import { toLatinDigits } from "../../../src/i18n/numerals";
 import { firstParam } from "../../../src/navigation/params";
+import { invalidateProgramQueries } from "../../../src/services/program/todayProgram";
+import { useElderStore } from "../../../src/stores/elderStore";
 import { colors, spacing } from "../../../src/theme/tokens";
 
 export default function ConfirmScreen() {
   const router = useRouter();
+  const queryClient = useQueryClient();
+  const elderId = useElderStore((s) => s.selectedElderId);
   const raw = useLocalSearchParams<{
     activityId: string;
     scheduleId?: string;
@@ -43,6 +48,7 @@ export default function ConfirmScreen() {
           replacement_time: original.toISOString(),
         });
       }
+      invalidateProgramQueries(queryClient, elderId, params.activityId);
       router.back();
     } catch {
       setError(t.errorBody);

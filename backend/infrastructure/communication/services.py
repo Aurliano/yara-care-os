@@ -67,10 +67,6 @@ def _ensure_room_binding(
     provider: CommunicationProvider,
 ) -> tuple[ProviderRoomBinding, ProviderRoom]:
     provider_name = _provider_name()
-    binding = ProviderRoomBinding.objects.filter(provider=provider_name, elder_id=elder_id).first()
-    if binding is not None:
-        return binding, ProviderRoom(key=binding.room_key, external_id=binding.external_room_id)
-
     room = provider.ensure_room(room_key=room_key_for_elder(elder_id), title=title)
     binding, created = ProviderRoomBinding.objects.get_or_create(
         provider=provider_name,
@@ -80,8 +76,14 @@ def _ensure_room_binding(
             "external_room_id": room.external_id,
         },
     )
-    if not created:
-        room = ProviderRoom(key=binding.room_key, external_id=binding.external_room_id)
+    if not created and (
+        binding.external_room_id != room.external_id or binding.room_key != room.key
+    ):
+        # Panel-created rooms keep the same name; refresh a stale numeric id
+        # so createLoginUrl hits the live room instead of an expired leftover.
+        binding.room_key = room.key
+        binding.external_room_id = room.external_id
+        binding.save(update_fields=["room_key", "external_room_id"])
     return binding, room
 
 
