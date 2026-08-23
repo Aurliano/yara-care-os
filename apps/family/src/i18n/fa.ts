@@ -81,6 +81,7 @@ export const fa = {
   resume: "ادامه",
   endActivity: "پایان برنامه",
   skipOnce: "رد کردن این نوبت",
+  skipConflict: "این نوبت دیگر قابل رد کردن نیست.",
   rescheduleOnce: "جابه‌جایی این نوبت",
   replacementTime: "زمان جایگزین",
   confirm: "تأیید",

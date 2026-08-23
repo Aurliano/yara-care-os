@@ -183,7 +183,7 @@ def _apply_exception_to_existing_occurrence(
     if occurrence is None:
         return
 
-    if occurrence.status != OccurrenceStatus.SCHEDULED:
+    if occurrence.status in {OccurrenceStatus.SKIPPED, OccurrenceStatus.CANCELLED}:
         return
 
     if exception.exception_type == ScheduleExceptionType.SKIP:
@@ -197,5 +197,7 @@ def _apply_exception_to_existing_occurrence(
             occurrence_id=occurrence.id,
         )
         occurrence.scheduled_for = exception.replacement_time
+        if occurrence.status == OccurrenceStatus.DUE and exception.replacement_time > timezone.now():
+            occurrence.status = OccurrenceStatus.SCHEDULED
 
     occurrence.save(update_fields=["scheduled_for", "status"])

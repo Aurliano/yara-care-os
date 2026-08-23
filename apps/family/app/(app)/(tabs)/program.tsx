@@ -5,7 +5,7 @@ import { queryKeys } from "../../../src/api/queryKeys";
 import { listCareActivities, listPrescriptions } from "../../../src/api/endpoints/care";
 import { listOccurrences } from "../../../src/api/endpoints/scheduling";
 import { endOfLocalDay, startOfLocalDay } from "../../../src/i18n/dates";
-import { t, formatClock, formatPersianDate } from "../../../src/i18n";
+import { t, formatClock, formatPersianDate, careActivityStatusLabel } from "../../../src/i18n";
 import { colors, radius, spacing } from "../../../src/theme/tokens";
 import {
   AppText,
@@ -22,6 +22,7 @@ import { useElderStore } from "../../../src/stores/elderStore";
 import { usePermissions } from "../../../src/permissions/usePermission";
 import { PERMISSIONS } from "../../../src/permissions/codes";
 import { visualKindFor } from "../../../src/services/program/activityKind";
+import { shouldShowOnTodayProgram } from "../../../src/services/program/todayProgram";
 import type { CareActivity, Occurrence, Prescription } from "../../../src/api/types";
 
 export default function ProgramScreen() {
@@ -48,6 +49,9 @@ export default function ProgramScreen() {
           }).catch(() => [] as Occurrence[]);
           const list = Array.isArray(occ) ? occ : occ ? [occ] : [];
           for (const occurrence of list) {
+            if (!shouldShowOnTodayProgram(activity, occurrence)) {
+              continue;
+            }
             items.push({
               activity,
               occurrence,
@@ -135,6 +139,11 @@ export default function ProgramScreen() {
                     <AppText variant="body" color={colors.textSecondary}>
                       {item.prescription?.elder_friendly_description || item.activity.display_subtitle}
                     </AppText>
+                    {item.activity.status !== "ACTIVE" ? (
+                      <AppText variant="caption" color={colors.textMuted}>
+                        {careActivityStatusLabel(item.activity.status)}
+                      </AppText>
+                    ) : null}
                   </View>
                   <AppText variant="time">{formatClock(item.occurrence.scheduled_for)}</AppText>
                 </View>

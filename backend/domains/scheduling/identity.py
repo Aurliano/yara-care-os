@@ -34,9 +34,20 @@ def compute_occurrence_id(*, schedule_definition_id: uuid.UUID, original_time: d
     return uuid.uuid5(SCHEDULING_NAMESPACE, key)
 
 
-def compute_scheduling_event_id(*, event_type: str, subject_id: uuid.UUID) -> uuid.UUID:
-    """Stable event identity for one Scheduling fact."""
+def compute_scheduling_event_id(
+    *,
+    event_type: str,
+    subject_id: uuid.UUID,
+    discriminator: str = "",
+) -> uuid.UUID:
+    """Stable event identity for one Scheduling fact.
+
+    Repeatable facts (pause/resume/update) must pass a discriminator such as
+    ``occurred_at`` so a later pause is a new event, not a DuplicateEventError.
+    """
     key = f"{event_type}:{subject_id}"
+    if discriminator:
+        key = f"{key}:{discriminator}"
     return uuid.uuid5(SCHEDULING_NAMESPACE, key)
 
 

@@ -8,6 +8,7 @@ import {
   resumeCareActivity,
 } from "../../../src/api/endpoints/care";
 import { listOccurrences, skipOccurrence } from "../../../src/api/endpoints/scheduling";
+import { ApiError } from "../../../src/api/errors";
 import { AppText, Button, Card, ErrorState, LoadingSkeleton, Screen, TopAppBar } from "../../../src/components";
 import { t, formatClock, formatRelative, careActivityStatusLabel, completionStateLabel, occurrenceStatusLabel } from "../../../src/i18n";
 import { firstParam } from "../../../src/navigation/params";
@@ -15,6 +16,8 @@ import { colors, spacing } from "../../../src/theme/tokens";
 import { usePermissions } from "../../../src/permissions/usePermission";
 import { PERMISSIONS } from "../../../src/permissions/codes";
 import { visualKindFor } from "../../../src/services/program/activityKind";
+import { invalidateProgramQueries } from "../../../src/services/program/todayProgram";
+import { useElderStore } from "../../../src/stores/elderStore";
 import { endOfLocalDay, startOfLocalDay } from "../../../src/i18n/dates";
 import type { Occurrence } from "../../../src/api/types";
 
@@ -22,7 +25,9 @@ export default function ActivityDetailScreen() {
   const activityId = firstParam(useLocalSearchParams<{ activityId: string }>().activityId) ?? "";
   const router = useRouter();
   const queryClient = useQueryClient();
+  const elderId = useElderStore((s) => s.selectedElderId);
   const { can } = usePermissions();
+  const refreshProgram = () => invalidateProgramQueries(queryClient, elderId, activityId);
   const query = useQuery({
     queryKey: ["care-activity", activityId],
     enabled: Boolean(activityId),
@@ -48,11 +53,15 @@ export default function ActivityDetailScreen() {
 
   const pause = useMutation({
     mutationFn: () => pauseCareActivity(activityId),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["care-activity", activityId] }),
+    onSuccess: refreshProgram,
   });
   const resume = useMutation({
     mutationFn: () => resumeCareActivity(activityId),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["care-activity", activityId] }),
+    onSuccess: refreshProgram,
+  });
+  const skip = useMutation({
+    mutationFn: (occurrenceId: string) => skipOccurrence(occurrenceId),
+    onSuccess: refreshProgram,
   });
 
   if (query.isPending) {
@@ -74,8 +83,18 @@ export default function ActivityDetailScreen() {
   const isMedication = activity.activity_type === "MEDICATION";
   const canMutateMedication = isMedication && can(PERMISSIONS.MANAGE_MEDICATION);
   const kind = visualKindFor(activity.activity_type, activity.display_title);
-  const next = occurrences.data?.[0];
+  const next = (occurrences.data ?? []).find(
+    (item) => item.status === "SCHEDULED" || item.status === "DUE",
+  );
   const nextCompletion = (completions.data ?? []).find((item) => item.occurrence_id === next?.id);
+  const actionError =
+    skip.error != null
+      ? skip.error instanceof ApiError && skip.error.status === 409
+        ? t.skipConflict
+        : t.errorBody
+      : pause.error != null || resume.error != null
+        ? t.errorBody
+        : null;
 
   return (
     <Screen>
@@ -106,11 +125,8 @@ export default function ActivityDetailScreen() {
               <Button
                 label={t.skipOnce}
                 variant="secondary"
-                onPress={() =>
-                  void skipOccurrence(next.id).then(() =>
-                    queryClient.invalidateQueries({ queryKey: ["care-activity", activityId] }),
-                  )
-                }
+                onPress={() => skip.mutate(next.id)}
+                loading={skip.isPending}
               />
               <Button
                 label={t.rescheduleOnce}
@@ -131,6 +147,12 @@ export default function ActivityDetailScreen() {
             </View>
           ) : null}
         </Card>
+      ) : null}
+
+      {actionError ? (
+        <AppText variant="caption" color={colors.error}>
+          {actionError}
+        </AppText>
       ) : null}
 
       {canMutateMedication ? (

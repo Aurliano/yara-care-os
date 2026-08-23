@@ -9,12 +9,14 @@ from domains.communication.enums import CommunicationChannel, SessionStatus
 from domains.communication.models import CommunicationSession
 from domains.communication.services.contacts import create_contact
 from infrastructure.communication.factory import reset_fake_provider
+from infrastructure.communication.factory import get_communication_provider
 from infrastructure.communication.models import (
     ProviderCallBinding,
     ProviderRoomBinding,
     ProviderSubjectType,
     ProviderUserBinding,
 )
+from infrastructure.communication.services import _ensure_room_binding, room_key_for_elder
 
 
 @pytest.fixture(autouse=True)
@@ -56,6 +58,24 @@ def test_call_start_returns_join_credentials(authenticated_client, licensed_elde
     assert session.status == SessionStatus.CONNECTING
     assert ProviderRoomBinding.objects.filter(elder_id=licensed_elder.id).count() == 1
     assert ProviderCallBinding.objects.filter(communication_session_id=session.id).count() == 1
+
+
+@pytest.mark.django_db
+def test_room_binding_refreshes_stale_external_id(licensed_elder):
+    key = room_key_for_elder(licensed_elder.id)
+    ProviderRoomBinding.objects.create(
+        provider="fake",
+        elder_id=licensed_elder.id,
+        room_key=key,
+        external_room_id="99",
+    )
+    binding, room = _ensure_room_binding(
+        elder_id=licensed_elder.id,
+        title="Yara",
+        provider=get_communication_provider(),
+    )
+    assert room.external_id != "99"
+    assert binding.external_room_id == room.external_id
 
 
 @pytest.mark.django_db

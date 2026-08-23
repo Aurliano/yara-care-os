@@ -226,8 +226,10 @@ def _get_or_create_occurrence(
 @transaction.atomic
 def skip_occurrence(*, occurrence_id: uuid.UUID) -> Occurrence:
     occurrence = get_occurrence(occurrence_id)
-    if occurrence.status != OccurrenceStatus.SCHEDULED:
-        raise InvalidOccurrenceStateError("Only scheduled occurrences can be skipped.")
+    if occurrence.status == OccurrenceStatus.SKIPPED:
+        return occurrence
+    if occurrence.status not in {OccurrenceStatus.SCHEDULED, OccurrenceStatus.DUE}:
+        raise InvalidOccurrenceStateError("Only scheduled or due occurrences can be skipped.")
     occurrence.status = OccurrenceStatus.SKIPPED
     occurrence.save(update_fields=["status"])
     emit_occurrence_skipped(

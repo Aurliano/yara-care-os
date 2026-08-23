@@ -55,10 +55,12 @@ def emit_care_activity_created(*, care_activity_id: uuid.UUID, elder_id: uuid.UU
 
 
 def emit_care_activity_updated(*, care_activity_id: uuid.UUID, status: str) -> None:
+    occurred_at = timezone.now()
     publish_care_fact(
         event_type="CareActivityUpdated",
         subject_id=care_activity_id,
-        occurred_at=timezone.now(),
+        occurred_at=occurred_at,
+        discriminator=occurred_at.isoformat(),
         payload={
             "care_activity_id": str(care_activity_id),
             "status": status,
@@ -67,19 +69,23 @@ def emit_care_activity_updated(*, care_activity_id: uuid.UUID, status: str) -> N
 
 
 def emit_care_activity_paused(*, care_activity_id: uuid.UUID) -> None:
+    occurred_at = timezone.now()
     publish_care_fact(
         event_type="CareActivityPaused",
         subject_id=care_activity_id,
-        occurred_at=timezone.now(),
+        occurred_at=occurred_at,
+        discriminator=occurred_at.isoformat(),
         payload={"care_activity_id": str(care_activity_id)},
     )
 
 
 def emit_care_activity_resumed(*, care_activity_id: uuid.UUID) -> None:
+    occurred_at = timezone.now()
     publish_care_fact(
         event_type="CareActivityResumed",
         subject_id=care_activity_id,
-        occurred_at=timezone.now(),
+        occurred_at=occurred_at,
+        discriminator=occurred_at.isoformat(),
         payload={"care_activity_id": str(care_activity_id)},
     )
 
