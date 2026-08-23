@@ -8,6 +8,7 @@ Policy (see apps/hub/docs/PROVISIONING_POLICY.md):
 
 from __future__ import annotations
 
+import logging
 import uuid
 from typing import Any
 
@@ -24,11 +25,13 @@ from domains.device.services.devices import create_device, get_device, touch_dev
 from domains.identity_access.enums import MembershipStatus
 from domains.identity_access.models import Membership
 from domains.synchronization.enums import ReplicaType
-from domains.synchronization.services.replicas import get_or_create_replica_state
+from common.observability.logging import log_structured
+from domains.synchronization.services.replicas import get_or_create_replica_state, reset_replica
 from integration.exceptions import HubProvisioningError
 
 PROVISIONING_CONFIG_KEY = "hub_provisioning"
 DOWNLOAD_SCOPE_ELDER_KEY = "download_scope_elder_id"
+logger = logging.getLogger("yara.integration")
 
 
 def _provisioning_blob(device: Device) -> dict[str, Any]:
@@ -147,10 +150,21 @@ def register_hub_device(*, serial_number: str, device_model_code: str) -> dict[s
         else:
             replica_identifier = uuid.UUID(blob["replica_identifier"])
 
-    get_or_create_replica_state(
+    replica = get_or_create_replica_state(
         replica_identifier=replica_identifier,
         replica_type=ReplicaType.HUB,
     )
+    if replica.checkpoint_sequence > 0:
+        # Same serial after clear-data / reinstall: Hub Room is empty, but the
+        # cloud replica is still advanced. Reset so the next download snapshots.
+        log_structured(
+            logger,
+            "hub.provision.register.reset_replica_after_reinstall",
+            device_id=str(device.id),
+            replica_identifier=str(replica_identifier),
+            previous_checkpoint=replica.checkpoint_sequence,
+        )
+        reset_replica(replica_identifier=replica_identifier)
     device.operational_status = DeviceOperationalStatus.INVENTORY
     device.save(update_fields=["operational_status", "updated_at"])
 

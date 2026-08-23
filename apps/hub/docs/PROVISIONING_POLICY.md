@@ -13,8 +13,8 @@ The Hub never fabricates `device_id`, `replica_id`, or provisioning state.
 |------|-------------|
 | **Identity key** | `serial_number` (Hub sends `ANDROID_ID`) |
 | **Registration** | Idempotent — repeated register with the same serial returns the same `device_id` and `replica_identifier` |
-| **Reinstall** | Does **not** create a new replica (same hardware → same serial → same identity) |
-| **Factory reset** | Does **not** create a new replica (serial is stable on the same appliance) |
+| **Reinstall** | Does **not** create a new replica (same hardware → same serial → same identity). Cloud checkpoint is reset so the next download is a snapshot. |
+| **Factory reset / clear data** | Does **not** create a new replica (serial is stable on the same appliance). Hub Room is empty; register + download restages the elder snapshot. |
 | **Revoke** | Only `POST /hub/provision/revoke/` causes a **new** `replica_identifier` on next register |
 
 ## State Machine (Hub)

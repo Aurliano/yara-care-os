@@ -168,7 +168,18 @@ class HubSyncStartView(APIView):
         try:
             if direction == "DOWNLOAD":
                 session = start_download_session(ctx, idempotency_key=idempotency_key)
-                stage_hub_download_operations(ctx=ctx, session=session)
+                raw_checkpoint = request.data.get("client_checkpoint_sequence")
+                client_checkpoint_sequence = None
+                if raw_checkpoint is not None and raw_checkpoint != "":
+                    try:
+                        client_checkpoint_sequence = int(raw_checkpoint)
+                    except (TypeError, ValueError):
+                        client_checkpoint_sequence = None
+                stage_hub_download_operations(
+                    ctx=ctx,
+                    session=session,
+                    client_checkpoint_sequence=client_checkpoint_sequence,
+                )
             else:
                 session = start_upload_session(ctx, idempotency_key=idempotency_key)
             if ctx.device_id is not None:

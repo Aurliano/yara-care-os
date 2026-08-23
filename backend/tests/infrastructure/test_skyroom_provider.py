@@ -99,12 +99,26 @@ def test_ensure_user_does_not_call_the_vendor():
     assert user.external_id == ""
 
 
+def _room_probe_response(payload: dict) -> _FakeHTTPResponse | None:
+    action = payload["action"]
+    if action == "getRoom":
+        return _FakeHTTPResponse(
+            {"ok": True, "result": {"id": 41, "name": "room", "service_id": 1, "status": 1}}
+        )
+    if action == "getServices":
+        return _FakeHTTPResponse({"ok": True, "result": [{"id": 1, "status": 1}]})
+    return None
+
+
 def test_generate_login_url_ttl_and_no_api_key_in_url():
     actions: list[str] = []
 
     def fake_urlopen(request, timeout=15):
         payload = json.loads(request.data.decode("utf-8"))
         actions.append(payload["action"])
+        probe = _room_probe_response(payload)
+        if probe is not None:
+            return probe
         if payload["action"] == "createLoginUrl":
             assert payload["params"]["ttl"] == 120
             assert payload["params"]["language"] == "fa"
@@ -119,7 +133,7 @@ def test_generate_login_url_ttl_and_no_api_key_in_url():
     with patch("infrastructure.communication.skyroom.urllib.request.urlopen", side_effect=fake_urlopen):
         login = adapter.generate_login_url(room=room, user=user, ttl_seconds=120)
 
-    assert actions == ["createLoginUrl"]
+    assert actions == ["getRoom", "getServices", "createLoginUrl"]
     assert login.login_url.startswith("https://www.skyroom.online/")
     assert API_KEY not in login.login_url
 
@@ -127,6 +141,9 @@ def test_generate_login_url_ttl_and_no_api_key_in_url():
 def test_generate_login_url_accepts_object_result():
     def fake_urlopen(request, timeout=15):
         payload = json.loads(request.data.decode("utf-8"))
+        probe = _room_probe_response(payload)
+        if probe is not None:
+            return probe
         assert payload["action"] == "createLoginUrl"
         return _FakeHTTPResponse(
             {"ok": True, "result": {"url": "https://www.skyroom.online/ch/join/token"}}
@@ -139,6 +156,95 @@ def test_generate_login_url_accepts_object_result():
         login = adapter.generate_login_url(room=room, user=user, ttl_seconds=120)
 
     assert login.login_url == "https://www.skyroom.online/ch/join/token"
+
+
+def test_nested_error_envelope_is_rejected_with_vendor_code():
+    def fake_urlopen(request, timeout=15):
+        payload = json.loads(request.data.decode("utf-8"))
+        probe = _room_probe_response(payload)
+        if probe is not None:
+            return probe
+        return _FakeHTTPResponse(
+            {
+                "ok": True,
+                "result": {"ok": False, "error_code": 10, "error_message": "invalid user_id"},
+            }
+        )
+
+    adapter = _provider()
+    room = ProviderRoom(key="room", external_id="41")
+    user = ProviderUser(key="user", external_id="", display_name="Ali")
+    with patch("infrastructure.communication.skyroom.urllib.request.urlopen", side_effect=fake_urlopen):
+        with pytest.raises(CommunicationProviderError) as exc_info:
+            adapter.generate_login_url(room=room, user=user, ttl_seconds=120)
+
+    assert exc_info.value.reason == ProviderFailureReason.REJECTED
+    assert exc_info.value.error_code == 10
+    assert "invalid user_id" in str(exc_info.value)
+
+
+def test_generate_login_url_retries_numeric_user_id_after_nested_error():
+    user_ids: list[object] = []
+
+    def fake_urlopen(request, timeout=15):
+        payload = json.loads(request.data.decode("utf-8"))
+        probe = _room_probe_response(payload)
+        if probe is not None:
+            return probe
+        if payload["action"] != "createLoginUrl":
+            raise AssertionError(payload["action"])
+        user_id = payload["params"]["user_id"]
+        user_ids.append(user_id)
+        if isinstance(user_id, str):
+            return _FakeHTTPResponse(
+                {
+                    "ok": True,
+                    "result": {"ok": False, "error_code": 10, "error_message": "invalid user_id"},
+                }
+            )
+        return _FakeHTTPResponse({"ok": True, "result": "https://www.skyroom.online/ch/join/token"})
+
+    adapter = _provider()
+    room = ProviderRoom(key="room", external_id="41")
+    user = ProviderUser(key="yara-user-abc", external_id="", display_name="Ali")
+    with patch("infrastructure.communication.skyroom.urllib.request.urlopen", side_effect=fake_urlopen):
+        login = adapter.generate_login_url(room=room, user=user, ttl_seconds=120)
+
+    assert user_ids[0] == "yara-user-abc"
+    assert isinstance(user_ids[1], int)
+    assert login.login_url.startswith("https://www.skyroom.online/")
+
+
+def test_generate_login_url_moves_room_off_inactive_service():
+    actions: list[str] = []
+
+    def fake_urlopen(request, timeout=15):
+        payload = json.loads(request.data.decode("utf-8"))
+        actions.append(payload["action"])
+        action = payload["action"]
+        if action == "getRoom":
+            return _FakeHTTPResponse(
+                {"ok": True, "result": {"id": 41, "name": "room", "service_id": 99, "status": 1}}
+            )
+        if action == "getServices":
+            return _FakeHTTPResponse(
+                {"ok": True, "result": [{"id": 5, "status": 1}, {"id": 99, "status": 0}]}
+            )
+        if action == "updateRoom":
+            assert payload["params"]["service_id"] == 5
+            return _FakeHTTPResponse({"ok": True, "result": 1})
+        if action == "createLoginUrl":
+            return _FakeHTTPResponse({"ok": True, "result": "https://www.skyroom.online/ch/join/token"})
+        raise AssertionError(action)
+
+    adapter = _provider()
+    room = ProviderRoom(key="room", external_id="41")
+    user = ProviderUser(key="user", external_id="", display_name="Ali")
+    with patch("infrastructure.communication.skyroom.urllib.request.urlopen", side_effect=fake_urlopen):
+        login = adapter.generate_login_url(room=room, user=user, ttl_seconds=120)
+
+    assert actions[:3] == ["getRoom", "getServices", "updateRoom"]
+    assert login.login_url.startswith("https://www.skyroom.online/")
 
 
 def test_missing_api_key_is_not_configured():

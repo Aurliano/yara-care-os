@@ -373,10 +373,16 @@ class SynchronizationRepositoryImpl @Inject constructor(
 
     override suspend fun startSession(direction: SyncDirection, idempotencyKey: String): AppResult<SyncSession> {
         return try {
+            val clientCheckpoint = if (direction == SyncDirection.DOWNLOAD) {
+                database.replicaStateDao().get()?.checkpointSequence ?: 0L
+            } else {
+                null
+            }
             val response = hubIntegrationApi.startSync(
                 HubSyncStartRequestDto(
                     direction = direction.name,
                     idempotencyKey = idempotencyKey,
+                    clientCheckpointSequence = clientCheckpoint,
                 ),
             )
             val session = SyncSession(

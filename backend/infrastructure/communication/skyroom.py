@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import logging
-import secrets
 import urllib.error
 import urllib.request
 from datetime import timedelta
@@ -97,31 +97,52 @@ class SkyroomCommunicationProvider:
         user: ProviderUser,
         ttl_seconds: int,
     ) -> ProviderLogin:
-        params = {
-            "room_id": int(room.external_id),
-            "user_id": user.key,
-            "nickname": user.display_name or user.key,
-            "access": DEFAULT_ACCESS,
-            "concurrent": 1,
-            "language": "fa",
-            "ttl": ttl_seconds,
-        }
-        result = self._call("createLoginUrl", params)
-        login_url = _coerce_login_url(result)
-        if login_url is None:
-            logger.error(
-                "skyroom.create_login_url.invalid_result room_id=%s result_type=%s preview=%s",
-                room.external_id,
-                type(result).__name__,
-                self._redact(_preview_result(result)),
-            )
-            raise CommunicationProviderError(
-                "Provider did not return a login URL.",
-                reason=ProviderFailureReason.INVALID_RESPONSE,
-            )
-        return ProviderLogin(
-            login_url=login_url,
-            expires_at=timezone.now() + timedelta(seconds=ttl_seconds),
+        self._move_room_to_active_service(room)
+        nickname = user.display_name or user.key
+        attempts: list[dict[str, Any]] = [
+            {"user_id": user.key, "access": DEFAULT_ACCESS},
+            {"user_id": _stable_numeric_user_id(user.key), "access": DEFAULT_ACCESS},
+            {"user_id": _stable_numeric_user_id(user.key), "access": 1},
+        ]
+        last_error: CommunicationProviderError | None = None
+        last_result: Any = None
+        for extra in attempts:
+            params = {
+                "room_id": int(room.external_id),
+                "nickname": nickname,
+                "concurrent": 1,
+                "language": "fa",
+                "ttl": ttl_seconds,
+                **extra,
+            }
+            try:
+                result = self._call("createLoginUrl", params)
+            except CommunicationProviderError as exc:
+                last_error = exc
+                if exc.reason not in {
+                    ProviderFailureReason.REJECTED,
+                    ProviderFailureReason.INVALID_RESPONSE,
+                }:
+                    raise
+                continue
+            last_result = result
+            login_url = _coerce_login_url(result)
+            if login_url is not None:
+                return ProviderLogin(
+                    login_url=login_url,
+                    expires_at=timezone.now() + timedelta(seconds=ttl_seconds),
+                )
+        logger.error(
+            "skyroom.create_login_url.invalid_result room_id=%s result_type=%s preview=%s",
+            room.external_id,
+            type(last_result).__name__,
+            self._redact(_preview_result(last_result)),
+        )
+        if last_error is not None:
+            raise last_error
+        raise CommunicationProviderError(
+            "Provider did not return a login URL.",
+            reason=ProviderFailureReason.INVALID_RESPONSE,
         )
 
     def close_room(self, *, room: ProviderRoom) -> None:
@@ -204,23 +225,67 @@ class SkyroomCommunicationProvider:
                 reason=ProviderFailureReason.INVALID_RESPONSE,
             ) from exc
 
+        result = parsed.get("result")
         if not parsed.get("ok"):
-            error_code = parsed.get("error_code")
-            message = self._redact(parsed.get("error_message") or "Communication provider request failed.")
-            log = logger.debug if error_code == SKYROOM_NOT_FOUND else logger.error
-            log("skyroom.call.rejected action=%s error_code=%s message=%s", action, error_code, message)
-            raise CommunicationProviderError(
-                message,
-                error_code=error_code,
-                reason=ProviderFailureReason.REJECTED,
-            )
+            self._raise_rejection(action, parsed)
+        if _is_error_envelope(result):
+            self._raise_rejection(action, result)
         logger.debug("skyroom.call.ok action=%s", action)
-        return parsed.get("result")
+        return result
+
+    def _raise_rejection(self, action: str, payload: dict[str, Any]) -> None:
+        error_code = payload.get("error_code")
+        message = self._redact(str(payload.get("error_message") or "Communication provider request failed."))
+        log = logger.debug if error_code == SKYROOM_NOT_FOUND else logger.error
+        log("skyroom.call.rejected action=%s error_code=%s message=%s", action, error_code, message)
+        raise CommunicationProviderError(
+            message,
+            error_code=error_code,
+            reason=ProviderFailureReason.REJECTED,
+        )
+
+    def _move_room_to_active_service(self, room: ProviderRoom) -> None:
+        try:
+            info = self._try_get("getRoom", {"room_id": int(room.external_id)})
+            if info is None:
+                return
+            services = self.list_services()
+            active_ids = [service.get("id") for service in services if service.get("status") == 1]
+            if not active_ids:
+                return
+            current_service = info.get("service_id")
+            if current_service in active_ids:
+                return
+            self._call("updateRoom", {"room_id": int(room.external_id), "service_id": active_ids[0]})
+        except CommunicationProviderError:
+            return
+        logger.warning(
+            "skyroom.room.moved_to_active_service room_id=%s from_service=%s to_service=%s",
+            room.external_id,
+            current_service,
+            active_ids[0],
+        )
 
     def _redact(self, text: str) -> str:
         if self._api_key and self._api_key in text:
             return text.replace(self._api_key, "[redacted]")
         return text
+
+
+def _stable_numeric_user_id(user_key: str) -> int:
+    digest = hashlib.sha1(user_key.encode("utf-8")).hexdigest()
+    value = int(digest[:8], 16)
+    return value or 1
+
+
+def _is_error_envelope(value: Any) -> bool:
+    if not isinstance(value, dict):
+        return False
+    if value.get("ok") is False:
+        return True
+    return "error_code" in value and "error_message" in value and not any(
+        key in value for key in ("url", "login_url", "loginUrl")
+    )
 
 
 def _coerce_login_url(result: Any) -> str | None:
@@ -241,6 +306,8 @@ def _preview_result(result: Any) -> str:
     if result is None:
         return "null"
     if isinstance(result, dict):
+        if "error_code" in result or "error_message" in result:
+            return f"error_code={result.get('error_code')} message={result.get('error_message')}"
         return ",".join(sorted(str(key) for key in result))
     if isinstance(result, list):
         return f"list:{len(result)}"

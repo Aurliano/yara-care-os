@@ -26,7 +26,7 @@ from domains.synchronization.enums import OperationStatus, OperationType, Sessio
 from domains.synchronization.exceptions import InvalidSessionStateError
 from domains.synchronization.identity import compare_aggregate_versions, compute_payload_hash
 from domains.synchronization.models import ReplicaVersion, SynchronizationOperation, SynchronizationSession
-from domains.synchronization.services.replicas import advance_checkpoint, get_replica_state
+from domains.synchronization.services.replicas import advance_checkpoint, get_replica_state, reset_replica
 from domains.workflow.models import WorkflowDefinition, WorkflowExecution
 from domains.workflow.services.sync_export import build_workflow_execution_sync_delta
 from integration.context import IntegrationContext
@@ -454,7 +454,19 @@ def _should_stage_snapshot(*, replica, device_id: uuid.UUID | None, elder_id: uu
     return get_download_scope_elder_id(device) != str(elder_id)
 
 
-def stage_hub_download_operations(*, ctx: IntegrationContext, session: SynchronizationSession) -> int:
+def _empty_client_needs_resnapshot(*, replica, client_checkpoint_sequence: int | None) -> bool:
+    """Hub clear-data / reinstall starts at local checkpoint 0 on an advanced cloud replica."""
+    if client_checkpoint_sequence is None:
+        return False
+    return client_checkpoint_sequence <= 0 and replica.checkpoint_sequence > 0
+
+
+def stage_hub_download_operations(
+    *,
+    ctx: IntegrationContext,
+    session: SynchronizationSession,
+    client_checkpoint_sequence: int | None = None,
+) -> int:
     """Populate pending operations for a hub DOWNLOAD session using existing sync contracts."""
     if ctx.replica_id is None:
         raise ReplicaContextRequiredError("replica_id is required")
@@ -467,6 +479,20 @@ def stage_hub_download_operations(*, ctx: IntegrationContext, session: Synchroni
         return 0
 
     replica = get_replica_state(replica_identifier=ctx.replica_id)
+    if _empty_client_needs_resnapshot(
+        replica=replica,
+        client_checkpoint_sequence=client_checkpoint_sequence,
+    ):
+        log_structured(
+            logger,
+            "hub.download.replica_reset_for_empty_client",
+            session_id=session.id,
+            replica_id=ctx.replica_id,
+            device_id=ctx.device_id,
+            elder_id=str(elder_id),
+            server_checkpoint=replica.checkpoint_sequence,
+        )
+        replica = reset_replica(replica_identifier=ctx.replica_id)
 
     if _should_stage_snapshot(replica=replica, device_id=ctx.device_id, elder_id=elder_id):
         payload = _build_elder_snapshot_payload(elder_id=elder_id, device_id=ctx.device_id)
