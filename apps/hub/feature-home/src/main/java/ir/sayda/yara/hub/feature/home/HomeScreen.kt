@@ -175,11 +175,19 @@ fun HomeRoute(
                             items(snapshot.priorityContacts) { contact ->
                                 ContactCard(
                                     name = contact.displayName,
-                                    onClick = {
+                                    onVideoCallClick = {
                                         onCallContact(
                                             contact.id,
                                             contact.elderId,
-                                            contact.preferredChannel.ifBlank { "VOICE" },
+                                            "VIDEO",
+                                            contact.displayName,
+                                        )
+                                    },
+                                    onVoiceCallClick = {
+                                        onCallContact(
+                                            contact.id,
+                                            contact.elderId,
+                                            "VOICE",
                                             contact.displayName,
                                         )
                                     },

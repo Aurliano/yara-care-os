@@ -1,9 +1,6 @@
 package ir.sayda.yara.hub.data.communication
 
-import io.mockk.coEvery
-import io.mockk.coVerify
-import io.mockk.mockk
-import io.mockk.any
+import io.mockk.*
 import ir.sayda.yara.hub.core.communication.ActiveCallExistsException
 import ir.sayda.yara.hub.core.communication.CommunicationProviderException
 import ir.sayda.yara.hub.core.result.AppResult
@@ -89,6 +86,31 @@ class CommunicationGatewayImplTest {
 
         val exception = (result as AppResult.Error).exception as CommunicationProviderException
         assertEquals("PROVIDER_BUSY", exception.reason)
+    }
+
+    @Test
+    fun fetchRecentSessionsMapsDtosToDomain() = runTest {
+        val api = mockk<CommunicationApi>()
+        coEvery { api.getRecentSessions("elder-1") } returns listOf(
+            ir.sayda.yara.hub.network.dto.CommunicationSessionDto(
+                id = "session-1",
+                elderId = "elder-1",
+                channel = "VIDEO",
+                status = "INITIATED",
+                outcome = null,
+                initiatedAt = "2026-08-16T08:00:00Z",
+            ),
+        )
+        val gateway = CommunicationGatewayImpl(api)
+
+        val result = gateway.fetchRecentSessions("elder-1")
+
+        assertTrue(result is AppResult.Success)
+        val list = (result as AppResult.Success).data
+        assertEquals(1, list.size)
+        assertEquals("session-1", list[0].id)
+        assertEquals("VIDEO", list[0].channel)
+        assertEquals("INITIATED", list[0].status)
     }
 
     @Test

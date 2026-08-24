@@ -80,6 +80,32 @@ class CommunicationGatewayImpl @Inject constructor(
         }
     }
 
+    override suspend fun fetchRecentSessions(elderId: String): AppResult<List<ir.sayda.yara.hub.core.domain.model.CommunicationSession>> {
+        return try {
+            val dtos = communicationApi.getRecentSessions(elderId)
+            val domainSessions = dtos.map { dto ->
+                ir.sayda.yara.hub.core.domain.model.CommunicationSession(
+                    id = dto.id,
+                    elderId = dto.elderId,
+                    channel = dto.channel,
+                    status = dto.status,
+                    outcome = dto.outcome.orEmpty(),
+                    initiatedAtEpochMillis = parseExpiresAt(dto.initiatedAt.orEmpty(), System.currentTimeMillis()),
+                    connectedAtEpochMillis = null,
+                    endedAtEpochMillis = null,
+                    externalExecutionReference = null,
+                    aggregateVersion = 1L,
+                    updatedAtEpochMillis = System.currentTimeMillis(),
+                )
+            }
+            AppResult.Success(domainSessions)
+        } catch (exception: HttpException) {
+            AppResult.Error(mapHttpException(exception))
+        } catch (exception: Exception) {
+            AppResult.Error(exception)
+        }
+    }
+
     private fun mapHttpException(exception: HttpException): Throwable {
         if (exception.code() == 409) {
             return ActiveCallExistsException()

@@ -65,7 +65,12 @@ class HomeRepositoryImpl @Inject constructor(
     private fun combineHomeSnapshot(identity: HubIdentity?): Flow<HomeRuntimeSnapshot> {
         val endOfDay = endOfTodayEpochMillis()
         val contactsFlow = identity?.elderId?.let { elderId ->
-            communicationReplicaRepository.observePriorityContacts(elderId)
+            combine(
+                communicationReplicaRepository.observePriorityContacts(elderId),
+                communicationReplicaRepository.observeContacts(elderId),
+            ) { priority, all ->
+                if (priority.isNotEmpty()) priority else all
+            }
         } ?: flowOf(emptyList())
 
         return clockFlow().flatMapLatest { nowEpochMillis ->

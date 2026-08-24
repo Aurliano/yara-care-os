@@ -106,6 +106,9 @@ interface ProvisioningApi {
 }
 
 interface CommunicationApi {
+    @GET("elders/{elderId}/sessions/")
+    suspend fun getRecentSessions(@Path("elderId") elderId: String): List<ir.sayda.yara.hub.network.dto.CommunicationSessionDto>
+
     @POST("communication/call/start/")
     suspend fun startCall(@Body body: CallStartRequestDto): CallJoinResponseDto
 

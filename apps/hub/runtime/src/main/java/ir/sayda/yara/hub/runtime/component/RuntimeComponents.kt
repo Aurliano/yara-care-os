@@ -57,7 +57,13 @@ class CommunicationReplicaRuntimeComponent(
 
     override suspend fun start() {
         communicationRuntime?.startCollectors()
+        communicationRuntime?.startIncomingCallPoller()
         super.start()
+    }
+
+    override suspend fun stop() {
+        communicationRuntime?.stopIncomingCallPoller()
+        super.stop()
     }
 }
 

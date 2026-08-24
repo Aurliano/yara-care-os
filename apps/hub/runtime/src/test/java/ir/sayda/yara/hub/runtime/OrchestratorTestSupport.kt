@@ -20,6 +20,7 @@ import ir.sayda.yara.hub.runtime.support.InMemoryWorkflowRepository
 import ir.sayda.yara.hub.runtime.support.sampleCareActivity
 import ir.sayda.yara.hub.runtime.support.sampleWorkflowDefinition
 import ir.sayda.yara.hub.runtime.bootstrap.HubWorkflowBootstrap
+import ir.sayda.yara.hub.runtime.workflow.WorkflowReplicaRuntime
 
 internal object OrchestratorTestSupport {
     fun buildOrchestrator(

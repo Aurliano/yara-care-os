@@ -56,8 +56,8 @@ def room_key_for_elder(elder_id: uuid.UUID) -> str:
 
 def user_key_for_subject(*, subject_type: str, subject_id: uuid.UUID) -> str:
     if subject_type == ProviderSubjectType.ELDER_HUB:
-        return f"yara-hub-{subject_id.hex}"
-    return f"yara-user-{subject_id.hex}"
+        return f"yara-hub-{subject_id.hex[:23]}"
+    return f"yara-user-{subject_id.hex[:22]}"
 
 
 def _ensure_room_binding(

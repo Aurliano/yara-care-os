@@ -34,7 +34,7 @@ object DebugTrace {
             }
             append("}}")
         }
-        Log.i(TAG, payload)
+        runCatching { Log.i(TAG, payload) }
         runCatching { executor.execute { post(payload) } }
     }
 

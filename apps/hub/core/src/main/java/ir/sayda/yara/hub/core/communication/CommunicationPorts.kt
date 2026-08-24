@@ -15,6 +15,8 @@ interface CommunicationGateway {
     suspend fun endCall(sessionId: String): AppResult<Unit>
 
     suspend fun refreshJoinToken(elderId: String): AppResult<CallSession>
+
+    suspend fun fetchRecentSessions(elderId: String): AppResult<List<ir.sayda.yara.hub.core.domain.model.CommunicationSession>>
 }
 
 /** Hub-owned current call row for reconnect after process death. */

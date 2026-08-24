@@ -212,3 +212,13 @@ data class CallJoinResponseDto(
 data class CallEndResponseDto(
     val status: String = "ended",
 )
+
+@Serializable
+data class CommunicationSessionDto(
+    val id: String,
+    @SerialName("elder_id") val elderId: String,
+    val channel: String,
+    val status: String,
+    val outcome: String? = null,
+    @SerialName("initiated_at") val initiatedAt: String? = null,
+)

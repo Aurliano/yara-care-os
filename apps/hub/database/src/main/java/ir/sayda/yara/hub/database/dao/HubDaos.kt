@@ -234,6 +234,15 @@ interface ContactDao {
     )
     fun observePriorityByElder(elderId: String): Flow<List<ContactEntity>>
 
+    @Query(
+        """
+        SELECT * FROM contact
+        WHERE elder_id = :elderId AND status = 'ACTIVE'
+        ORDER BY is_priority DESC, display_name ASC
+        """,
+    )
+    fun observeByElder(elderId: String): Flow<List<ContactEntity>>
+
     @Query("SELECT * FROM contact ORDER BY display_name")
     fun observeAll(): Flow<List<ContactEntity>>
 

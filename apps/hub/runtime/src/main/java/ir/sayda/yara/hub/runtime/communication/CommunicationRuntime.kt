@@ -11,14 +11,19 @@ import ir.sayda.yara.hub.core.domain.model.CallRuntimeState
 import ir.sayda.yara.hub.core.domain.model.CallSession
 import ir.sayda.yara.hub.core.domain.model.CommunicationSession
 import ir.sayda.yara.hub.core.domain.model.isActive
+import ir.sayda.yara.hub.core.domain.repository.AuthRepository
 import ir.sayda.yara.hub.core.domain.repository.CommunicationReplicaRepository
 import ir.sayda.yara.hub.core.domain.repository.ConnectivityRepository
 import ir.sayda.yara.hub.core.result.AppResult
 import ir.sayda.yara.hub.core.runtime.CommunicationPresentationGateway
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -35,6 +40,7 @@ class CommunicationRuntime(
     private val scope: CoroutineScope,
     private val replicaRepository: CommunicationReplicaRepository? = null,
     private val connectivityRepository: ConnectivityRepository? = null,
+    private val authRepository: AuthRepository? = null,
 ) {
     @Inject
     constructor(
@@ -45,6 +51,7 @@ class CommunicationRuntime(
         @ApplicationScope scope: CoroutineScope,
         replicaRepository: CommunicationReplicaRepository,
         connectivityRepository: ConnectivityRepository,
+        authRepository: AuthRepository,
     ) : this(
         gateway,
         repository,
@@ -54,6 +61,7 @@ class CommunicationRuntime(
         scope,
         replicaRepository,
         connectivityRepository,
+        authRepository,
     )
 
     private val mutex = Mutex()
@@ -345,10 +353,73 @@ class CommunicationRuntime(
         }
     }
 
+    suspend fun ringIncoming(
+        elderId: String,
+        channel: String = "VOICE",
+        recipientContactId: String = "",
+    ): AppResult<CallSession> {
+        startCollectors()
+        return mutex.withLock {
+            val current = repository.getCurrent()
+            if (current != null && current.runtimeState.isActive() && current.expiresAtEpochMillis > nowMillis()) {
+                return@withLock AppResult.Success(current)
+            }
+            prepareIncoming(elderId, channel, recipientContactId)
+        }
+    }
+
+    private var pollerJob: Job? = null
+
+    fun startIncomingCallPoller() {
+        if (pollerJob != null) return
+        pollerJob = scope.launch {
+            while (isActive) {
+                delay(2_500L)
+                checkRemoteSessions()
+            }
+        }
+    }
+
+    fun stopIncomingCallPoller() {
+        pollerJob?.cancel()
+        pollerJob = null
+    }
+
+    suspend fun checkRemoteSessions() {
+        val isOnline = connectivityRepository?.isOnline() ?: true
+        if (!isOnline) return
+        val elderId = authRepository?.getIdentity()?.elderId
+        if (elderId.isNullOrBlank()) return
+        when (val sessionsResult = gateway.fetchRecentSessions(elderId)) {
+            is AppResult.Success -> {
+                maybeAcceptIncoming(sessionsResult.data)
+            }
+            is AppResult.Error -> Unit
+        }
+    }
+
     private suspend fun maybeAcceptIncoming(sessions: List<CommunicationSession>) {
         val ringing = sessions.firstOrNull { session ->
             session.channel != "MESSAGE" && session.status in INCOMING_STATUSES
-        } ?: return
+        }
+        if (ringing == null) {
+            val local = repository.getCurrent()
+            if (local != null && local.direction == CallDirection.Incoming && local.runtimeState == CallRuntimeState.Connecting) {
+                mutex.withLock {
+                    val current = repository.getCurrent()
+                    if (current != null && current.direction == CallDirection.Incoming && current.runtimeState == CallRuntimeState.Connecting) {
+                        persistAndPresent(
+                            current.copy(
+                                runtimeState = CallRuntimeState.Finished,
+                                updatedAtEpochMillis = nowMillis(),
+                            ),
+                        )
+                        repository.clear()
+                    }
+                }
+            }
+            return
+        }
         val local = repository.getCurrent()
         if (local != null && local.runtimeState.isActive()) return
         joinIncomingCall(

@@ -11,26 +11,37 @@ import ir.sayda.yara.hub.core.runtime.CommunicationPresentationGateway
 import ir.sayda.yara.hub.runtime.communication.CommunicationRuntime
 import ir.sayda.yara.hub.runtime.communication.FakeSkyroomClient
 import ir.sayda.yara.hub.runtime.communication.SkyroomCallEngine
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runTest
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
+import org.junit.Before
 import org.junit.Test
 
 class InitiateCallActionHandlerTest {
 
+    private var testJob = Job()
+
+    @Before
+    fun setUp() {
+        testJob = Job()
+    }
+
+    @After
+    fun tearDown() {
+        testJob.cancel()
+    }
+
     @Test
     fun startsCallThroughCommunicationRuntime() = runTest {
         val gateway = RecordingGateway()
-        val runtime = CommunicationRuntime(
-            gateway,
-            InMemoryCommunicationRepository(),
-            RecordingPresentationGateway(),
-            SkyroomCallEngine(FakeSkyroomClient()),
-            { 1_700_000_000_000L },
-            this,
-        )
+        val runtime = createRuntime(gateway)
         val handler = InitiateCallActionHandler(runtime, MissingAuthRepository())
         val payload = """
             {"elder_id":"elder-1","recipient_contact_id":"contact-1","channel":"VOICE"}
@@ -48,14 +59,7 @@ class InitiateCallActionHandlerTest {
     @Test
     fun usesIdentityElderWhenPayloadOmitsElderId() = runTest {
         val gateway = RecordingGateway()
-        val runtime = CommunicationRuntime(
-            gateway,
-            InMemoryCommunicationRepository(),
-            RecordingPresentationGateway(),
-            SkyroomCallEngine(FakeSkyroomClient()),
-            { 1_700_000_000_000L },
-            this,
-        )
+        val runtime = createRuntime(gateway)
         val handler = InitiateCallActionHandler(runtime, IdentityAuthRepository("elder-from-auth"))
         val payload = """{"recipient_contact_id":"contact-9"}"""
 
@@ -68,20 +72,22 @@ class InitiateCallActionHandlerTest {
 
     @Test
     fun rejectsMissingRecipient() = runTest {
-        val runtime = CommunicationRuntime(
-            RecordingGateway(),
-            InMemoryCommunicationRepository(),
-            RecordingPresentationGateway(),
-            SkyroomCallEngine(FakeSkyroomClient()),
-            { 1_700_000_000_000L },
-            this,
-        )
+        val runtime = createRuntime(RecordingGateway())
         val handler = InitiateCallActionHandler(runtime, MissingAuthRepository())
 
         val result = handler.handle("""{"elder_id":"elder-1"}""", "exec-3")
 
         assertTrue(!result.accepted)
     }
+
+    private fun TestScope.createRuntime(gateway: CommunicationGateway) = CommunicationRuntime(
+        gateway,
+        InMemoryCommunicationRepository(),
+        RecordingPresentationGateway(),
+        SkyroomCallEngine(FakeSkyroomClient()),
+        { 1_700_000_000_000L },
+        CoroutineScope(StandardTestDispatcher(testScheduler) + testJob),
+    )
 
     private class RecordingGateway : CommunicationGateway {
         var lastElderId: String? = null
@@ -114,6 +120,9 @@ class InitiateCallActionHandlerTest {
 
         override suspend fun refreshJoinToken(elderId: String): AppResult<CallSession> =
             AppResult.Error(IllegalStateException("unused"))
+
+        override suspend fun fetchRecentSessions(elderId: String): AppResult<List<ir.sayda.yara.hub.core.domain.model.CommunicationSession>> =
+            AppResult.Success(emptyList())
     }
 
     private class InMemoryCommunicationRepository : CommunicationRepository {

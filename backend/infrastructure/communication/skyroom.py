@@ -99,8 +99,9 @@ class SkyroomCommunicationProvider:
     ) -> ProviderLogin:
         self._move_room_to_active_service(room)
         nickname = user.display_name or user.key
+        user_key = user.key if len(user.key) <= 32 else user.key[:32]
         attempts: list[dict[str, Any]] = [
-            {"user_id": user.key, "access": DEFAULT_ACCESS},
+            {"user_id": user_key, "access": DEFAULT_ACCESS},
             {"user_id": _stable_numeric_user_id(user.key), "access": DEFAULT_ACCESS},
             {"user_id": _stable_numeric_user_id(user.key), "access": 1},
         ]
