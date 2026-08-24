@@ -25,6 +25,7 @@ data class TokenRefreshRequestDto(
 data class HubSyncStartRequestDto(
     val direction: String,
     @SerialName("idempotency_key") val idempotencyKey: String,
+    @SerialName("client_checkpoint_sequence") val clientCheckpointSequence: Long? = null,
 )
 
 @Serializable

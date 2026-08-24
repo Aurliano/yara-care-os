@@ -522,3 +522,144 @@ def test_snapshot_complete_does_not_seed_care_created_after_staging(
         if item["payload_type"] == "care.activity.delta"
     ]
     assert str(late.care_activity_id) in care_ids
+
+
+def _provision_assigned_hub(api_client, integration_user, licensed_elder, hub_model, hub_device):
+    api_client.force_authenticate(user=integration_user)
+    register = api_client.post(
+        "/api/v1/hub/provision/register/",
+        {
+            "serial_number": hub_device.serial_number,
+            "device_model_code": hub_model.model_code,
+        },
+        format="json",
+    )
+    assert register.status_code == 201
+    replica_id = uuid.UUID(register.json()["replica_identifier"])
+    device_id = uuid.UUID(register.json()["device_id"])
+    assign_device(
+        device_id=device_id,
+        elder_id=licensed_elder.id,
+        assignment_type=AssignmentType.OWNED,
+    )
+    api_client.post(
+        "/api/v1/hub/provision/authenticate/",
+        {
+            "device_id": str(device_id),
+            "phone": integration_user.phone,
+            "password": "securepass123",
+        },
+        format="json",
+    )
+    ctx = IntegrationContext(
+        device_id=device_id,
+        replica_id=replica_id,
+        correlation_id="wipe-recovery-correlation",
+    )
+    return replica_id, device_id, ctx
+
+
+@pytest.mark.django_db
+def test_download_with_client_checkpoint_zero_restages_snapshot(
+    api_client: APIClient,
+    integration_user,
+    licensed_elder,
+    hub_model,
+    hub_device,
+    workflow_definition,
+    recurrence_definition,
+    schedule_start_at,
+):
+    replica_id, _device_id, ctx = _provision_assigned_hub(
+        api_client, integration_user, licensed_elder, hub_model, hub_device
+    )
+    activity = create_care_activity(
+        elder_id=licensed_elder.id,
+        activity_type=CareActivityType.MEDICATION,
+        workflow_definition_id=workflow_definition.id,
+        recurrence_definition=recurrence_definition,
+        timezone_name="UTC",
+        start_at=schedule_start_at,
+        display_title="Wipe Recovery Medication",
+    )
+
+    snapshot_session = start_download_session(ctx, idempotency_key="wipe-snapshot")
+    assert stage_hub_download_operations(ctx=ctx, session=snapshot_session) == 1
+    complete_hub_download_session(ctx=ctx, session_id=snapshot_session.id)
+    replica = get_replica_state(replica_identifier=replica_id)
+    assert replica.checkpoint_sequence == 1
+
+    idle_session = start_download_session(ctx, idempotency_key="wipe-idle")
+    assert stage_hub_download_operations(ctx=ctx, session=idle_session) == 0
+
+    wiped_session = start_download_session(ctx, idempotency_key="wipe-client-zero")
+    staged = stage_hub_download_operations(
+        ctx=ctx,
+        session=wiped_session,
+        client_checkpoint_sequence=0,
+    )
+    assert staged == 1
+    pending = api_client.get(
+        f"/api/v1/synchronization/sessions/{wiped_session.id}/pending-operations/",
+    )
+    assert pending.status_code == 200
+    operations = pending.json()
+    assert len(operations) == 1
+    assert operations[0]["operation_type"] == OperationType.SNAPSHOT
+    assert operations[0]["payload_type"] == "hub.replica.snapshot"
+    care_ids = [item["care_activity_id"] for item in operations[0]["payload"]["care_activities"]]
+    assert str(activity.id) in care_ids
+
+
+@pytest.mark.django_db
+def test_reregister_resets_advanced_replica_so_next_download_is_snapshot(
+    api_client: APIClient,
+    integration_user,
+    licensed_elder,
+    hub_model,
+    hub_device,
+    workflow_definition,
+    recurrence_definition,
+    schedule_start_at,
+):
+    replica_id, _device_id, ctx = _provision_assigned_hub(
+        api_client, integration_user, licensed_elder, hub_model, hub_device
+    )
+    activity = create_care_activity(
+        elder_id=licensed_elder.id,
+        activity_type=CareActivityType.MEDICATION,
+        workflow_definition_id=workflow_definition.id,
+        recurrence_definition=recurrence_definition,
+        timezone_name="UTC",
+        start_at=schedule_start_at,
+        display_title="Reregister Medication",
+    )
+
+    snapshot_session = start_download_session(ctx, idempotency_key="reregister-snapshot")
+    assert stage_hub_download_operations(ctx=ctx, session=snapshot_session) == 1
+    complete_hub_download_session(ctx=ctx, session_id=snapshot_session.id)
+    replica = get_replica_state(replica_identifier=replica_id)
+    assert replica.checkpoint_sequence == 1
+
+    reregister = api_client.post(
+        "/api/v1/hub/provision/register/",
+        {
+            "serial_number": hub_device.serial_number,
+            "device_model_code": hub_model.model_code,
+        },
+        format="json",
+    )
+    assert reregister.status_code == 201
+    assert reregister.json()["replica_identifier"] == str(replica_id)
+    replica = get_replica_state(replica_identifier=replica_id)
+    assert replica.checkpoint_sequence == 0
+
+    recover_session = start_download_session(ctx, idempotency_key="reregister-recover")
+    staged = stage_hub_download_operations(ctx=ctx, session=recover_session)
+    assert staged == 1
+    pending = api_client.get(
+        f"/api/v1/synchronization/sessions/{recover_session.id}/pending-operations/",
+    )
+    assert pending.json()[0]["operation_type"] == OperationType.SNAPSHOT
+    care_ids = [item["care_activity_id"] for item in pending.json()[0]["payload"]["care_activities"]]
+    assert str(activity.id) in care_ids
