@@ -12,7 +12,6 @@ import ir.sayda.yara.hub.data.provisioning.JwtExpiryParser
 import ir.sayda.yara.hub.data.provisioning.ProvisioningStateMachine
 import ir.sayda.yara.hub.network.api.AuthApi
 import ir.sayda.yara.hub.network.dto.TokenRequestDto
-import ir.sayda.yara.hub.network.identity.CorrelationIdProvider
 import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -22,7 +21,6 @@ class AuthRepositoryImpl @Inject constructor(
     private val identityStore: DataStoreReplicaIdentityProvider,
     @UnauthenticatedAuth private val authApi: AuthApi,
     private val stateMachine: ProvisioningStateMachine,
-    private val correlationIdProvider: CorrelationIdProvider,
     private val tokenRefreshCoordinator: HubTokenRefreshCoordinator,
     private val provisioningRepository: Lazy<ProvisioningRepository>,
     private val deviceCredentialsProvider: HubDeviceCredentialsProvider,

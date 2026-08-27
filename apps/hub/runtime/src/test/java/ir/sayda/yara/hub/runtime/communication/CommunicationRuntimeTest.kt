@@ -140,8 +140,15 @@ class CommunicationRuntimeTest {
         )
         advanceUntilIdle()
 
-        assertEquals(listOf("refreshed-token"), client.joinedUrls)
+        assertEquals(CallDirection.Incoming, repository.getCurrent()?.direction)
+        assertEquals(CallRuntimeState.Connecting, repository.getCurrent()?.runtimeState)
         assertEquals(1, gateway.refreshCount)
+
+        runtime.joinIncomingCall(ELDER_ID, "VOICE")
+        advanceUntilIdle()
+
+        assertEquals(listOf("refreshed-token"), client.joinedUrls)
+        assertEquals(CallRuntimeState.Connected, repository.getCurrent()?.runtimeState)
     }
 
     @Test
@@ -256,6 +263,29 @@ class CommunicationRuntimeTest {
         runtime.speaker()
 
         assertEquals(listOf("mute", "unmute", "cameraOn", "cameraOff", "speaker"), client.commands)
+    }
+
+    @Test
+    fun outgoingStartCallWithLivekitEngineJoinsSuccessfully() = runTest {
+        val gateway = FakeGateway()
+        val client = FakeLivekitClient()
+        val repository = InMemoryCommunicationRepository()
+        val runtime = CommunicationRuntime(
+            gateway,
+            repository,
+            RecordingPresentationGateway(),
+            LivekitCallEngine(client),
+            { NOW },
+            CoroutineScope(StandardTestDispatcher(testScheduler) + testJob),
+        )
+
+        val result = runtime.startCall(ELDER_ID, "VOICE", CONTACT_ID)
+
+        assertTrue(result is AppResult.Success)
+        val session = (result as AppResult.Success).data
+        assertEquals("session-1", session.sessionId)
+        assertEquals(CallRuntimeState.Connected, session.runtimeState)
+        assertEquals(listOf("opaque-join-token"), client.joinedTokens)
     }
 
     private fun TestScope.runtime(

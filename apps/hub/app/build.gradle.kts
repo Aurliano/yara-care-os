@@ -20,6 +20,8 @@ val hubProvisionPhone = localProperties.getProperty("hub.provision.phone")?.trim
     ?: "+989136666666"
 val hubProvisionPassword = localProperties.getProperty("hub.provision.password")?.trim()
     ?: "securepass123"
+val hubLivekitUrl = localProperties.getProperty("hub.livekit.url")?.trim()
+    ?: "wss://yara-care-8qxaz9wd.livekit.cloud"
 
 android {
     namespace = "ir.sayda.yara.hub"
@@ -35,6 +37,7 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("String", "HUB_DEVICE_MODEL_CODE", "\"YARA-HUB-TABLET\"")
         buildConfigField("String", "HUB_BACKEND_URL", "\"$hubBackendUrl\"")
+        buildConfigField("String", "LIVEKIT_URL", "\"$hubLivekitUrl\"")
         buildConfigField("String", "PROVISION_PHONE", "\"$hubProvisionPhone\"")
         buildConfigField("String", "PROVISION_PASSWORD", "\"$hubProvisionPassword\"")
     }
@@ -92,6 +95,7 @@ dependencies {
     implementation(libs.androidx.compose.material3)
     implementation(libs.hilt.android)
     implementation(libs.hilt.navigation.compose)
+    implementation(libs.livekit.android)
 
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)

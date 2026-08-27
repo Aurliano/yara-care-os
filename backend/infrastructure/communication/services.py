@@ -41,8 +41,8 @@ class CallJoinResult:
 
 def _provider_name() -> str:
     name = getattr(settings, "COMMUNICATION_PROVIDER", DEFAULT_PROVIDER_NAME)
-    if name == "fake":
-        return "fake"
+    if name in {"fake", "livekit", "skyroom"}:
+        return name
     return DEFAULT_PROVIDER_NAME
 
 

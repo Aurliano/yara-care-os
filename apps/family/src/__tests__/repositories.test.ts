@@ -119,14 +119,14 @@ describe("today program visibility", () => {
       confirmation_requirement: "HUB_CONFIRMATION",
       compartment_assignment_reference: "",
       aggregate_version: 1,
-    }) as CareActivity;
+    }) as unknown as CareActivity;
   const occurrence = (status: Occurrence["status"]): Occurrence =>
     ({
       id: "o1",
       schedule_definition_id: "s1",
       scheduled_for: "2026-08-22T08:00:00Z",
       status,
-    }) as Occurrence;
+    }) as unknown as Occurrence;
 
   it("hides ended programs and skipped turns from today", () => {
     expect(shouldShowOnTodayProgram(activity("ACTIVE"), occurrence("SCHEDULED"))).toBe(true);

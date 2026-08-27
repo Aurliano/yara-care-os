@@ -1,8 +1,18 @@
 import { useEffect, useMemo, useState } from "react";
-import { Linking, StyleSheet, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import { useRouter } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
-import { AppText, Button, Card, EmptyState, ErrorState, LoadingSkeleton, Screen, TopAppBar } from "../../../src/components";
+import {
+  AppText,
+  Button,
+  Card,
+  EmptyState,
+  ErrorState,
+  LoadingSkeleton,
+  NativeCallView,
+  Screen,
+  TopAppBar,
+} from "../../../src/components";
 import { PermissionDenied } from "../../../src/components/PermissionDenied";
 import { t } from "../../../src/i18n";
 import { colors, spacing } from "../../../src/theme/tokens";
@@ -11,6 +21,7 @@ import { queryKeys } from "../../../src/api/queryKeys";
 import { useElderStore } from "../../../src/stores/elderStore";
 import { usePermissions } from "../../../src/permissions/usePermission";
 import { PERMISSIONS } from "../../../src/permissions/codes";
+import { requestMediaPermissions } from "../../../src/permissions/mediaPermissions";
 import { mapCallFailureMessage } from "../../../src/communication/CommunicationGateway";
 import { voiceMessageAvailability } from "../../../src/services/communication/voiceMessageRepository";
 import type { Contact } from "../../../src/api/types";
@@ -62,16 +73,17 @@ export default function CallScreen() {
   );
   const showIncoming = Boolean(incoming) && !localActive;
 
+  const items = contacts.data ?? [];
+  const activeContact = items.find((c) => c.id === session?.recipientContactId);
+  const activeContactName = activeContact?.display_name || t.navCall;
+
   async function joinMedia(next: CallSession) {
     if (next.sessionId) {
       try {
         await acceptSession(next.sessionId);
       } catch {
-        // Accept is best-effort; media join still proceeds.
+        // Accept is best-effort; in-app media proceeds.
       }
-    }
-    if (next.joinToken) {
-      await Linking.openURL(next.joinToken);
     }
   }
 
@@ -80,6 +92,11 @@ export default function CallScreen() {
     setBusyId(`${contact.id}:${channel}`);
     setError(null);
     try {
+      const perms = await requestMediaPermissions(channel);
+      if (!perms.microphone || (channel === "VIDEO" && !perms.camera)) {
+        setError(t.mediaPermissionRequired);
+        return;
+      }
       const result = await runtime.startCall(elderId, channel, contact.id);
       if (!result.ok) {
         setError(mapCallFailureMessage(result.error));
@@ -98,7 +115,13 @@ export default function CallScreen() {
     setBusyId("incoming");
     setError(null);
     try {
-      const result = await runtime.joinIncomingCall(elderId, incoming.channel || "VOICE");
+      const channel = incoming.channel === "VIDEO" ? "VIDEO" : "VOICE";
+      const perms = await requestMediaPermissions(channel);
+      if (!perms.microphone || (channel === "VIDEO" && !perms.camera)) {
+        setError(t.mediaPermissionRequired);
+        return;
+      }
+      const result = await runtime.joinIncomingCall(elderId, channel);
       if (!result.ok) {
         throw result.error;
       }
@@ -136,8 +159,6 @@ export default function CallScreen() {
       </Screen>
     );
   }
-
-  const items = contacts.data ?? [];
 
   return (
     <Screen>
@@ -210,6 +231,16 @@ export default function CallScreen() {
           </Card>
         ))
       )}
+
+      {/* In-app Native Call View for LiveKit */}
+      {Boolean(localActive) ? (
+        <NativeCallView
+          visible={Boolean(localActive)}
+          session={session}
+          contactName={activeContactName}
+          onHangup={() => void onHangup()}
+        />
+      ) : null}
     </Screen>
   );
 }

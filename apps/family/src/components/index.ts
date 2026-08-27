@@ -15,3 +15,4 @@ export { StaleBanner } from "./StaleBanner";
 export { Avatar } from "./Avatar";
 export { AppText } from "./AppText";
 export { Icon } from "./Icon";
+export { NativeCallView } from "./NativeCallView";

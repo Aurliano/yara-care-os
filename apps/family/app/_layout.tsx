@@ -1,3 +1,4 @@
+import "../src/polyfills";
 import "react-native-gesture-handler";
 import { useEffect } from "react";
 import { I18nManager, View } from "react-native";

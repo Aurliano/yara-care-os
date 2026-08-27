@@ -32,4 +32,10 @@ abstract class AppPresentationModule {
     abstract fun bindSkyroomClient(
         impl: AndroidSkyroomClient,
     ): SkyroomClient
+
+    @Binds
+    @Singleton
+    abstract fun bindLivekitClient(
+        impl: ir.sayda.yara.hub.communication.AndroidLivekitClient,
+    ): ir.sayda.yara.hub.core.communication.LivekitClient
 }

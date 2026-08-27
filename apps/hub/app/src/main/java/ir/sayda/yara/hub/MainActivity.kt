@@ -1,12 +1,16 @@
 package ir.sayda.yara.hub
 
+import android.Manifest
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.ui.Modifier
+import androidx.core.content.ContextCompat
 import dagger.hilt.android.AndroidEntryPoint
 import ir.sayda.yara.hub.core.runtime.ReminderPresentationGateway
 import ir.sayda.yara.hub.navigation.HubNavHost
@@ -25,15 +29,33 @@ class MainActivity : ComponentActivity() {
 
     private val activityScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
 
+    private val permissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions(),
+    ) { _ -> }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        requestCallPermissions()
         setContent {
             HubTheme {
                 HubNavHost(modifier = Modifier.fillMaxSize())
             }
         }
         handleReminderIntent(intent)
+    }
+
+    private fun requestCallPermissions() {
+        val permissions = arrayOf(
+            Manifest.permission.CAMERA,
+            Manifest.permission.RECORD_AUDIO,
+        )
+        val needed = permissions.filter {
+            ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED
+        }
+        if (needed.isNotEmpty()) {
+            permissionLauncher.launch(needed.toTypedArray())
+        }
     }
 
     override fun onNewIntent(intent: Intent) {

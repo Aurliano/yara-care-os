@@ -132,6 +132,7 @@ fun HubNavHost(
             ),
         ) { backStackEntry ->
             Box(modifier = Modifier.fillMaxSize()) {
+                CallMediaSurface(modifier = Modifier.fillMaxSize())
                 CallRoute(
                     args = CallViewArgs(
                         contactId = backStackEntry.arguments?.getString("contactId").orEmpty(),
@@ -143,7 +144,6 @@ fun HubNavHost(
                         navController.popBackStack(HubRoutes.HOME, inclusive = false)
                     },
                 )
-                CallMediaSurface(modifier = Modifier.align(Alignment.TopCenter))
             }
         }
     }

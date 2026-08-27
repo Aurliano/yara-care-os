@@ -422,7 +422,7 @@ class CommunicationRuntime(
         }
         val local = repository.getCurrent()
         if (local != null && local.runtimeState.isActive()) return
-        joinIncomingCall(
+        ringIncoming(
             elderId = ringing.elderId,
             channel = ringing.channel.ifBlank { "VOICE" },
         )

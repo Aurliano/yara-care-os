@@ -4,6 +4,8 @@ module.exports = {
   testMatch: ["**/__tests__/**/*.test.ts", "**/__tests__/**/*.test.tsx"],
   moduleNameMapper: {
     "^@/(.*)$": "<rootDir>/src/$1",
+    "^react-native$": "<rootDir>/src/__mocks__/react-native.ts",
+    "\\.(png|jpg|jpeg|gif|webp)$": "<rootDir>/src/__mocks__/assetMock.js",
   },
   setupFiles: ["<rootDir>/jest.setup.ts"],
   transform: {

@@ -11,9 +11,13 @@ _FAKE_SINGLETON = None
 
 
 def get_communication_provider() -> CommunicationProvider:
-    name = getattr(settings, "COMMUNICATION_PROVIDER", "skyroom")
+    name = getattr(settings, "COMMUNICATION_PROVIDER", "livekit")
     if name == "fake":
         return _get_fake_provider()
+    if name == "livekit":
+        from infrastructure.communication.livekit import LivekitCommunicationProvider
+
+        return LivekitCommunicationProvider()
     if name == "skyroom":
         from infrastructure.communication.skyroom import SkyroomCommunicationProvider
 

@@ -40,3 +40,16 @@ interface SkyroomClient {
     suspend fun speaker()
     fun observeEvents(): Flow<CallMediaEvent>
 }
+
+/** LiveKit client used to consume a Backend-issued LiveKit JWT token. */
+interface LivekitClient {
+    suspend fun join(loginUrl: String)
+    suspend fun leave()
+    suspend fun mute()
+    suspend fun unmute()
+    suspend fun cameraOn()
+    suspend fun cameraOff()
+    suspend fun speaker()
+    fun observeEvents(): Flow<CallMediaEvent>
+}
+

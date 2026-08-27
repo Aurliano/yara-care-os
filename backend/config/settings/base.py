@@ -198,7 +198,10 @@ DOMAIN_APPS: list[str] = [
     "domains.notification",
 ]
 
-COMMUNICATION_PROVIDER = env("COMMUNICATION_PROVIDER", default="skyroom")
+COMMUNICATION_PROVIDER = env("COMMUNICATION_PROVIDER", default="livekit")
+LIVEKIT_URL = env("LIVEKIT_URL", default="wss://livekit.yara.sayda.ir")
+LIVEKIT_API_KEY = env("LIVEKIT_API_KEY", default="")
+LIVEKIT_API_SECRET = env("LIVEKIT_API_SECRET", default="")
 SKYROOM_API_KEY = env("SKYROOM_API_KEY", default="")
 SKYROOM_API_BASE_URL = env("SKYROOM_API_BASE_URL", default="https://www.skyroom.online/skyroom/api")
 # Only required when the Skyroom account has more than one active service.

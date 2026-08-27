@@ -183,6 +183,60 @@ class CommunicationPresentationStateMapperTest {
         assertEquals(R.string.call_talking_muted_status, ui.statusRes)
     }
 
+    @Test
+    fun incomingCallPresentsElderFirstControlsWithoutClassroomChrome() {
+        val incoming = session(CallRuntimeState.Connecting, CallDirection.Incoming, channel = "VIDEO")
+        val ui = map(incoming, "فرزند")
+
+        assertEquals(CallScreenKind.Incoming, ui.kind)
+        assertEquals(R.string.call_incoming_headline, ui.headlineRes)
+        assertEquals(R.string.call_incoming_status, ui.statusRes)
+        assertEquals("فرزند", ui.contactName)
+        assertTrue("Elder must see prominent Answer button", ui.showAnswer)
+        assertTrue("Elder must see prominent Decline button", ui.showDecline)
+        assertFalse("Elder must not see hangup button before answering", ui.showHangup)
+        assertFalse("Elder must not see media controls before answering", ui.showMediaControls)
+        assertFalse("Elder must not see waiting spinner during incoming ringing", ui.showWaitingIndicator)
+        assertFalse("Elder must not see voice placeholders on incoming screen", ui.showVoicePlaceholders)
+        assertNull("No error/retry banner on fresh incoming call", ui.bannerKind)
+    }
+
+    @Test
+    fun answeringIncomingCallTransitionsDirectlyToConnectedTalkingState() {
+        val incoming = session(CallRuntimeState.Connecting, CallDirection.Incoming, channel = "VIDEO")
+        val beforeAnswer = map(incoming, "فرزند")
+        assertTrue(beforeAnswer.showAnswer)
+
+        // After user taps Answer, Hub transitions directly to Connected
+        val connected = incoming.copy(runtimeState = CallRuntimeState.Connected)
+        val afterAnswer = map(connected, "فرزند")
+
+        assertEquals(CallScreenKind.Talking, afterAnswer.kind)
+        assertEquals(R.string.call_talking_headline, afterAnswer.headlineRes)
+        assertEquals(R.string.call_talking_status, afterAnswer.statusRes)
+        assertFalse("Answer button must be gone after auto-connecting", afterAnswer.showAnswer)
+        assertFalse("Decline button must be gone after auto-connecting", afterAnswer.showDecline)
+        assertTrue("Hang up button must be available in call", afterAnswer.showHangup)
+        assertTrue("Media controls must be available in call", afterAnswer.showMediaControls)
+        assertTrue("Camera toggle must be enabled for video call", afterAnswer.cameraEnabled)
+    }
+
+    @Test
+    fun talkingVideoCallHasMinimalOverlayAndCleanControls() {
+        val videoSession = session(CallRuntimeState.Connected, CallDirection.Incoming, channel = "VIDEO")
+        val ui = map(videoSession, "پدر", cameraOn = true, muted = false)
+
+        assertEquals(CallScreenKind.Talking, ui.kind)
+        assertTrue(ui.showMediaControls)
+        assertTrue(ui.cameraEnabled)
+        assertTrue(ui.cameraOn)
+        assertFalse(ui.muted)
+        assertTrue(ui.showHangup)
+        assertFalse("Full-screen video must not show voice placeholders", ui.showVoicePlaceholders)
+        assertFalse("Connected video call must not show waiting indicator", ui.showWaitingIndicator)
+        assertNull(ui.bannerKind)
+    }
+
     private fun map(
         session: CallSession?,
         contactName: String,

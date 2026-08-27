@@ -111,7 +111,7 @@ def emit_checkpoint_advanced(
         event_type="CheckpointAdvanced",
         subject_id=replica_state_id,
         occurred_at=timezone.now(),
-        discriminator=str(checkpoint_sequence),
+        discriminator=f"{checkpoint_sequence}:{checkpoint_token or ''}",
         payload={
             "replica_state_id": str(replica_state_id),
             "checkpoint_sequence": checkpoint_sequence,
