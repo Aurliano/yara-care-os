@@ -7,7 +7,6 @@
     "orientation": "portrait",
     "icon": "./assets/images/yara-logo.png",
     "userInterfaceStyle": "light",
-    "newArchEnabled": true,
     "splash": {
       "image": "./assets/images/yara-logo.png",
       "resizeMode": "contain",
@@ -28,7 +27,15 @@
       "expo-router",
       "expo-secure-store",
       "expo-font",
-      "expo-localization"
+      "expo-localization",
+      "@livekit/react-native-expo-plugin",
+      [
+        "@config-plugins/react-native-webrtc",
+        {
+          "cameraPermission": "Allow $(PRODUCT_NAME) to access your camera to make video calls.",
+          "microphonePermission": "Allow $(PRODUCT_NAME) to access your microphone to make voice and video calls."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

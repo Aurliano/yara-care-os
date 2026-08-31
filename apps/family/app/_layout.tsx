@@ -24,6 +24,9 @@ if (!I18nManager.isRTL) {
   I18nManager.forceRTL(true);
 }
 
+import { registerGlobals } from "@livekit/react-native";
+registerGlobals();
+
 const queryClient = createQueryClient();
 
 export default function RootLayout() {

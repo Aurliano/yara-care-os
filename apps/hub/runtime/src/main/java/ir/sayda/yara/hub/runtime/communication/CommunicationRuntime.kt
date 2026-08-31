@@ -399,12 +399,33 @@ class CommunicationRuntime(
     }
 
     private suspend fun maybeAcceptIncoming(sessions: List<CommunicationSession>) {
+        val local = repository.getCurrent()
+        if (local != null && local.runtimeState.isActive()) {
+            val remoteMatch = sessions.firstOrNull { it.id == local.sessionId }
+            if (remoteMatch != null && remoteMatch.status in TERMINAL_STATUSES) {
+                mutex.withLock {
+                    val current = repository.getCurrent()
+                    if (current != null && current.sessionId == remoteMatch.id && current.runtimeState.isActive()) {
+                        callEngine.leave()
+                        persistAndPresent(
+                            current.copy(
+                                runtimeState = CallRuntimeState.Finished,
+                                updatedAtEpochMillis = nowMillis(),
+                            ),
+                        )
+                        repository.clear()
+                    }
+                }
+                return
+            }
+        }
+
         val ringing = sessions.firstOrNull { session ->
             session.channel != "MESSAGE" && session.status in INCOMING_STATUSES
         }
         if (ringing == null) {
-            val local = repository.getCurrent()
-            if (local != null && local.direction == CallDirection.Incoming && local.runtimeState == CallRuntimeState.Connecting) {
+            val currentLocal = repository.getCurrent()
+            if (currentLocal != null && currentLocal.direction == CallDirection.Incoming && currentLocal.runtimeState == CallRuntimeState.Connecting) {
                 mutex.withLock {
                     val current = repository.getCurrent()
                     if (current != null && current.direction == CallDirection.Incoming && current.runtimeState == CallRuntimeState.Connecting) {
@@ -420,8 +441,8 @@ class CommunicationRuntime(
             }
             return
         }
-        val local = repository.getCurrent()
-        if (local != null && local.runtimeState.isActive()) return
+        val currentLocal = repository.getCurrent()
+        if (currentLocal != null && currentLocal.runtimeState.isActive()) return
         ringIncoming(
             elderId = ringing.elderId,
             channel = ringing.channel.ifBlank { "VOICE" },
@@ -436,5 +457,6 @@ class CommunicationRuntime(
 
     private companion object {
         val INCOMING_STATUSES = setOf("INITIATED", "CONNECTING", "CONNECTED")
+        val TERMINAL_STATUSES = setOf("ENDED", "MISSED", "DECLINED", "FAILED", "CANCELLED")
     }
 }

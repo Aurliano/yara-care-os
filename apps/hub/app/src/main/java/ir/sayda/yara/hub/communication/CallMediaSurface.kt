@@ -52,7 +52,10 @@ fun LivekitVideoRenderer(
     mirror: Boolean = false,
     onInitRenderer: (SurfaceViewRenderer) -> Unit = {},
 ) {
-    val track = videoTrack ?: return
+    val rendererRef = androidx.compose.runtime.remember {
+        androidx.compose.runtime.mutableStateOf<SurfaceViewRenderer?>(null)
+    }
+
     AndroidView(
         factory = { context ->
             SurfaceViewRenderer(context).apply {
@@ -60,20 +63,31 @@ fun LivekitVideoRenderer(
                     ViewGroup.LayoutParams.MATCH_PARENT,
                     ViewGroup.LayoutParams.MATCH_PARENT,
                 )
-                setMirror(mirror)
                 setEnableHardwareScaler(true)
                 onInitRenderer(this)
-                track.addRenderer(this)
+                rendererRef.value = this
             }
         },
         modifier = modifier,
         update = { renderer ->
-            onInitRenderer(renderer)
-            track.addRenderer(renderer)
+            renderer.setMirror(mirror)
         },
         onRelease = { renderer ->
-            track.removeRenderer(renderer)
+            rendererRef.value = null
             renderer.release()
         },
     )
+
+    androidx.compose.runtime.DisposableEffect(videoTrack, rendererRef.value) {
+        val currentTrack = videoTrack
+        val currentRenderer = rendererRef.value
+        if (currentTrack != null && currentRenderer != null) {
+            currentTrack.addRenderer(currentRenderer)
+        }
+        onDispose {
+            if (currentTrack != null && currentRenderer != null) {
+                currentTrack.removeRenderer(currentRenderer)
+            }
+        }
+    }
 }
