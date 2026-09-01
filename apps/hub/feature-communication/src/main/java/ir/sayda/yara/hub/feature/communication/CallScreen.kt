@@ -99,12 +99,19 @@ fun CallScreen(
 ) {
     val layout = rememberCallLayoutTokens()
     CompositionLocalProvider(androidx.compose.ui.platform.LocalLayoutDirection provides LayoutDirection.Rtl) {
+        val containerColor = if (state.kind == CallScreenKind.Talking && state.cameraEnabled) {
+            androidx.compose.ui.graphics.Color.Transparent
+        } else {
+            YaraTheme.colors.background
+        }
         Scaffold(
             modifier = modifier.fillMaxSize(),
-            containerColor = YaraTheme.colors.background,
+            containerColor = containerColor,
         ) { innerPadding ->
             Box(modifier = Modifier.fillMaxSize()) {
-                TodayBackground(modifier = Modifier.fillMaxSize())
+                if (!(state.kind == CallScreenKind.Talking && state.cameraEnabled)) {
+                    TodayBackground(modifier = Modifier.fillMaxSize())
+                }
                 AnimatedContent(
                     targetState = state,
                     contentKey = { it.kind },
