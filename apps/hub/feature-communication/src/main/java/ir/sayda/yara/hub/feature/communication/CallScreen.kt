@@ -23,6 +23,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -45,7 +46,6 @@ import ir.sayda.yara.hub.feature.communication.components.rememberCallLayoutToke
 import ir.sayda.yara.hub.feature.communication.presentation.CallScreenKind
 import ir.sayda.yara.hub.feature.communication.presentation.CommunicationPresentationState
 import ir.sayda.yara.hub.feature.communication.talking.TalkingScreen
-import ir.sayda.yara.hub.feature.communication.talking.VoiceFeaturePlaceholders
 import ir.sayda.yara.hub.ui.components.TodayBackground
 import ir.sayda.yara.hub.ui.theme.YaraTheme
 import kotlinx.coroutines.delay
@@ -164,6 +164,19 @@ private fun CallStage(
     onToggleCamera: () -> Unit,
     onReturnHome: () -> Unit,
 ) {
+    if (state.kind == CallScreenKind.Talking) {
+        TalkingScreen(
+            state = state,
+            layout = layout,
+            onHangup = onHangup,
+            onToggleMute = onToggleMute,
+            onSpeaker = onSpeaker,
+            onToggleCamera = onToggleCamera,
+            modifier = Modifier.fillMaxSize(),
+        )
+        return
+    }
+
     val scroll = rememberScrollState()
     Column(
         modifier = Modifier
@@ -179,55 +192,7 @@ private fun CallStage(
                 .fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            if (state.kind == CallScreenKind.Talking) {
-                if (layout.useSplitLayout) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(32.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Column(
-                            modifier = Modifier.weight(1f),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                        ) {
-                            CallHeader(headlineRes = state.headlineRes)
-                            Spacer(modifier = Modifier.height(8.dp))
-                            ParticipantCard(name = state.contactName, avatarSize = layout.avatarSize)
-                            Spacer(modifier = Modifier.height(12.dp))
-                            CallStatusText(statusRes = state.statusRes)
-                        }
-                        Column(
-                            modifier = Modifier.weight(1f),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                        ) {
-                            if (state.showVoicePlaceholders) {
-                                VoiceFeaturePlaceholders()
-                                Spacer(modifier = Modifier.height(24.dp))
-                            }
-                            CallActionRow(
-                                state = state,
-                                onAnswer = onAnswer,
-                                onDecline = onDecline,
-                                onHangup = onHangup,
-                                onRetry = onRetry,
-                                onToggleMute = onToggleMute,
-                                onSpeaker = onSpeaker,
-                                onToggleCamera = onToggleCamera,
-                                onReturnHome = onReturnHome,
-                            )
-                        }
-                    }
-                } else {
-                    TalkingScreen(
-                        state = state,
-                        layout = layout,
-                        onHangup = onHangup,
-                        onToggleMute = onToggleMute,
-                        onSpeaker = onSpeaker,
-                        onToggleCamera = onToggleCamera,
-                    )
-                }
-            } else if (layout.useSplitLayout) {
+            if (layout.useSplitLayout) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(32.dp),

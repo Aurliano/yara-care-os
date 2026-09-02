@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { StyleSheet, View } from "react-native";
+import { Modal, StyleSheet, View } from "react-native";
 import { useRouter } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -16,7 +16,7 @@ import {
 import { PermissionDenied } from "../../../src/components/PermissionDenied";
 import { t } from "../../../src/i18n";
 import { colors, spacing } from "../../../src/theme/tokens";
-import { acceptSession, listContacts, listSessions } from "../../../src/api/endpoints/communication";
+import { acceptSession, endCall, listContacts, listSessions } from "../../../src/api/endpoints/communication";
 import { queryKeys } from "../../../src/api/queryKeys";
 import { useElderStore } from "../../../src/stores/elderStore";
 import { usePermissions } from "../../../src/permissions/usePermission";
@@ -142,6 +142,19 @@ export default function CallScreen() {
     }
   }
 
+  async function onDeclineIncoming() {
+    if (!incoming) return;
+    setBusyId("decline");
+    try {
+      await endCall(incoming.id);
+      await remoteSessions.refetch();
+    } catch (error) {
+      setError(mapCallFailureMessage(error));
+    } finally {
+      setBusyId(null);
+    }
+  }
+
   if (contacts.isPending) {
     return (
       <Screen>
@@ -177,18 +190,36 @@ export default function CallScreen() {
         </AppText>
       ) : null}
       {showIncoming && incoming ? (
-        <Card accent="success">
-          <AppText variant="label">{t.incomingCallTitle}</AppText>
-          <AppText variant="caption" color={colors.textSecondary}>
-            {t.incomingCallBody}
-          </AppText>
-          <Button
-            label={t.answerCall}
-            icon="phone"
-            loading={busyId === "incoming"}
-            onPress={() => void onAnswerIncoming()}
-          />
-        </Card>
+        <Modal visible={true} transparent={false} animationType="slide" presentationStyle="fullScreen">
+          <View style={[styles.modalContainer, { backgroundColor: colors.background }]}>
+            <View style={styles.modalHeader}>
+              <AppText variant="title" color={colors.text} align="center">
+                {t.incomingCallTitle}
+              </AppText>
+              <AppText variant="body" color={colors.textSecondary} align="center">
+                {t.incomingCallBody}
+              </AppText>
+            </View>
+            <View style={styles.modalActions}>
+              <Button
+                label={t.answerCall}
+                icon="phone"
+                variant="primary"
+                loading={busyId === "incoming"}
+                onPress={() => void onAnswerIncoming()}
+                style={styles.modalBtn}
+              />
+              <Button
+                label={t.callDecline}
+                variant="dangerFilled"
+                icon="phone"
+                loading={busyId === "decline"}
+                onPress={() => void onDeclineIncoming()}
+                style={styles.modalBtn}
+              />
+            </View>
+          </View>
+        </Modal>
       ) : null}
       {localActive ? (
         <Card>
@@ -248,4 +279,21 @@ export default function CallScreen() {
 const styles = StyleSheet.create({
   row: { gap: spacing.md },
   actions: { gap: spacing.sm },
+  modalContainer: {
+    flex: 1,
+    justifyContent: "space-between",
+    padding: spacing.xl,
+    paddingTop: 120,
+    paddingBottom: 80,
+  },
+  modalHeader: {
+    alignItems: "center",
+    gap: spacing.md,
+  },
+  modalActions: {
+    gap: spacing.md,
+  },
+  modalBtn: {
+    minHeight: 56,
+  }
 });

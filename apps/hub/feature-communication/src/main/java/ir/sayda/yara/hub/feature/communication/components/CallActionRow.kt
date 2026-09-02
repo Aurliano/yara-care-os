@@ -51,13 +51,15 @@ fun CallActionRow(
                 horizontalArrangement = Arrangement.SpaceEvenly,
                 verticalAlignment = Alignment.Top,
             ) {
-                CallIconButton(
-                    label = stringResource(if (state.muted) R.string.call_action_unmute else R.string.call_action_mute),
-                    icon = if (state.muted) Icons.Rounded.MicOff else Icons.Rounded.Mic,
-                    onClick = onToggleMute,
-                    containerColor = if (state.muted) tokens.error.copy(alpha = 0.16f) else tokens.surface,
-                    contentColor = if (state.muted) tokens.error else tokens.onSurface,
-                )
+                if (state.cameraEnabled) {
+                    CallIconButton(
+                        label = stringResource(if (state.muted) R.string.call_action_unmute else R.string.call_action_mute),
+                        icon = if (state.muted) Icons.Rounded.MicOff else Icons.Rounded.Mic,
+                        onClick = onToggleMute,
+                        containerColor = if (state.muted) tokens.error.copy(alpha = 0.16f) else tokens.surface,
+                        contentColor = if (state.muted) tokens.error else tokens.onSurface,
+                    )
+                }
                 CallIconButton(
                     label = stringResource(R.string.call_action_speaker),
                     icon = Icons.Rounded.VolumeUp,
@@ -65,20 +67,18 @@ fun CallActionRow(
                     containerColor = tokens.wash,
                     contentColor = tokens.primary,
                 )
-                CallIconButton(
-                    label = if (state.cameraEnabled) {
-                        stringResource(
+                if (state.cameraEnabled) {
+                    CallIconButton(
+                        label = stringResource(
                             if (state.cameraOn) R.string.call_action_camera_off else R.string.call_action_camera_on,
-                        )
-                    } else {
-                        stringResource(R.string.call_camera_unavailable)
-                    },
-                    icon = if (state.cameraOn) Icons.Rounded.Videocam else Icons.Rounded.VideocamOff,
-                    onClick = onToggleCamera,
-                    enabled = state.cameraEnabled,
-                    containerColor = if (state.cameraOn && state.cameraEnabled) tokens.wash else tokens.surface,
-                    contentColor = if (state.cameraOn && state.cameraEnabled) tokens.primary else tokens.onSurface,
-                )
+                        ),
+                        icon = if (state.cameraOn) Icons.Rounded.Videocam else Icons.Rounded.VideocamOff,
+                        onClick = onToggleCamera,
+                        enabled = true,
+                        containerColor = if (state.cameraOn) tokens.wash else tokens.surface,
+                        contentColor = if (state.cameraOn) tokens.primary else tokens.onSurface,
+                    )
+                }
             }
             Spacer(modifier = Modifier.height(32.dp))
         }

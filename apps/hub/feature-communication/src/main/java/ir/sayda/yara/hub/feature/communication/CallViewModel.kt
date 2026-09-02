@@ -85,9 +85,11 @@ class CallViewModel @Inject constructor(
     init {
         viewModelScope.launch {
             presentationGateway.observeCallSessions().collect { update ->
+                val isVideo = update.channel.equals("VIDEO", ignoreCase = true)
                 bits.update {
                     it.copy(
                         session = update,
+                        cameraOn = if (update.channel.isNotBlank()) isVideo else it.cameraOn,
                         startFailed = false,
                         awaitingOutgoing = false,
                         locallyFinished = update.runtimeState == CallRuntimeState.Finished,
@@ -98,7 +100,14 @@ class CallViewModel @Inject constructor(
         viewModelScope.launch {
             communicationRuntime.observeCurrent().collect { current ->
                 if (current != null) {
-                    bits.update { it.copy(session = current, awaitingOutgoing = false) }
+                    val isVideo = current.channel.equals("VIDEO", ignoreCase = true)
+                    bits.update {
+                        it.copy(
+                            session = current,
+                            cameraOn = if (current.channel.isNotBlank()) isVideo else it.cameraOn,
+                            awaitingOutgoing = false,
+                        )
+                    }
                 }
             }
         }
@@ -115,8 +124,10 @@ class CallViewModel @Inject constructor(
         if (args.contactName.isNotBlank()) {
             bits.update { it.copy(fallbackName = args.contactName) }
         }
-        val video = args.channel.equals("VIDEO", ignoreCase = true)
-        bits.update { it.copy(cameraOn = video) }
+        if (args.channel.isNotBlank()) {
+            val video = args.channel.equals("VIDEO", ignoreCase = true)
+            bits.update { it.copy(cameraOn = video) }
+        }
         if (args.contactId.isBlank()) return
         outgoingArgs = args
         startOutgoing(args)
@@ -128,6 +139,8 @@ class CallViewModel @Inject constructor(
             val elderId = current?.elderId?.ifBlank { null }
                 ?: authRepository.getIdentity()?.elderId.orEmpty()
             if (elderId.isBlank()) return@launch
+            val isVideo = current?.channel.equals("VIDEO", ignoreCase = true)
+            bits.update { it.copy(cameraOn = isVideo) }
             communicationRuntime.joinIncomingCall(
                 elderId = elderId,
                 channel = current?.channel?.ifBlank { "VOICE" } ?: "VOICE",

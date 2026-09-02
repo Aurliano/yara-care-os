@@ -2,7 +2,14 @@ import "../polyfills";
 import { useEffect, useState } from "react";
 import { Modal, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { LiveKitRoom, useTracks, VideoTrack, useConnectionState, useLocalParticipant } from "@livekit/react-native";
+import {
+  LiveKitRoom,
+  useTracks,
+  VideoTrack,
+  useConnectionState,
+  useLocalParticipant,
+  useRemoteParticipants,
+} from "@livekit/react-native";
 import { Track, ConnectionState } from "livekit-client";
 import { colors, radius, sizes, spacing } from "../theme/tokens";
 import { AppText } from "./AppText";
@@ -30,7 +37,9 @@ function CallContent({
 }: any) {
   const connectionState = useConnectionState();
   const isVideo = session?.channel === "VIDEO";
+  const remoteParticipants = useRemoteParticipants();
   const isConnected = connectionState === ConnectionState.Connected;
+  const isAnswered = isConnected && remoteParticipants.length > 0;
   
   const tracks = useTracks([{ source: Track.Source.Camera, withPlaceholder: false }]);
   const remoteVideoTracks = tracks.filter((t) => t.participant.isLocal === false);
@@ -41,16 +50,27 @@ function CallContent({
   const isCameraOn = localParticipant?.isCameraEnabled;
 
   const [callDuration, setCallDuration] = useState(0);
+  const [hadRemoteParticipant, setHadRemoteParticipant] = useState(false);
 
   useEffect(() => {
-    let interval: NodeJS.Timeout;
-    if (isConnected) {
+    let interval: ReturnType<typeof setInterval> | undefined;
+    if (isAnswered) {
       interval = setInterval(() => {
         setCallDuration((prev) => prev + 1);
       }, 1000);
     }
-    return () => clearInterval(interval);
-  }, [isConnected]);
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [isAnswered]);
+
+  useEffect(() => {
+    if (remoteParticipants.length > 0) {
+      setHadRemoteParticipant(true);
+    } else if (hadRemoteParticipant) {
+      onHangup();
+    }
+  }, [remoteParticipants.length, hadRemoteParticipant, onHangup]);
 
   const formatDuration = (seconds: number) => {
     const m = Math.floor(seconds / 60).toString().padStart(2, '0');
@@ -67,26 +87,26 @@ function CallContent({
         </AppText>
         <AppText
           variant="caption"
-          color={isConnected ? colors.success : colors.textSecondary}
+          color={isAnswered ? colors.success : colors.textSecondary}
           align="center"
         >
-          {isConnected ? `${t.callConnected} - ${formatDuration(callDuration)}` : t.callConnecting}
+          {isAnswered ? `${t.callConnected} - ${formatDuration(callDuration)}` : t.callConnecting}
         </AppText>
       </View>
 
       {/* Center Media Area */}
       <View style={styles.mediaContainer}>
-        {(!isVideo || !isConnected) && (
+        {(!isVideo || !isAnswered) && (
           <View style={styles.avatarWrapper}>
             <Avatar name={titleName} size={sizes.avatarLg * 2} />
           </View>
         )}
-        {isVideo && isConnected && remoteVideoTracks.length > 0 && (
-           <VideoTrack trackRef={remoteVideoTracks[0]} style={styles.remoteVideo} />
+        {isVideo && isAnswered && remoteVideoTracks.length > 0 && (
+           <VideoTrack trackRef={remoteVideoTracks[0] as any} style={styles.remoteVideo} />
         )}
-        {isVideo && isConnected && localVideoTracks.length > 0 && (
+        {isVideo && isAnswered && localVideoTracks.length > 0 && (
            <View style={styles.localVideoContainer}>
-             <VideoTrack trackRef={localVideoTracks[0]} style={styles.localVideo} />
+             <VideoTrack trackRef={localVideoTracks[0] as any} style={styles.localVideo} />
            </View>
         )}
       </View>
@@ -112,7 +132,8 @@ function CallContent({
 
         <Button
           label={t.hangUp}
-          variant="danger"
+          variant="dangerFilled"
+          icon="phone"
           style={styles.hangupBtn}
           onPress={onHangup}
         />
@@ -245,9 +266,6 @@ const styles = StyleSheet.create({
     minWidth: 120,
   },
   hangupBtn: {
-    backgroundColor: colors.error,
-    borderColor: colors.error,
-    borderWidth: 1,
     minHeight: 52,
   },
 });

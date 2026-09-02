@@ -34,7 +34,7 @@ class HubNavigationCoordinator @Inject constructor(
         }
         viewModelScope.launch {
             communicationPresentationGateway.observeCallSessions().collect { session ->
-                _activeCall.value = session.takeIf { it.runtimeState.isActive() }
+                _activeCall.value = session.takeIf { it.runtimeState.isActive() && it.expiresAtEpochMillis > System.currentTimeMillis() }
             }
         }
     }

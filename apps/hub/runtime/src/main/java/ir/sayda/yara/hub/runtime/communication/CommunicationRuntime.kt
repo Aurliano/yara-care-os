@@ -132,7 +132,7 @@ class CommunicationRuntime(
         startCollectors()
         val prepared = mutex.withLock {
             val current = repository.getCurrent()
-            if (current != null && current.runtimeState.isActive() && current.expiresAtEpochMillis > nowMillis()) {
+            if (current != null && current.runtimeState == CallRuntimeState.Connected && current.expiresAtEpochMillis > nowMillis() && current.joinToken.isNotBlank()) {
                 return@withLock AppResult.Success(current)
             }
             prepareIncoming(elderId, channel, recipientContactId)
@@ -242,10 +242,12 @@ class CommunicationRuntime(
         channel: String,
         recipientContactId: String,
     ): AppResult<CallSession> {
+        val currentLocal = repository.getCurrent()
+        val localSessionId = currentLocal?.sessionId.orEmpty()
         return when (val refreshed = gateway.refreshJoinToken(elderId)) {
             is AppResult.Error -> refreshed
             is AppResult.Success -> {
-                val sessionId = refreshed.data.sessionId
+                val sessionId = refreshed.data.sessionId.ifBlank { localSessionId }
                 if (sessionId.isBlank()) {
                     return AppResult.Error(ActiveCallExistsException())
                 }
@@ -334,7 +336,18 @@ class CommunicationRuntime(
                         )
                     }
                 }
-                CallMediaEvent.Left -> Unit
+                CallMediaEvent.Left -> {
+                    if (current.runtimeState.isActive()) {
+                        callEngine.leave()
+                        persistAndPresent(
+                            current.copy(
+                                runtimeState = CallRuntimeState.Finished,
+                                updatedAtEpochMillis = nowMillis(),
+                            ),
+                        )
+                        repository.clear()
+                    }
+                }
             }
         }
     }
@@ -354,6 +367,7 @@ class CommunicationRuntime(
     }
 
     suspend fun ringIncoming(
+        sessionId: String = "",
         elderId: String,
         channel: String = "VOICE",
         recipientContactId: String = "",
@@ -361,8 +375,22 @@ class CommunicationRuntime(
         startCollectors()
         return mutex.withLock {
             val current = repository.getCurrent()
-            if (current != null && current.runtimeState.isActive() && current.expiresAtEpochMillis > nowMillis()) {
+            if (current != null && (sessionId.isBlank() || current.sessionId == sessionId) && current.runtimeState.isActive() && current.expiresAtEpochMillis > nowMillis() && current.joinToken.isNotBlank()) {
                 return@withLock AppResult.Success(current)
+            }
+            if (sessionId.isNotBlank()) {
+                val initial = (current ?: CallSession(
+                    sessionId = sessionId,
+                    elderId = elderId,
+                    channel = channel.ifBlank { "VOICE" },
+                    recipientContactId = recipientContactId,
+                    runtimeState = CallRuntimeState.Connecting,
+                    joinToken = "",
+                    expiresAtEpochMillis = nowMillis() + 60_000L,
+                    updatedAtEpochMillis = nowMillis(),
+                    direction = CallDirection.Incoming,
+                )).copy(sessionId = sessionId)
+                repository.saveCurrent(initial)
             }
             prepareIncoming(elderId, channel, recipientContactId)
         }
@@ -442,8 +470,9 @@ class CommunicationRuntime(
             return
         }
         val currentLocal = repository.getCurrent()
-        if (currentLocal != null && currentLocal.runtimeState.isActive()) return
+        if (currentLocal != null && currentLocal.runtimeState.isActive() && currentLocal.expiresAtEpochMillis > nowMillis()) return
         ringIncoming(
+            sessionId = ringing.id,
             elderId = ringing.elderId,
             channel = ringing.channel.ifBlank { "VOICE" },
         )

@@ -4,7 +4,7 @@ import { AppText } from "./AppText";
 import { Icon } from "./Icon";
 import type { IconKey } from "../ui/iconXml";
 
-type Variant = "primary" | "secondary" | "danger" | "ghost";
+type Variant = "primary" | "secondary" | "danger" | "dangerFilled" | "ghost";
 
 type Props = {
   label: string;
@@ -58,6 +58,7 @@ const PALETTE = {
   primary: { bg: colors.primary, fg: colors.primaryOn, border: colors.primary, borderWidth: 0 },
   secondary: { bg: colors.surface, fg: colors.secondary, border: colors.secondary, borderWidth: 2 },
   danger: { bg: "transparent", fg: colors.error, border: colors.error, borderWidth: 1 },
+  dangerFilled: { bg: colors.error, fg: colors.errorOn || "#FFFFFF", border: colors.error, borderWidth: 0 },
   ghost: { bg: "transparent", fg: colors.primary, border: "transparent", borderWidth: 0 },
 } as const;
 

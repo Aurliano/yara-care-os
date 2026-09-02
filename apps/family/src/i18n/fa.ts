@@ -209,6 +209,7 @@ export const fa = {
   callConnecting: "در حال برقراری تماس...",
   callConnected: "تماس برقرار است",
   callEnded: "تماس پایان یافت",
+  callDecline: "رد تماس",
   mediaPermissionRequired: "برای برقراری تماس، دسترسی به میکروفون و دوربین الزامی است.",
   unknownValue: "نامشخص",
   batteryUnknown: "--٪",

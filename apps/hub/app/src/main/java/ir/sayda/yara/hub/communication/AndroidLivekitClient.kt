@@ -76,7 +76,9 @@ class AndroidLivekitClient @Inject constructor(
                     currentRoom.localParticipant.setCameraEnabled(true)
                 } catch (_: Exception) {
                 }
-                events.tryEmit(CallMediaEvent.Joined)
+                if (currentRoom.remoteParticipants.isNotEmpty()) {
+                    events.tryEmit(CallMediaEvent.Joined)
+                }
             } catch (e: Exception) {
                 events.tryEmit(CallMediaEvent.ConnectionLost)
                 leaveInternal()
@@ -89,11 +91,22 @@ class AndroidLivekitClient @Inject constructor(
         when (event) {
             is RoomEvent.Connected -> {
                 joined = true
+                val currentRoom = room
+                if (currentRoom != null && currentRoom.remoteParticipants.isNotEmpty()) {
+                    events.tryEmit(CallMediaEvent.Joined)
+                }
+            }
+            is RoomEvent.ParticipantConnected -> {
                 events.tryEmit(CallMediaEvent.Joined)
+            }
+            is RoomEvent.ParticipantDisconnected -> {
+                if (joined) {
+                    events.tryEmit(CallMediaEvent.Left)
+                }
             }
             is RoomEvent.Disconnected -> {
                 if (joined) {
-                    events.tryEmit(CallMediaEvent.ConnectionLost)
+                    events.tryEmit(CallMediaEvent.Left)
                 }
             }
             is RoomEvent.Reconnecting -> {

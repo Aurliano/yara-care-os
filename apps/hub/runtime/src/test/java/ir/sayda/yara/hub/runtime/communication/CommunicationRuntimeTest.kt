@@ -222,6 +222,21 @@ class CommunicationRuntimeTest {
     }
 
     @Test
+    fun mediaEventLeftFinishesCallAndClearsSession() = runTest {
+        val gateway = FakeGateway()
+        val client = FakeSkyroomClient()
+        val repository = InMemoryCommunicationRepository()
+        val runtime = runtime(gateway, repository, client)
+        runtime.startCall(ELDER_ID, "VOICE", CONTACT_ID)
+
+        client.emit(CallMediaEvent.Left)
+        advanceUntilIdle()
+
+        assertTrue(client.commands.contains("leave"))
+        assertNull(repository.getCurrent())
+    }
+
+    @Test
     fun recoverRestoresUnexpiredSessionAndRejoins() = runTest {
         val client = FakeSkyroomClient()
         val repository = InMemoryCommunicationRepository()

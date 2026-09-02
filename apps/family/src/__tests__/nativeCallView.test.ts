@@ -1,3 +1,20 @@
+jest.mock("@livekit/react-native", () => ({
+  LiveKitRoom: () => null,
+  useTracks: () => [],
+  VideoTrack: () => null,
+  useConnectionState: () => "connected",
+  useLocalParticipant: () => ({ localParticipant: null }),
+  useRemoteParticipants: () => [],
+}));
+jest.mock("react-native", () => {
+  const RN = jest.requireActual("react-native");
+  RN.NativeModules = {
+    ...(RN.NativeModules || {}),
+    WebRTCModule: {},
+  };
+  return RN;
+});
+
 import { NativeCallView } from "../components/NativeCallView";
 import * as mediaPermissions from "../permissions/mediaPermissions";
 
