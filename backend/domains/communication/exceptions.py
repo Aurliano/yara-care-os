@@ -67,3 +67,23 @@ class CommunicationProviderError(CommunicationError):
 
 class ProviderRoomNotFoundError(CommunicationError):
     """Raised when a provider room binding cannot be found."""
+
+
+class MessageNotFoundError(CommunicationError):
+    """Raised when a message cannot be found."""
+
+
+class AttachmentNotFoundError(CommunicationError):
+    """Raised when an attachment cannot be found."""
+
+
+class InvalidMessageError(CommunicationError):
+    """Raised when a message payload is invalid."""
+
+
+class InvalidMediaError(CommunicationError):
+    """Raised when an uploaded media file fails validation."""
+
+
+class MediaNotFoundError(CommunicationError):
+    """Raised when an attachment file does not exist on disk."""

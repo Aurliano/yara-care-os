@@ -45,3 +45,5 @@ class PermissionCode(models.TextChoices):
     INITIATE_CALL = "INITIATE_CALL", "Initiate Call"
     MANAGE_MEMBERS = "MANAGE_MEMBERS", "Manage Members"
     MANAGE_SUBSCRIPTION = "MANAGE_SUBSCRIPTION", "Manage Subscription"
+    SEND_MESSAGE = "SEND_MESSAGE", "Send Message"
+    VIEW_MESSAGES = "VIEW_MESSAGES", "View Messages"

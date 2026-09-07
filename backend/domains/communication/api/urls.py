@@ -1,5 +1,12 @@
 from django.urls import path
 
+from domains.communication.api.messaging_views import (
+    ElderMessagesView,
+    MediaDownloadView,
+    MediaUploadView,
+    MessageDeliveredView,
+    MessageReadView,
+)
 from domains.communication.api.views import (
     CallAttemptResultView,
     ContactArchiveView,
@@ -18,6 +25,12 @@ from domains.communication.api.views import (
 )
 
 urlpatterns = [
+    # Messaging & Media
+    path("elders/<uuid:elder_id>/messages/", ElderMessagesView.as_view(), name="communication-elder-messages"),
+    path("messages/<uuid:message_id>/delivered/", MessageDeliveredView.as_view(), name="communication-message-delivered"),
+    path("messages/<uuid:message_id>/read/", MessageReadView.as_view(), name="communication-message-read"),
+    path("media/upload/", MediaUploadView.as_view(), name="communication-media-upload"),
+    path("media/<uuid:attachment_id>/download/", MediaDownloadView.as_view(), name="communication-media-download"),
     path(
         "elders/<uuid:elder_id>/contacts/",
         ElderContactListCreateView.as_view(),

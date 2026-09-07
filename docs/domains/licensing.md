@@ -446,3 +446,28 @@ Licensing پاسخ می‌دهد:
 > Licensing determines what the customer is entitled to use.  
 > Device represents what hardware is assigned.  
 > Billing determines what has been purchased and paid for.**
+
+---
+
+# 17. Implementation Baseline & Phase 2 Gap Analysis
+
+### 17.1 Current Implementation State
+In the current backend implementation (`backend/domains/licensing`):
+- `Plan` exists.
+- `Entitlement` and `PlanEntitlement` exist with validation logic.
+- `License` exists and is bound to `Elder` and `Plan`.
+- `LicensePlanHistory` exists for plan change audit.
+- Query API `GET /api/v1/elders/{id}/entitlements/` is operational and used by Family App and backend services.
+
+### 17.2 Identified Implementation Gaps (Phase 2 Target)
+1. **Missing `Subscription` Model:**  
+   While `Subscription` is defined in ERD V2.1 and ubiquitous language (Section 2), it has **not yet been modeled in Django** (`backend/domains/licensing/models.py`). In Phase 2, `Subscription` must be implemented to track the commercial active period and renewal cycles without corrupting the stable `License` identity.
+2. **Missing `Billing` Domain Module:**  
+   Billing is not implemented. It will own invoices, purchase transactions, and receipts.
+3. **Payment Gateway as Infrastructure:**  
+   Per Yara architectural principles and ADR-013 conventions:
+   - Payment gateways (e.g. Zarinpal, Stripe) are **Infrastructure Providers**, not domain concepts.
+   - They belong in `backend/infrastructure/payment/`.
+   - Licensing must never import payment vendor SDKs, calculate financial amounts, or manage gateway callbacks.
+4. **Offline Decoupling:**  
+   The Android Hub does NOT store or evaluate licenses. Reminder execution works completely offline regardless of license status. Entitlements are enforced strictly at the cloud backend and Family App presentation layers.

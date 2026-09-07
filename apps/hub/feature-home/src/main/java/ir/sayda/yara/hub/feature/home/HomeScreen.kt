@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -11,8 +12,12 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -32,18 +37,21 @@ import ir.sayda.yara.hub.feature.home.presentation.showFamilyMessagesPlaceholder
 import ir.sayda.yara.hub.feature.home.presentation.toConnectionPresentation
 import ir.sayda.yara.hub.feature.home.presentation.toNextReminderPresentation
 import ir.sayda.yara.hub.feature.home.presentation.todayRemindersSectionTitle
+import ir.sayda.yara.hub.ui.components.ActiveVoiceMessageCard
 import ir.sayda.yara.hub.ui.components.BrandHeader
 import ir.sayda.yara.hub.ui.components.ConnectionIndicator
 import ir.sayda.yara.hub.ui.components.ContactCard
 import ir.sayda.yara.hub.ui.components.DeveloperDiagnosticsCard
+import ir.sayda.yara.hub.ui.components.FamilyMediaMessageCard
+import ir.sayda.yara.hub.ui.components.FamilyTextMessageCard
 import ir.sayda.yara.hub.ui.components.GreetingSection
 import ir.sayda.yara.hub.ui.components.HomeEmptyStateCard
 import ir.sayda.yara.hub.ui.components.HomeLoadingSkeleton
 import ir.sayda.yara.hub.ui.components.NextReminderHighlightCard
+import ir.sayda.yara.hub.ui.components.RecordVoiceMessageCard
 import ir.sayda.yara.hub.ui.components.SettingsButton
 import ir.sayda.yara.hub.ui.components.TodayBackground
 import ir.sayda.yara.hub.ui.components.TodayReminderCard
-import ir.sayda.yara.hub.ui.components.VoiceMessageUnavailableCard
 import ir.sayda.yara.hub.ui.theme.TextSecondary
 import ir.sayda.yara.hub.ui.theme.WarmWhite
 import kotlinx.coroutines.delay
@@ -167,7 +175,7 @@ fun HomeRoute(
 
                             item {
                                 Text(
-                                    text = "پیام‌های خانواده",
+                                    text = "تماس با خانواده",
                                     color = TextSecondary,
                                     modifier = Modifier.fillMaxWidth(),
                                 )
@@ -175,6 +183,7 @@ fun HomeRoute(
                             items(snapshot.priorityContacts) { contact ->
                                 ContactCard(
                                     name = contact.displayName,
+                                    isRecordingVoice = uiState.isRecordingVoice,
                                     onVideoCallClick = {
                                         onCallContact(
                                             contact.id,
@@ -191,17 +200,96 @@ fun HomeRoute(
                                             contact.displayName,
                                         )
                                     },
+                                    onVoiceMessageClick = {
+                                        if (uiState.isRecordingVoice) {
+                                            viewModel.stopAndSendVoice()
+                                        } else {
+                                            viewModel.startRecordingVoice()
+                                        }
+                                    },
                                 )
                             }
-                            if (snapshot.showFamilyMessagesPlaceholder()) {
-                                item {
-                                    HomeEmptyStateCard(message = "پیام جدیدی از خانواده ندارید")
-                                }
+
+                            item {
+                                RecordVoiceMessageCard(
+                                    isRecording = uiState.isRecordingVoice,
+                                    recordingSeconds = uiState.recordingDurationSeconds,
+                                    onStartRecording = { viewModel.startRecordingVoice() },
+                                    onStopAndSend = { viewModel.stopAndSendVoice() },
+                                    onCancelRecording = { viewModel.cancelRecordingVoice() },
+                                )
+                            }
+
+                            val incomingMessages = uiState.messages.filter {
+                                it.direction == ir.sayda.yara.hub.core.domain.model.MessageDirection.FAMILY_TO_HUB
                             }
                             item {
-                                VoiceMessageUnavailableCard(
-                                    message = "پیام صوتی هنوز آماده نیست",
-                                )
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(top = 12.dp, bottom = 4.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    Text(
+                                        text = "صندوق پیام‌های خانواده",
+                                        color = TextSecondary,
+                                    )
+                                    if (incomingMessages.isNotEmpty()) {
+                                        Surface(
+                                            shape = RoundedCornerShape(12.dp),
+                                            color = ir.sayda.yara.hub.ui.theme.YaraLightGreen,
+                                        ) {
+                                            Text(
+                                                text = "${incomingMessages.size} پیام دریافتی",
+                                                style = MaterialTheme.typography.labelMedium,
+                                                color = ir.sayda.yara.hub.ui.theme.YaraGreen,
+                                                fontWeight = FontWeight.Bold,
+                                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                            if (incomingMessages.isEmpty()) {
+                                item {
+                                    HomeEmptyStateCard(message = "هنوز پیام جدیدی از خانواده دریافت نشده است")
+                                }
+                            } else {
+                                items(incomingMessages.sortedByDescending { it.createdAtEpochMillis }, key = { it.id }) { msg ->
+                                    if (msg.messageType == ir.sayda.yara.hub.core.domain.model.MessageType.VOICE) {
+                                        val durSecs = msg.durationSeconds ?: 0
+                                        val durationText = "${durSecs / 60}:${(durSecs % 60).toString().padStart(2, '0')}"
+                                        ActiveVoiceMessageCard(
+                                            senderName = msg.senderDisplayName ?: "خانواده",
+                                            isPlaying = uiState.isPlayingAudio && uiState.playingMessageId == msg.id,
+                                            durationText = durationText,
+                                            onPlayPauseClick = { viewModel.togglePlayVoiceMessage(msg) },
+                                        )
+                                    } else if (msg.messageType == ir.sayda.yara.hub.core.domain.model.MessageType.TEXT) {
+                                        FamilyTextMessageCard(
+                                            senderName = msg.senderDisplayName ?: "خانواده",
+                                            text = msg.body.orEmpty(),
+                                            time = timeFormatter.format(Date(msg.createdAtEpochMillis)),
+                                        )
+                                    } else if (msg.messageType == ir.sayda.yara.hub.core.domain.model.MessageType.IMAGE) {
+                                        FamilyMediaMessageCard(
+                                            senderName = msg.senderDisplayName ?: "خانواده",
+                                            title = "عکس از ${msg.senderDisplayName ?: "خانواده"}",
+                                            text = msg.body,
+                                            localFileUri = msg.localFileUri,
+                                            time = timeFormatter.format(Date(msg.createdAtEpochMillis)),
+                                        )
+                                    } else if (msg.messageType == ir.sayda.yara.hub.core.domain.model.MessageType.VIDEO) {
+                                        FamilyMediaMessageCard(
+                                            senderName = msg.senderDisplayName ?: "خانواده",
+                                            title = "ویدیو از ${msg.senderDisplayName ?: "خانواده"}",
+                                            text = msg.body,
+                                            localFileUri = msg.localFileUri,
+                                            time = timeFormatter.format(Date(msg.createdAtEpochMillis)),
+                                        )
+                                    }
+                                }
                             }
                             }
 

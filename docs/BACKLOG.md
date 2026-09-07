@@ -77,9 +77,13 @@ Priority: P0
 - Membership API
 - Hub API
 - Medication API
-- Subscription API
-- Notification API
+- In-App Caregiver Alerts API (ADR-015)
 - Audit Log API
+- Communication Sessions API (ADR-011, ADR-013 LiveKit token minting & call lifecycle)
+- Two-Way Messaging Subsystem API (Messages & Attachments: Text, Voice Message, Image, Video)
+
+Note:
+Subscription model and Billing/Payment Gateway are scheduled for Phase 2 (Licensing & Billing).
 
 ---
 
@@ -91,21 +95,19 @@ Priority: P0
 
 ## Features
 
-- Device Owner
-- Kiosk Mode
 - Auto Boot
 - Offline Engine
 - Room Database
-- Medication Reminder
-- BLE Manager
+- Medication Reminder (ADR-012)
+- BLE Manager (Stub / interface ready; full hardware in Hardware Integration Phase)
 - Hub Status
 - Sync Queue
+- LiveKit Audio/Video Calling (ADR-011/013, LiveKit SDK, incoming/outgoing screens, ringing)
+- Two-Way Messaging Subsystem (Room DB sync, audio playback/recording, attachments)
 
 Note:
-
 The Hub project already exists.
-
-This sprint focuses on integration and completion rather than building from scratch.
+Device Owner / Kiosk Mode (LockTask) is explicitly postponed to Production Readiness / Deployment Hardening to avoid blocking development and interactive testing.
 
 ---
 
@@ -113,7 +115,7 @@ This sprint focuses on integration and completion rather than building from scra
 
 Sprint 3
 
-Priority: P0
+Priority: P0 (Hardware Integration Phase)
 
 ## Features
 
@@ -129,7 +131,7 @@ Priority: P0
 
 Sprint 4
 
-Priority: P0
+Priority: P0 (Hardware Integration Phase)
 
 ## Features
 
@@ -155,12 +157,14 @@ Priority: P0
 - Medication Status
 - Hub Status
 - Contacts
-- Push Notifications
+- In-App Caregiver Alert Inbox (ADR-015)
+- LiveKit Audio/Video Calling (LiveKit WebRTC, ringing, call screens)
+- Two-Way Messaging Subsystem (Messages screen, voice message recording, attachments)
 - Settings
 
-The Caregiver App is a thin client.
-
-Business logic belongs to the backend.
+Note:
+Push Notifications (FCM/APNs) are scheduled for Software Phase 4. ADR-015 In-App Alert Inbox is the active MVP notification mechanism.
+The Caregiver App is a thin client. Business logic belongs to the backend.
 
 ---
 
@@ -223,27 +227,9 @@ Priority: P3
 - Predictive Analytics
 - Local LLM
 
----
+## Smart Home & Sensors
 
-## Communication
-
-- Voice Calls
-- Video Calls
-- Voice Messages — scoped in ADR-014. `UX_ARCHITECTURE.md` lists it under MVP; it stays here until that ADR is accepted, because it needs a Communication contract extension, audio storage, and offline audio sync.
-
----
-
-## Healthcare
-
-- Doctor Portal
-- Nurse Portal
-- Health Reports
-
----
-
-## Smart Home
-
-- Camera
+- Ambient Camera Streaming (Passive 24/7 room monitoring / CCTV)
 - Motion Sensors
 - Wearables
 - Medical Devices
@@ -291,3 +277,14 @@ A feature is complete only if:
 - Avoid feature creep.
 - Keep the backlog aligned with PROJECT_CONTEXT.md and ARCHITECTURE.md.
 - Optimize for delivering a reliable product, not the largest feature list.
+
+---
+
+# Technical Debt Register
+
+## TD-MSG-001 — Unified Sync Domain Migration for Messaging
+- **Component:** Hub Messaging Polling vs Unified Sync Architecture (`Session`, `Delta`, `Checkpoint`)
+- **Current State:** Phase 1 asynchronous messaging uses an adaptive checkpointed polling bridge (`syncElderMessages` with `since` delta and exponential backoff) in `HomeViewModel`. Outbox dispatch is opportunistic immediate-dispatch with durable fallback to `UploadSessionRunner`.
+- **Target Architecture:** Migrate incoming messaging events from the polling bridge into the unified Synchronization Domain Session/Checkpoint model or unified server-sent event stream (`MessageCreated` / `MessageDelivered`).
+- **Priority:** P1 (Post-MVP / Next Phase)
+- **Status:** Documented & Tracked

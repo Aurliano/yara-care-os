@@ -169,3 +169,64 @@ def emit_call_attempt_failed(*, attempt_id: uuid.UUID, session_id: uuid.UUID, re
             "reason": reason,
         },
     )
+
+
+def emit_message_created(
+    *,
+    message_id: uuid.UUID,
+    elder_id: uuid.UUID,
+    direction: str,
+    message_type: str,
+    attachment_id: uuid.UUID | None = None,
+) -> None:
+    publish_communication_fact(
+        event_type="MessageCreated",
+        subject_id=message_id,
+        occurred_at=timezone.now(),
+        payload={
+            "message_id": str(message_id),
+            "elder_id": str(elder_id),
+            "direction": direction,
+            "message_type": message_type,
+            "attachment_id": str(attachment_id) if attachment_id else None,
+        },
+    )
+
+
+def emit_message_delivered(
+    *,
+    message_id: uuid.UUID,
+    delivered_at: datetime,
+    user_id: uuid.UUID | None = None,
+) -> None:
+    publish_communication_fact(
+        event_type="MessageDelivered",
+        subject_id=message_id,
+        occurred_at=delivered_at,
+        discriminator=str(user_id) if user_id else "",
+        payload={
+            "message_id": str(message_id),
+            "delivered_at": delivered_at.isoformat(),
+            "user_id": str(user_id) if user_id else None,
+        },
+    )
+
+
+def emit_message_read(
+    *,
+    message_id: uuid.UUID,
+    read_at: datetime,
+    user_id: uuid.UUID | None = None,
+) -> None:
+    publish_communication_fact(
+        event_type="MessageRead",
+        subject_id=message_id,
+        occurred_at=read_at,
+        discriminator=str(user_id) if user_id else "",
+        payload={
+            "message_id": str(message_id),
+            "read_at": read_at.isoformat(),
+            "user_id": str(user_id) if user_id else None,
+        },
+    )
+

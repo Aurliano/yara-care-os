@@ -43,3 +43,15 @@ export function mapAccessError(error: unknown): string {
 export function isPermissionDenied(error: unknown): boolean {
   return error instanceof ApiError && error.status === 403;
 }
+
+export function mapMessagingError(error: unknown): string {
+  if (error instanceof ApiError) {
+    if (error.status === 403) {
+      return t.messagePermissionDenied;
+    }
+    if (typeof error.body?.detail === "string" && error.body.detail.trim()) {
+      return error.body.detail;
+    }
+  }
+  return t.messageSendFailed;
+}

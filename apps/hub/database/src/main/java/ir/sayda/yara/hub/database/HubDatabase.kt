@@ -8,6 +8,7 @@ import ir.sayda.yara.hub.database.dao.ContactDao
 import ir.sayda.yara.hub.database.dao.DeviceCommandDao
 import ir.sayda.yara.hub.database.dao.DeviceDao
 import ir.sayda.yara.hub.database.dao.LocalCallSessionDao
+import ir.sayda.yara.hub.database.dao.MessageDao
 import ir.sayda.yara.hub.database.dao.OccurrenceDao
 import ir.sayda.yara.hub.database.dao.OutboxDao
 import ir.sayda.yara.hub.database.dao.PendingEvidenceDao
@@ -25,6 +26,7 @@ import ir.sayda.yara.hub.database.entity.ContactEntity
 import ir.sayda.yara.hub.database.entity.DeviceCommandEntity
 import ir.sayda.yara.hub.database.entity.DeviceEntity
 import ir.sayda.yara.hub.database.entity.LocalCallSessionEntity
+import ir.sayda.yara.hub.database.entity.MessageEntity
 import ir.sayda.yara.hub.database.entity.OccurrenceEntity
 import ir.sayda.yara.hub.database.entity.OutboxEntryEntity
 import ir.sayda.yara.hub.database.entity.PendingEvidenceEntity
@@ -56,8 +58,9 @@ import ir.sayda.yara.hub.database.entity.WorkflowExecutionEntity
         SyncSessionLocalEntity::class,
         SyncConflictEntity::class,
         LocalCallSessionEntity::class,
+        MessageEntity::class,
     ],
-    version = 5,
+    version = 6,
     exportSchema = true,
     autoMigrations = [],
 )
@@ -79,4 +82,5 @@ abstract class HubDatabase : RoomDatabase() {
     abstract fun syncSessionLocalDao(): SyncSessionLocalDao
     abstract fun syncConflictDao(): SyncConflictDao
     abstract fun localCallSessionDao(): LocalCallSessionDao
+    abstract fun messageDao(): MessageDao
 }

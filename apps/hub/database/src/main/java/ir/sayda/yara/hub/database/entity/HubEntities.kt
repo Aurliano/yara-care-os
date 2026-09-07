@@ -275,3 +275,31 @@ data class LocalCallSessionEntity(
     @ColumnInfo(name = "updated_at_epoch_millis") val updatedAtEpochMillis: Long,
     @ColumnInfo(name = "direction") val direction: String,
 )
+
+@Entity(
+    tableName = "message",
+    indices = [
+        Index("elder_id"),
+        Index("direction"),
+        Index("status"),
+        Index(value = ["idempotency_key"], unique = true),
+        Index("created_at_epoch_millis"),
+    ],
+)
+data class MessageEntity(
+    @PrimaryKey @ColumnInfo(name = "id") val id: String,
+    @ColumnInfo(name = "elder_id") val elderId: String,
+    @ColumnInfo(name = "direction") val direction: String,
+    @ColumnInfo(name = "message_type") val messageType: String,
+    @ColumnInfo(name = "body") val body: String?,
+    @ColumnInfo(name = "attachment_id") val attachmentId: String?,
+    @ColumnInfo(name = "local_file_uri") val localFileUri: String?,
+    @ColumnInfo(name = "duration_seconds") val durationSeconds: Int?,
+    @ColumnInfo(name = "file_size") val fileSize: Long?,
+    @ColumnInfo(name = "status") val status: String,
+    @ColumnInfo(name = "idempotency_key") val idempotencyKey: String,
+    @ColumnInfo(name = "created_at_epoch_millis") val createdAtEpochMillis: Long,
+    @ColumnInfo(name = "delivered_at_epoch_millis") val deliveredAtEpochMillis: Long?,
+    @ColumnInfo(name = "read_at_epoch_millis") val readAtEpochMillis: Long?,
+    @ColumnInfo(name = "sender_display_name") val senderDisplayName: String?,
+)

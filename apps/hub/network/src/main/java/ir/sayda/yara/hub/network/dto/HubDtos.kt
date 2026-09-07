@@ -222,3 +222,67 @@ data class CommunicationSessionDto(
     val outcome: String? = null,
     @SerialName("initiated_at") val initiatedAt: String? = null,
 )
+
+@Serializable
+data class SendMessageRequestDto(
+    val direction: String,
+    @SerialName("message_type") val messageType: String,
+    val body: String? = null,
+    @SerialName("attachment_id") val attachmentId: String? = null,
+    @SerialName("idempotency_key") val idempotencyKey: String,
+)
+
+@Serializable
+data class MessageAttachmentDto(
+    val id: String = "",
+    @SerialName("media_type") val mediaType: String? = null,
+    @SerialName("file_size") val fileSize: Long = 0L,
+    @SerialName("mime_type") val mimeType: String = "",
+    @SerialName("duration_seconds") val durationSeconds: Double? = null,
+    @SerialName("download_url") val downloadUrl: String = "",
+    @SerialName("created_at") val createdAt: String = "",
+)
+
+@Serializable
+data class MessageSenderDto(
+    val id: String? = null,
+    @SerialName("display_name") val displayName: String? = null,
+    @SerialName("is_hub") val isHub: Boolean = false,
+)
+
+@Serializable
+data class MessageResponseDto(
+    val id: String,
+    @SerialName("elder_id") val elderId: String,
+    @SerialName("sender_user_id") val senderUserId: String? = null,
+    @SerialName("sender_display_name") val senderDisplayName: String? = null,
+    val sender: MessageSenderDto? = null,
+    val direction: String,
+    @SerialName("message_type") val messageType: String,
+    val body: String? = null,
+    val attachment: MessageAttachmentDto? = null,
+    val status: String = "SENT",
+    @SerialName("idempotency_key") val idempotencyKey: String = "",
+    @SerialName("created_at") val createdAt: String = "",
+    @SerialName("delivered_at") val deliveredAt: String? = null,
+    @SerialName("read_at") val readAt: String? = null,
+)
+
+@Serializable
+data class MessageStatusResponseDto(
+    val id: String,
+    val status: String,
+    @SerialName("delivered_at") val deliveredAt: String? = null,
+    @SerialName("read_at") val readAt: String? = null,
+)
+
+@Serializable
+data class MediaUploadResponseDto(
+    val id: String,
+    @SerialName("media_type") val mediaType: String,
+    @SerialName("file_size") val fileSize: Long,
+    @SerialName("mime_type") val mimeType: String,
+    @SerialName("duration_seconds") val durationSeconds: Double? = null,
+    @SerialName("download_url") val downloadUrl: String,
+    @SerialName("created_at") val createdAt: String,
+)

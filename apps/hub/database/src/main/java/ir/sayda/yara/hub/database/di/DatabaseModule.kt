@@ -12,6 +12,7 @@ import ir.sayda.yara.hub.database.migration.MIGRATION_1_2
 import ir.sayda.yara.hub.database.migration.MIGRATION_2_3
 import ir.sayda.yara.hub.database.migration.MIGRATION_3_4
 import ir.sayda.yara.hub.database.migration.MIGRATION_4_5
+import ir.sayda.yara.hub.database.migration.MIGRATION_5_6
 import javax.inject.Singleton
 
 @Module
@@ -25,7 +26,12 @@ object DatabaseModule {
             context,
             HubDatabase::class.java,
             "yara_hub.db",
-        ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
+        ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
             .fallbackToDestructiveMigration()
             .build()
+
+    @Provides
+    @Singleton
+    fun provideMessageDao(database: HubDatabase): ir.sayda.yara.hub.database.dao.MessageDao =
+        database.messageDao()
 }

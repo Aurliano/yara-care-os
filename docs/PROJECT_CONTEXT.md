@@ -275,8 +275,9 @@ They are not global user roles.
 - Room
 - WorkManager
 - BLE
-- Device Owner
-- Kiosk Mode
+- LiveKit WebRTC (Audio/Video Calling)
+- Local Audio/Media Playback & Storage
+- Device Owner / Kiosk Mode (Postponed to Production Readiness)
 
 ---
 
@@ -290,6 +291,7 @@ They are not global user roles.
 - Axios
 - React Navigation
 - MMKV
+- LiveKit Native WebRTC
 
 ---
 
@@ -298,6 +300,7 @@ They are not global user roles.
 - Django
 - Django REST Framework
 - PostgreSQL
+- LiveKit Server Token Provider
 
 ---
 
@@ -314,6 +317,7 @@ They are not global user roles.
 The project prioritizes:
 
 - Reliability
+- Simplicity
 - Maintainability
 - Fast iteration
 - Clean architecture
@@ -344,56 +348,93 @@ It is in the product implementation phase.
 
 ---
 
+# Core Architectural Clarifications & Exceptions
+
+## 1. LiveKit Real-Time Media Transport Exception
+Real-time media transport (LiveKit) is an approved architectural exception via the Communication provider abstraction:
+
+```text
+Family App / Hub  ──(Credentials / Session Control)──►  Backend
+        │                                                  │
+        │                                        (Issues Opaque Token)
+        ▼                                                  ▼
+LiveKit Server    ◄────────────(Direct Media)──────────────┘
+```
+
+- Backend owns session lifecycle, participant validation, and token minting (`joinToken`).
+- Backend does NOT proxy media traffic.
+- Hub and Family App speak only to Backend for session control, receive opaque join credentials, and never call LiveKit REST administration APIs or hold vendor API secrets.
+- Real-time media streams peer-to-server directly through LiveKit WebRTC.
+
+## 2. Calling vs. Two-Way Messaging
+- **Two-way messaging is part of MVP:** Supports Text, Voice Messages, Images, and Videos.
+- **Voice Message is NOT a Voice Call (`Voice Message != Voice Call`):**
+  - A *Voice Call* is a synchronous, real-time `CommunicationSession` using LiveKit audio tracks.
+  - A *Voice Message* is an asynchronous, stored media recording attached to a `Message` aggregate with sender, recipient, duration, delivered, and read status.
+- Messaging and Calling have separate aggregates, state machines, and lifecycles.
+
+## 3. Kiosk Mode Postponement
+- Kiosk Mode / Android LockTask mode has been temporarily postponed from the daily active MVP to **Production Readiness & Deployment Hardening**.
+- This enables fast QA, testing, and debugging on commercial hardware while preserving the appliance architectural model.
+
+---
+
 # MVP Scope
 
 The MVP includes:
 
-Android Hub
+### Android Hub
+- Offline Storage & Replicas (Room)
+- Offline Reminder Execution & Local Postpone
+- Synchronization Runtime (Deltas, Checkpoints, Outbox)
+- Real-Time LiveKit Video & Audio Calling (ADR-013)
+- Two-Way Messaging (Text, Voice Message, Image, Video)
+- Local Audio Caching & Playback
+- BLE Device Driver (Hardware Integration phase)
 
-- Kiosk Mode
-- Medication Reminder
-- BLE
-- Offline Storage
-- Synchronization
+### Backend
+- Authentication & Identity & Access (Users, Elders, Memberships, Invitations)
+- Care Domain (CareActivities, Prescriptions, CareCompletions)
+- Scheduling Domain (ScheduleDefinitions, Recurrence, Occurrences)
+- Workflow Engine (WorkflowDefinitions, Executions, Evidence Evaluation)
+- Communication Domain (Contacts, Sessions, LiveKit Token Provider)
+- Two-Way Messaging Subsystem (Messages, Attachments, Media Storage)
+- Event Store & Transactional Outbox
+- Synchronization Engine & Hub Sync Facade
+- In-App Caregiver Alert Inbox (ADR-015)
 
-Backend
+### Caregiver App (Family App)
+- Authentication & Login (Phone / Password / OTP)
+- Elder Selection & Caregiver Memberships
+- Dashboard & Today Care Overview
+- Medication Management (Create, Edit, Schedule)
+- Hub & Device Health Overview
+- Real-Time LiveKit Video & Audio Calling
+- Two-Way Messaging (Text, Voice Message, Image, Video)
+- Contacts & Emergency Recipients
+- In-App Alert Center (ADR-015)
 
-- Authentication
-- Elder Management
-- Hub Management
-- Medication Management
-- Notifications
-
-Caregiver App
-
-- Login
-- Pair with Hub
-- Dashboard
-- Medication Status
-- Hub Status
-- Contacts
-- Push Notifications
-
-Smart Pill Box
-
-- BLE Pairing
-- Door Detection
+### Smart Pill Box (Hardware Integration Phase)
+- ESP32-C3 Firmware
+- BLE Pairing with Hub
+- Compartment Reed Switch Open/Close Detection
 - Battery Monitoring
 
 ---
 
-# Out of Scope (MVP)
+# Out of Scope (MVP) / Planned Later
 
-The following features are intentionally excluded:
+The following features are intentionally excluded from MVP:
 
-- AI Assistant
-- Camera Streaming
-- Smart Home Integration
-- Medical Device Integration
-- Smart Watch Integration
-- Predictive Analytics
-- Voice Assistant
-- Local LLM
+- Kiosk Mode / Android LockTask (Postponed to Production Readiness)
+- Push Notifications (FCM / APNs — Planned Software Phase 4)
+- Radio inside Elder Hub (Planned Software Phase 3)
+- Licensing Plans, Billing & Payment Gateway (Planned Software Phase 2)
+- Ambient Camera Streaming (Passive 24/7 room surveillance / CCTV — distinct from interactive Video Calling)
+- Smart Home Integration (Gas leak, power failure environmental sensors)
+- Medical Device & Continuous Wearable Telemetry (Doctor portal, continuous ECG/vitals graphs)
+- AI Care Assistant / Voice Assistant / Local LLM
+- Predictive Health Analytics
 
 These belong to future releases.
 

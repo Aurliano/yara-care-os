@@ -117,4 +117,34 @@ interface CommunicationApi {
 
     @POST("communication/login-url/")
     suspend fun refreshJoinToken(@Body body: CallJoinTokenRequestDto): CallJoinResponseDto
+
+    @POST("elders/{elderId}/messages/")
+    suspend fun sendMessage(
+        @Path("elderId") elderId: String,
+        @Body body: ir.sayda.yara.hub.network.dto.SendMessageRequestDto,
+    ): ir.sayda.yara.hub.network.dto.MessageResponseDto
+
+    @GET("elders/{elderId}/messages/")
+    suspend fun getMessages(
+        @Path("elderId") elderId: String,
+        @Query("since") since: Long? = null,
+        @Query("limit") limit: Int? = null,
+    ): List<ir.sayda.yara.hub.network.dto.MessageResponseDto>
+
+    @POST("messages/{messageId}/delivered/")
+    suspend fun markDelivered(@Path("messageId") messageId: String): ir.sayda.yara.hub.network.dto.MessageStatusResponseDto
+
+    @POST("messages/{messageId}/read/")
+    suspend fun markRead(@Path("messageId") messageId: String): ir.sayda.yara.hub.network.dto.MessageStatusResponseDto
+
+    @retrofit2.http.Multipart
+    @POST("media/upload/")
+    suspend fun uploadMedia(
+        @retrofit2.http.Part file: okhttp3.MultipartBody.Part,
+        @retrofit2.http.Part("media_type") mediaType: okhttp3.RequestBody,
+    ): ir.sayda.yara.hub.network.dto.MediaUploadResponseDto
+
+    @retrofit2.http.Streaming
+    @GET("media/{attachmentId}/download/")
+    suspend fun downloadMedia(@Path("attachmentId") attachmentId: String): okhttp3.ResponseBody
 }

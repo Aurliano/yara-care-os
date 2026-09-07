@@ -1,5 +1,6 @@
 package ir.sayda.yara.hub.ui.components
 
+import android.graphics.BitmapFactory
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -23,6 +24,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.Send
 import androidx.compose.material.icons.rounded.CalendarToday
 import androidx.compose.material.icons.rounded.Call
 import androidx.compose.material.icons.rounded.Check
@@ -32,9 +34,12 @@ import androidx.compose.material.icons.rounded.Cloud
 import androidx.compose.material.icons.rounded.CloudOff
 import androidx.compose.material.icons.rounded.CloudQueue
 import androidx.compose.material.icons.rounded.Medication
+import androidx.compose.material.icons.rounded.Mic
+import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.Spa
+import androidx.compose.material.icons.rounded.Stop
 import androidx.compose.material.icons.rounded.Videocam
 import androidx.compose.material.icons.rounded.Wifi
 import androidx.compose.material3.CircularProgressIndicator
@@ -53,6 +58,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -71,6 +77,7 @@ import ir.sayda.yara.hub.ui.presentation.formatEpochForDisplay
 import ir.sayda.yara.hub.ui.theme.Error
 import ir.sayda.yara.hub.ui.theme.SoftBlue
 import ir.sayda.yara.hub.ui.theme.SoftOrange
+import ir.sayda.yara.hub.ui.theme.SoftRed
 import ir.sayda.yara.hub.ui.theme.Success
 import ir.sayda.yara.hub.ui.theme.SurfaceGray
 import ir.sayda.yara.hub.ui.theme.TextPrimary
@@ -544,6 +551,349 @@ fun VoiceMessageCard(from: String, onClick: () -> Unit) {
     )
 }
 
+@Composable
+fun ActiveVoiceMessageCard(
+    senderName: String,
+    isPlaying: Boolean,
+    durationText: String,
+    onPlayPauseClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        onClick = onPlayPauseClick,
+        shape = RoundedCornerShape(24.dp),
+        color = Color.White,
+        shadowElevation = 2.dp,
+        modifier = modifier
+            .fillMaxWidth()
+            .heightIn(min = 120.dp),
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 24.dp, vertical = 20.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(80.dp)
+                    .clip(CircleShape)
+                    .background(if (isPlaying) YaraLightGreen else SoftBlue.copy(alpha = 0.15f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = if (isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
+                    contentDescription = if (isPlaying) "توقف پخش" else "پخش پیام",
+                    tint = if (isPlaying) YaraGreen else SoftBlue,
+                    modifier = Modifier.size(48.dp),
+                )
+            }
+            Spacer(modifier = Modifier.width(24.dp))
+            Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.Start) {
+                Text(
+                    text = "پیام صوتی از $senderName",
+                    style = MaterialTheme.typography.titleLarge,
+                    color = TextPrimary,
+                    fontWeight = FontWeight.Bold,
+                )
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(
+                    text = if (isPlaying) "در حال پخش... ($durationText)" else "برای شنیدن لمس کنید ($durationText)",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = TextSecondary,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun RecordVoiceMessageCard(
+    isRecording: Boolean,
+    recordingSeconds: Int,
+    onStartRecording: () -> Unit,
+    onStopAndSend: () -> Unit,
+    onCancelRecording: () -> Unit = {},
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        shape = RoundedCornerShape(24.dp),
+        color = if (isRecording) SoftRed.copy(alpha = 0.08f) else Color.White,
+        shadowElevation = 3.dp,
+        modifier = modifier.fillMaxWidth(),
+    ) {
+        Column(
+            modifier = Modifier.padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            if (!isRecording) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(64.dp)
+                            .clip(CircleShape)
+                            .background(YaraLightGreen),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.Mic,
+                            contentDescription = null,
+                            tint = YaraGreen,
+                            modifier = Modifier.size(36.dp),
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(20.dp))
+                    Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.Start) {
+                        Text(
+                            text = "ارسال پیام صوتی به خانواده",
+                            style = MaterialTheme.typography.titleLarge,
+                            color = TextPrimary,
+                            fontWeight = FontWeight.Bold,
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "برای شروع صحبت، دکمه زیر را لمس کنید",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = TextSecondary,
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.height(20.dp))
+                Surface(
+                    onClick = onStartRecording,
+                    shape = RoundedCornerShape(18.dp),
+                    color = YaraGreen,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(64.dp),
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxSize(),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.Mic,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(28.dp),
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(
+                            text = "شروع ضبط پیام صوتی",
+                            style = MaterialTheme.typography.titleLarge,
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold,
+                        )
+                    }
+                }
+            } else {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier = Modifier
+                                .size(16.dp)
+                                .clip(CircleShape)
+                                .background(SoftRed),
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(
+                            text = "در حال ضبط صدای شما...",
+                            style = MaterialTheme.typography.titleLarge,
+                            color = SoftRed,
+                            fontWeight = FontWeight.Bold,
+                        )
+                    }
+                    Text(
+                        text = "$recordingSeconds ثانیه",
+                        style = MaterialTheme.typography.titleLarge,
+                        color = TextPrimary,
+                        fontWeight = FontWeight.Bold,
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                Surface(
+                    onClick = onStopAndSend,
+                    shape = RoundedCornerShape(18.dp),
+                    color = YaraGreen,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(64.dp),
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxSize(),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Rounded.Send,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(28.dp),
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(
+                            text = "ارسال پیام صوتی به خانواده",
+                            style = MaterialTheme.typography.titleLarge,
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold,
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Surface(
+                    onClick = onCancelRecording,
+                    shape = RoundedCornerShape(18.dp),
+                    color = SurfaceGray,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp),
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxSize(),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            text = "انصراف و حذف ضبط",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = TextSecondary,
+                            fontWeight = FontWeight.Medium,
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun FamilyTextMessageCard(
+    senderName: String,
+    text: String,
+    time: String,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        shape = RoundedCornerShape(24.dp),
+        color = Color.White,
+        shadowElevation = 2.dp,
+        modifier = modifier
+            .fillMaxWidth()
+            .heightIn(min = 100.dp),
+    ) {
+        Column(
+            modifier = Modifier.padding(horizontal = 24.dp, vertical = 20.dp),
+            horizontalAlignment = Alignment.Start,
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = "پیام از $senderName",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = SoftBlue,
+                    fontWeight = FontWeight.Bold,
+                )
+                Text(
+                    text = time,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = TextTertiary,
+                )
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = text,
+                style = MaterialTheme.typography.titleLarge,
+                color = TextPrimary,
+                lineHeight = 32.sp,
+            )
+        }
+    }
+}
+
+@Composable
+fun FamilyMediaMessageCard(
+    senderName: String,
+    title: String,
+    text: String?,
+    localFileUri: String?,
+    time: String,
+    modifier: Modifier = Modifier,
+) {
+    val bitmap = remember(localFileUri) {
+        localFileUri?.let { path ->
+            val f = java.io.File(path)
+            if (f.exists()) {
+                BitmapFactory.decodeFile(f.absolutePath)?.asImageBitmap()
+            } else null
+        }
+    }
+    Surface(
+        shape = RoundedCornerShape(24.dp),
+        color = Color.White,
+        shadowElevation = 2.dp,
+        modifier = modifier
+            .fillMaxWidth()
+            .heightIn(min = 100.dp),
+    ) {
+        Column(
+            modifier = Modifier.padding(horizontal = 24.dp, vertical = 20.dp),
+            horizontalAlignment = Alignment.Start,
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = title.ifBlank { "پیام تصویری از $senderName" },
+                    style = MaterialTheme.typography.labelLarge,
+                    color = SoftBlue,
+                    fontWeight = FontWeight.Bold,
+                )
+                Text(
+                    text = time,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = TextTertiary,
+                )
+            }
+            if (bitmap != null) {
+                Spacer(modifier = Modifier.height(12.dp))
+                Image(
+                    bitmap = bitmap,
+                    contentDescription = text ?: title,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 280.dp)
+                        .clip(RoundedCornerShape(16.dp)),
+                    contentScale = ContentScale.Crop,
+                )
+            }
+            if (!text.isNullOrBlank()) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = text,
+                    style = MaterialTheme.typography.titleLarge,
+                    color = TextPrimary,
+                    lineHeight = 32.sp,
+                )
+            }
+        }
+    }
+}
+
 /** Voice messages are not deliverable yet (ADR-014); say so instead of hiding the feature. */
 @Composable
 fun VoiceMessageUnavailableCard(message: String, modifier: Modifier = Modifier) {
@@ -592,6 +942,8 @@ fun ContactCard(
     name: String,
     onVideoCallClick: () -> Unit,
     onVoiceCallClick: () -> Unit,
+    onVoiceMessageClick: (() -> Unit)? = null,
+    isRecordingVoice: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
     Surface(
@@ -614,22 +966,23 @@ fun ContactCard(
                     modifier = Modifier
                         .size(60.dp)
                         .clip(CircleShape)
-                        .background(YaraLightGreen),
+                        .background(if (isRecordingVoice) SoftRed.copy(alpha = 0.15f) else YaraLightGreen),
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
-                        imageVector = Icons.Rounded.Call,
+                        imageVector = if (isRecordingVoice) Icons.Rounded.Mic else Icons.Rounded.Call,
                         contentDescription = null,
-                        tint = YaraGreen,
+                        tint = if (isRecordingVoice) SoftRed else YaraGreen,
                         modifier = Modifier.size(32.dp),
                     )
                 }
                 Spacer(modifier = Modifier.width(16.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "تماس با خانواده",
+                        text = if (isRecordingVoice) "در حال ضبط پیام برای" else "ارتباط با خانواده",
                         style = MaterialTheme.typography.labelMedium,
-                        color = TextSecondary,
+                        color = if (isRecordingVoice) SoftRed else TextSecondary,
+                        fontWeight = if (isRecordingVoice) FontWeight.Bold else FontWeight.Normal,
                     )
                     Text(
                         text = name,
@@ -641,7 +994,7 @@ fun ContactCard(
             }
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 Surface(
                     onClick = onVideoCallClick,
@@ -660,11 +1013,11 @@ fun ContactCard(
                             imageVector = Icons.Rounded.Videocam,
                             contentDescription = null,
                             tint = Color.White,
-                            modifier = Modifier.size(24.dp),
+                            modifier = Modifier.size(22.dp),
                         )
-                        Spacer(modifier = Modifier.width(8.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
                         Text(
-                            text = "تماس تصویری",
+                            text = if (onVoiceMessageClick != null) "تصویری" else "تماس تصویری",
                             style = MaterialTheme.typography.titleMedium,
                             color = Color.White,
                             fontWeight = FontWeight.Bold,
@@ -690,13 +1043,43 @@ fun ContactCard(
                             tint = TextPrimary,
                             modifier = Modifier.size(20.dp),
                         )
-                        Spacer(modifier = Modifier.width(8.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
                         Text(
-                            text = "تماس صوتی",
+                            text = if (onVoiceMessageClick != null) "صوتی" else "تماس صوتی",
                             style = MaterialTheme.typography.titleMedium,
                             color = TextPrimary,
                             fontWeight = FontWeight.Medium,
                         )
+                    }
+                }
+                if (onVoiceMessageClick != null) {
+                    Surface(
+                        onClick = onVoiceMessageClick,
+                        shape = RoundedCornerShape(16.dp),
+                        color = if (isRecordingVoice) YaraGreen else YaraLightGreen,
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(56.dp),
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxSize(),
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Icon(
+                                imageVector = if (isRecordingVoice) Icons.AutoMirrored.Rounded.Send else Icons.Rounded.Mic,
+                                contentDescription = null,
+                                tint = if (isRecordingVoice) Color.White else YaraGreen,
+                                modifier = Modifier.size(20.dp),
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = if (isRecordingVoice) "ارسال پیام" else "پیام صوتی",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = if (isRecordingVoice) Color.White else YaraGreen,
+                                fontWeight = FontWeight.Bold,
+                            )
+                        }
                     }
                 }
             }

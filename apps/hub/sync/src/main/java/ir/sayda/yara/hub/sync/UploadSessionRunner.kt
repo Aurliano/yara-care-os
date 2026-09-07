@@ -1,6 +1,7 @@
 package ir.sayda.yara.hub.sync
 
 import ir.sayda.yara.hub.core.domain.repository.IntegrationRuntimeRepository
+import ir.sayda.yara.hub.core.domain.repository.MessagingRepository
 import ir.sayda.yara.hub.core.domain.repository.OutboxRepository
 import ir.sayda.yara.hub.core.domain.repository.PendingEvidenceRepository
 import ir.sayda.yara.hub.core.domain.repository.SynchronizationRepository
@@ -23,6 +24,7 @@ class UploadSessionRunner @Inject constructor(
     private val pendingEvidenceRepository: PendingEvidenceRepository,
     private val integrationRuntimeRepository: IntegrationRuntimeRepository,
     private val workflowReplicaRepository: WorkflowReplicaRepository,
+    private val messagingRepository: MessagingRepository,
     private val syncSessionStore: SyncSessionStore,
 ) {
     private val json = Json { ignoreUnknownKeys = true }
@@ -67,6 +69,8 @@ class UploadSessionRunner @Inject constructor(
                 OutboxOperationType.RUNTIME_PROCESS ->
                     integrationRuntimeRepository.processRuntimeCycle() is AppResult.Success
                 OutboxOperationType.HUB_CONFIRMATION -> dispatchHubConfirmation(entry.payloadJson)
+                OutboxOperationType.SEND_MESSAGE ->
+                    messagingRepository.dispatchOutboxMessage(entry.payloadJson, entry.idempotencyKey) is AppResult.Success
                 else -> false
             }
             if (success) {

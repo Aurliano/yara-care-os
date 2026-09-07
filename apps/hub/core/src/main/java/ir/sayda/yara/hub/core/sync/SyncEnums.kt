@@ -38,4 +38,5 @@ enum class OutboxOperationType {
     HUB_SESSION_ACCEPT,
     HUB_SESSION_END,
     RUNTIME_PROCESS,
+    SEND_MESSAGE,
 }

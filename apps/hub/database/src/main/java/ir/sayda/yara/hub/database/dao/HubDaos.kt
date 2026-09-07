@@ -466,3 +466,43 @@ interface LocalCallSessionDao {
     @Query("DELETE FROM local_call_session")
     suspend fun deleteAll()
 }
+
+@Dao
+interface MessageDao {
+    @Query("SELECT * FROM message WHERE elder_id = :elderId ORDER BY created_at_epoch_millis ASC")
+    fun observeByElder(elderId: String): Flow<List<ir.sayda.yara.hub.database.entity.MessageEntity>>
+
+    @Query("SELECT COUNT(*) FROM message WHERE elder_id = :elderId AND direction = 'FAMILY_TO_HUB' AND status != 'READ'")
+    fun observeUnreadCount(elderId: String): Flow<Int>
+
+    @Query("SELECT * FROM message WHERE id = :id LIMIT 1")
+    suspend fun getById(id: String): ir.sayda.yara.hub.database.entity.MessageEntity?
+
+    @Query("SELECT * FROM message WHERE idempotency_key = :idempotencyKey LIMIT 1")
+    suspend fun getByIdempotencyKey(idempotencyKey: String): ir.sayda.yara.hub.database.entity.MessageEntity?
+
+    @Query("SELECT * FROM message WHERE direction = 'HUB_TO_FAMILY' AND status = 'PENDING' ORDER BY created_at_epoch_millis ASC")
+    suspend fun getPendingOutgoing(): List<ir.sayda.yara.hub.database.entity.MessageEntity>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsert(entity: ir.sayda.yara.hub.database.entity.MessageEntity)
+
+    @Query(
+        """
+        UPDATE message
+        SET status = :status,
+            delivered_at_epoch_millis = COALESCE(:deliveredAt, delivered_at_epoch_millis),
+            read_at_epoch_millis = COALESCE(:readAt, read_at_epoch_millis)
+        WHERE id = :id
+        """,
+    )
+    suspend fun updateStatus(
+        id: String,
+        status: String,
+        deliveredAt: Long? = null,
+        readAt: Long? = null,
+    )
+
+    @Query("DELETE FROM message")
+    suspend fun deleteAll()
+}

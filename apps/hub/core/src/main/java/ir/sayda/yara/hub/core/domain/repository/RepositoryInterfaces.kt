@@ -250,3 +250,29 @@ interface ConnectivityRepository {
     fun observeConnectivity(): Flow<ConnectivitySnapshot>
     suspend fun refreshBackendReachability(): ConnectivitySnapshot
 }
+
+interface MessagingRepository {
+    fun observeMessages(elderId: String): Flow<List<ir.sayda.yara.hub.core.domain.model.Message>>
+    fun observeUnreadCount(elderId: String): Flow<Int>
+    suspend fun getMessage(id: String): ir.sayda.yara.hub.core.domain.model.Message?
+    suspend fun saveMessage(message: ir.sayda.yara.hub.core.domain.model.Message)
+    suspend fun updateMessageStatus(
+        id: String,
+        status: ir.sayda.yara.hub.core.domain.model.MessageStatus,
+        deliveredAt: Long? = null,
+        readAt: Long? = null,
+    )
+    suspend fun getPendingOutgoingMessages(): List<ir.sayda.yara.hub.core.domain.model.Message>
+    suspend fun markMessageDelivered(id: String): AppResult<Unit>
+    suspend fun markMessageRead(id: String): AppResult<Unit>
+    suspend fun enqueueOutgoingMessage(
+        elderId: String,
+        messageType: ir.sayda.yara.hub.core.domain.model.MessageType,
+        body: String?,
+        localFileUri: String?,
+        durationSeconds: Int?,
+        fileSize: Long?,
+    ): AppResult<ir.sayda.yara.hub.core.domain.model.Message>
+    suspend fun dispatchOutboxMessage(payloadJson: String, idempotencyKey: String): AppResult<Unit>
+    suspend fun syncElderMessages(elderId: String): AppResult<Int>
+}

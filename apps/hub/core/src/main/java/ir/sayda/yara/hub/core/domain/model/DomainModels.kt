@@ -229,3 +229,41 @@ data class HomeRuntimeSnapshot(
     val syncConflictCount: Int = 0,
     val lastProvisioningError: String? = null,
 )
+
+enum class MessageType {
+    TEXT,
+    VOICE,
+    IMAGE,
+    VIDEO,
+}
+
+enum class MessageStatus {
+    PENDING,
+    SENT,
+    DELIVERED,
+    READ,
+    FAILED,
+}
+
+enum class MessageDirection {
+    HUB_TO_FAMILY,
+    FAMILY_TO_HUB,
+}
+
+data class Message(
+    val id: String,
+    val elderId: String,
+    val direction: MessageDirection,
+    val messageType: MessageType,
+    val body: String? = null,
+    val attachmentId: String? = null,
+    val localFileUri: String? = null,
+    val durationSeconds: Int? = null,
+    val fileSize: Long? = null,
+    val status: MessageStatus,
+    val idempotencyKey: String,
+    val createdAtEpochMillis: Long,
+    val deliveredAtEpochMillis: Long? = null,
+    val readAtEpochMillis: Long? = null,
+    val senderDisplayName: String? = null,
+)

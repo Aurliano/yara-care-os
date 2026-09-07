@@ -389,8 +389,13 @@ class CommunicationRuntime(
                     expiresAtEpochMillis = nowMillis() + 60_000L,
                     updatedAtEpochMillis = nowMillis(),
                     direction = CallDirection.Incoming,
-                )).copy(sessionId = sessionId)
-                repository.saveCurrent(initial)
+                )).copy(
+                    sessionId = sessionId,
+                    direction = CallDirection.Incoming,
+                    runtimeState = CallRuntimeState.Connecting,
+                    channel = channel.ifBlank { "VOICE" },
+                )
+                persistAndPresent(initial)
             }
             prepareIncoming(elderId, channel, recipientContactId)
         }

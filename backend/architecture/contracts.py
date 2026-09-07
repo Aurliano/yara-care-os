@@ -9,6 +9,7 @@ ALLOWED_CROSS_DOMAIN_FKS: set[tuple[str, str, str, str]] = {
     ("device", "DeviceAssignment", "elder", "identity_access"),
     ("communication", "Contact", "elder", "identity_access"),
     ("communication", "CommunicationSession", "elder", "identity_access"),
+    ("communication", "Message", "elder", "identity_access"),
     ("notification", "CaregiverAlert", "elder", "identity_access"),
 }
 

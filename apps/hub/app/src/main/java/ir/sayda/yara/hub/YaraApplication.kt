@@ -33,6 +33,7 @@ class YaraApplication : Application(), Configuration.Provider {
     @Inject lateinit var provisioningCoordinator: HubProvisioningCoordinator
     @Inject lateinit var provisioningGate: RuntimeProvisioningGate
     @Inject lateinit var runSynchronizationCycleUseCase: RunSynchronizationCycleUseCase
+    @Inject lateinit var communicationRuntime: ir.sayda.yara.hub.runtime.communication.CommunicationRuntime
 
     private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
@@ -57,6 +58,7 @@ class YaraApplication : Application(), Configuration.Provider {
         runtimeScheduler.schedulePeriodicRuntimeWork()
         runtimeScheduler.scheduleRecurringSyncPoll()
         connectivitySyncTrigger.register()
+        communicationRuntime.startIncomingCallPoller()
     }
 
     override val workManagerConfiguration: Configuration

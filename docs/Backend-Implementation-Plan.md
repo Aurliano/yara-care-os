@@ -90,5 +90,8 @@ Sprint IV Phase A adds the Family App Communication Runtime
 (`CommunicationGateway`, `CommunicationRepository`, `CommunicationStateMachine`,
 `CommunicationRuntime`) as a first-class client of the same Backend join APIs.
 The Family App persists `CallSession` locally, recovers after process death,
-and never calls Skyroom REST. Backend remains the source of truth.
-This phase does not add media, WebRTC, or Family call UI.
+and never calls provider REST APIs. Backend remains the source of truth.
+
+Sprint IV Phase B adds LiveKit WebRTC provider integration (`LiveKitCommunicationProvider`, token minting, room dispatch) enabling real-time audio/video calls across Hub and Family App.
+
+Sprint IV Phase C adds the Two-Way Messaging Subsystem (`Message` and `MessageAttachment` models, endpoints `/messages/` and `/attachments/`, supporting text, voice message, image, and video attachments). All 332 backend pytest tests passing.

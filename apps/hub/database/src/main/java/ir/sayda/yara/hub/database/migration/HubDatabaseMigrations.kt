@@ -122,3 +122,34 @@ val MIGRATION_4_5 = object : Migration(4, 5) {
         )
     }
 }
+
+val MIGRATION_5_6 = object : Migration(5, 6) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS message (
+                id TEXT NOT NULL PRIMARY KEY,
+                elder_id TEXT NOT NULL,
+                direction TEXT NOT NULL,
+                message_type TEXT NOT NULL,
+                body TEXT,
+                attachment_id TEXT,
+                local_file_uri TEXT,
+                duration_seconds INTEGER,
+                file_size INTEGER,
+                status TEXT NOT NULL,
+                idempotency_key TEXT NOT NULL,
+                created_at_epoch_millis INTEGER NOT NULL,
+                delivered_at_epoch_millis INTEGER,
+                read_at_epoch_millis INTEGER,
+                sender_display_name TEXT
+            )
+            """.trimIndent(),
+        )
+        db.execSQL("CREATE INDEX IF NOT EXISTS index_message_elder_id ON message(elder_id)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS index_message_direction ON message(direction)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS index_message_status ON message(status)")
+        db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_message_idempotency_key ON message(idempotency_key)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS index_message_created_at_epoch_millis ON message(created_at_epoch_millis)")
+    }
+}

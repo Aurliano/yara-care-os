@@ -8,6 +8,8 @@ export const PERMISSIONS = {
   INITIATE_CALL: "INITIATE_CALL",
   MANAGE_MEMBERS: "MANAGE_MEMBERS",
   MANAGE_SUBSCRIPTION: "MANAGE_SUBSCRIPTION",
+  SEND_MESSAGE: "SEND_MESSAGE",
+  VIEW_MESSAGES: "VIEW_MESSAGES",
 } as const satisfies Record<PermissionCode, PermissionCode>;
 
 export function hasPermission(

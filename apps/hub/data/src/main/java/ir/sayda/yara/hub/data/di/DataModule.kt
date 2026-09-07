@@ -104,6 +104,15 @@ abstract class RepositoryModule {
     @Binds @Singleton abstract fun bindHomeRepository(impl: HomeRepositoryImpl): HomeRepository
     @Binds @Singleton abstract fun bindReminderRepository(impl: ReminderRepositoryImpl): ReminderRepository
     @Binds @Singleton abstract fun bindConnectivityRepository(impl: ConnectivityRepositoryImpl): ConnectivityRepository
+    @Binds @Singleton abstract fun bindMessagingRepository(
+        impl: ir.sayda.yara.hub.data.communication.MessagingRepositoryImpl,
+    ): ir.sayda.yara.hub.core.domain.repository.MessagingRepository
+    @Binds @Singleton abstract fun bindAudioRecorder(
+        impl: ir.sayda.yara.hub.data.media.AndroidAudioRecorder,
+    ): ir.sayda.yara.hub.core.media.AudioRecorder
+    @Binds @Singleton abstract fun bindAudioPlayer(
+        impl: ir.sayda.yara.hub.data.media.AndroidAudioPlayer,
+    ): ir.sayda.yara.hub.core.media.AudioPlayer
     @Binds @Singleton abstract fun bindReplicaIdentityProvider(impl: DataStoreReplicaIdentityProvider): ReplicaIdentityProvider
     @Binds @Singleton abstract fun bindCorrelationIdProvider(impl: DataStoreReplicaIdentityProvider): CorrelationIdProvider
 }

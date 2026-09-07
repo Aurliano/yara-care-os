@@ -124,6 +124,29 @@ export default function HomeScreen() {
         </Card>
       ) : null}
 
+      <Pressable
+        onPress={() => router.push("/(app)/messages")}
+        accessibilityRole="button"
+        accessibilityLabel={t.openChatWithHub}
+      >
+        <Card style={styles.messagingCard}>
+          <View style={styles.messagingCardRow}>
+            <View style={styles.messagingIconWrapper}>
+              <AppText variant="title">💬</AppText>
+            </View>
+            <View style={{ flex: 1, gap: 2 }}>
+              <AppText variant="label" color={colors.text}>
+                {t.openChatWithHub}
+              </AppText>
+              <AppText variant="caption" color={colors.textSecondary}>
+                {t.chatWithHubSubtitle}
+              </AppText>
+            </View>
+            <Icon name="chevron" color={colors.primary} width={18} height={18} />
+          </View>
+        </Card>
+      </Pressable>
+
       <AppText variant="title">{t.todayProgram}</AppText>
       {data.today.length === 0 ? (
         data.setupRequired ? null : (
@@ -219,4 +242,25 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   deviceRow: { flexDirection: "row", gap: spacing.sm },
+  messagingCard: {
+    backgroundColor: colors.surfaceSoft,
+    borderColor: colors.borderStrong,
+    borderWidth: 1,
+    marginVertical: spacing.xs,
+  },
+  messagingCardRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+  },
+  messagingIconWrapper: {
+    width: 40,
+    height: 40,
+    borderRadius: radius.pill,
+    backgroundColor: colors.surface,
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
 });

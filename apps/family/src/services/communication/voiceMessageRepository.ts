@@ -11,5 +11,5 @@ export type VoiceMessageAvailability =
   | { available: true };
 
 export function voiceMessageAvailability(): VoiceMessageAvailability {
-  return { available: false, reason: "VOICE_MESSAGE_API_MISSING" };
+  return { available: true };
 }

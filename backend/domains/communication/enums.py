@@ -60,3 +60,23 @@ class CallAttemptOutcome(models.TextChoices):
     FAILED = "FAILED", "Failed"
     DECLINED = "DECLINED", "Declined"
     MISSED = "MISSED", "Missed"
+
+
+class MessageType(models.TextChoices):
+    TEXT = "TEXT", "Text"
+    VOICE = "VOICE", "Voice"
+    IMAGE = "IMAGE", "Image"
+    VIDEO = "VIDEO", "Video"
+
+
+class MessageStatus(models.TextChoices):
+    PENDING = "PENDING", "Pending"
+    SENT = "SENT", "Sent"
+    DELIVERED = "DELIVERED", "Delivered"
+    READ = "READ", "Read"
+    FAILED = "FAILED", "Failed"
+
+
+class MessageDirection(models.TextChoices):
+    HUB_TO_FAMILY = "HUB_TO_FAMILY", "Hub to Family"
+    FAMILY_TO_HUB = "FAMILY_TO_HUB", "Family to Hub"

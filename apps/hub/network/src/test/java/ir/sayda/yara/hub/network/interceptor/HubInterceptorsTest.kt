@@ -41,4 +41,30 @@ class HubInterceptorsTest {
         assertEquals("corr-123", recorded.getHeader("X-Correlation-ID"))
         server.shutdown()
     }
+
+    @Test
+    fun testDeserializeMessageWithFloatDuration() {
+        val jsonStr = """
+        {
+          "id": "11d25e32-174d-42b7-a7fc-1aacbd5aeac1",
+          "elder_id": "84c884c8-37c3-4374-8bbd-c428555e31d2",
+          "direction": "FAMILY_TO_HUB",
+          "message_type": "VOICE",
+          "body": "",
+          "status": "SENT",
+          "attachment": {
+            "id": "001d7972-47d7-4d03-9569-02941dad5e0d",
+            "media_type": "VOICE",
+            "file_size": 43730,
+            "mime_type": "audio/m4a",
+            "duration_seconds": 2.0,
+            "download_url": "/api/v1/media/001d7972-47d7-4d03-9569-02941dad5e0d/download/",
+            "created_at": "2026-09-07T10:36:54.744563Z"
+          }
+        }
+        """.trimIndent()
+        val json = ir.sayda.yara.hub.network.di.NetworkModule.provideJson()
+        val dto = json.decodeFromString<ir.sayda.yara.hub.network.dto.MessageResponseDto>(jsonStr)
+        assertEquals("11d25e32-174d-42b7-a7fc-1aacbd5aeac1", dto.id)
+    }
 }

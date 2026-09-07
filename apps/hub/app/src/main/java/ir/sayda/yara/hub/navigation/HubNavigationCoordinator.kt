@@ -18,6 +18,7 @@ import javax.inject.Inject
 class HubNavigationCoordinator @Inject constructor(
     reminderPresentationGateway: ReminderPresentationGateway,
     communicationPresentationGateway: CommunicationPresentationGateway,
+    private val communicationRuntime: ir.sayda.yara.hub.runtime.communication.CommunicationRuntime,
 ) : ViewModel() {
 
     private val _openRequests = MutableStateFlow<ReminderOpenRequest?>(null)
@@ -27,6 +28,7 @@ class HubNavigationCoordinator @Inject constructor(
     val activeCall: StateFlow<CallSession?> = _activeCall.asStateFlow()
 
     init {
+        communicationRuntime.startIncomingCallPoller()
         viewModelScope.launch {
             reminderPresentationGateway.observeOpenRequests().collect { request ->
                 _openRequests.value = request

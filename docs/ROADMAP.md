@@ -119,109 +119,37 @@ Exit Criteria
 
 ---
 
-# Sprint 2 — Android Hub Runtime (Revised)
+# Sprint 2 — Android Hub Runtime ✅ Substantially Complete (~85%)
 Goal
 
-Transform the current Android prototype into the production Hub runtime that implements the frozen Backend architecture while remaining fully offline-first.
+Transform the Android prototype into the production Hub runtime that implements the frozen Backend architecture while remaining fully offline-first.
 
-Sprint II-A — Foundation & Runtime
+### Sprint II-A — Foundation & Runtime ✅ Completed
+- Platform Foundation: 11-module Gradle architecture, Hilt DI, ViewModel, Navigation, Configuration
+- Persistence: Room Database v5, replica storage, outbox storage, monotonic checkpoints
+- Networking: Retrofit, JWT authentication, replica identifiers (`X-Replica-ID`, `X-Device-ID`, `X-Correlation-ID`)
+- Synchronization: Sync Session client, incremental delta download/upload, staging database, selective refresh
+- Runtime: Integration Runtime, WorkManager jobs, Boot receiver recovery, alarm recovery
 
-Goal
+### Sprint II-B — Reminder Runtime ✅ Completed (ADR-012)
+- Scheduling Runtime: ScheduleDefinition replicas, local occurrence generation, alarm coordinator
+- Workflow Runtime: WorkflowExecution replicas, Action Dispatcher, reminder lifecycle, local postpone
+- Reminder UI: Today screen from replicas, reminder screen, elder confirmation UI, 15-minute card retention
+- Offline Confirmation: Pending evidence queue, outbox upload, idempotent replay
 
-Replace the prototype architecture with the production Hub architecture.
-Objectives
-Platform Foundation
-Multi-module architecture
-Dependency Injection
-ViewModel architecture
-Navigation architecture
-Configuration management
-Persistence
-Room Database
-Replica storage
-Outbox storage
-Replica metadata
-Checkpoint persistence
-Networking
-Retrofit
-JWT Authentication
-Device Registration
-Correlation IDs
-Replica IDs
-Synchronization
-Sync Session client
-Delta download
-Delta upload
-Snapshot support
-Checkpoint management
-Runtime
-Integration Runtime
-WorkManager jobs
-Boot recovery
-Alarm recovery
-Runtime lifecycle
-Refactoring
-Remove Medication aggregate
-Remove InMemory repository
-Remove Medication CRUD
-Preserve UI Design System
-Deliverables
-Stable Hub architecture
-Local replica database
-Sync infrastructure
-Runtime foundation
-Backend connectivity
-Exit Criteria
-Hub authenticates with Backend.
-Replica database survives reboot.
-Synchronization session works.
-Outbox persists offline.
-Integration Runtime runs locally.
-Prototype domain removed.
+### Communication Runtime (LiveKit WebRTC) ✅ Completed (ADR-013)
+- LiveKit WebRTC engine (`LivekitCallEngine`), token consumption, call state machine
+- Real-time elder calling UI: Incoming call ringer, outgoing call, talking screen, mute/speaker/camera controls
 
-Sprint II-B — Reminder Runtime
+### Two-Way Messaging Subsystem ✅ Completed
+- Hub Messaging Repository (`MessagingRepositoryImpl`) & Room Message storage (`MessageDao`)
+- Text, Voice Message, Image, and Video messaging support with delivery/read receipts
 
-Goal
+### Sprint II-C — Device BLE Runtime 🔜 Planned (Deferred to Hardware Phase)
+- BLE GATT client runtime, pairing handshake, compartment sensor integration (`DeferredDeviceActionHandler` currently active)
 
-Implement the complete offline reminder runtime using replicated backend domains.
-Objectives
-Scheduling Runtime
-ScheduleDefinition replicas
-Local occurrence generation
-Alarm scheduling
-Boot rescheduling
-Workflow Runtime
-WorkflowExecution replicas
-Action dispatcher
-Reminder lifecycle
-Retry
-Timeout
-Escalation
-Reminder UI
-Today screen from replicas
-Reminder screen from WorkflowExecution
-Confirmation UI
-Active execution UI
-Offline Confirmation
-Pending evidence queue
-Confirmation upload
-Idempotent replay
-Integration
-Hub Confirmation API
-Runtime processing
-Sync after confirmation
-Deliverables
-Complete reminder runtime
-Offline reminder execution
-Workflow confirmations
-Evidence queue
-End-to-end backend integration
-Exit Criteria
-Reminder works without internet.
-Workflow executes locally.
-Confirmation syncs after reconnect.
-No local medication logic remains.
-Backend reminder flow is fully mirrored.
+### Kiosk Mode / Device Owner ⏸️ Postponed (Moved to Production Readiness)
+- Android LockTask mode and Device Owner provisioning temporarily postponed to Production Readiness so as not to impede ongoing development, debugging, and testing.
 
 ---
 
@@ -280,112 +208,113 @@ Exit Criteria
 
 ---
 
-# Sprint 5 — Caregiver App MVP
+# Sprint 5 — Caregiver App (Family App) MVP ✅ Substantially Complete (~85%)
 
 Goal
 
-Deliver the first caregiver-facing application.
+Deliver the first caregiver-facing application with full monitoring, communication, and messaging capabilities.
 
 Objectives
 
-- Authentication
-- Pair with Elder
-- Dashboard
-- Medication Status
-- Hub Status
-- Notifications
-- Contacts
-- Settings
+- Authentication & Account Management ✅
+- Pair with Elder & Multi-caregiver Memberships ✅
+- Dashboard & Daily Care Status ✅
+- Medication Management (Create, Edit, Schedule) ✅
+- Hub & Peripheral Device Status ✅
+- Real-Time LiveKit Video & Audio Calling ✅
+- Two-Way Messaging (Text, Voice Message, Image, Video) ✅
+- In-App Caregiver Alerts (ADR-015) ✅
+- Push Notifications (FCM / APNs) 🔜 Planned (Software Phase 4)
 
 Deliverables
 
-- Android App
-- iOS App (via Expo)
-- Push Notifications
+- Expo / React Native App (Android & iOS)
+- Native WebRTC calling engine via LiveKit
+- Two-way messaging with audio/video/image attachments
+- In-app alert inbox
 
 Exit Criteria
 
 - Caregivers can monitor an elder remotely.
-- Notifications work.
-- Hub status is visible.
+- LiveKit calls connect reliably between Family App and Hub.
+- Two-way messages sync across devices.
+- In-app alerts notify caregivers of late/missed doses.
 
 ---
 
-# Sprint 6 — Care Platform
+# Current Expected Product Roadmap
 
-Goal
+The software capabilities are prioritized ahead of physical hardware to establish a rock-solid cloud and client foundation:
 
-Expand remote caregiving capabilities.
+```text
+Phase 2: Licensing + Plans + Billing + Payment
+                   │
+                   ▼
+Phase 3: Radio inside Elder Hub
+                   │
+                   ▼
+Phase 4: Push Notifications (FCM / APNs)
+                   │
+                   ▼
+Hardware Integration: Smart Pill Box & Wearable
+                   │
+                   ▼
+Production Readiness: Kiosk Mode, E2E Reliability, Pilot Deployment
+```
 
-Objectives
+## Software Completion Roadmap
 
-- Medication Management
-- Appointment Tracking
-- Reminder Configuration
-- Timeline
-- Activity History
-- Subscription Management
+### Phase 2 — Licensing-based Plans + Billing + Payment 🔜 (Next Milestone)
+- **Goal:** Commercialize the platform and bind subscription lifecycles to elder profiles.
+- **Objectives:**
+  - Complete `Subscription` aggregate in Licensing domain.
+  - Implement Billing module (Invoices, Payment Transactions).
+  - Implement Payment Gateway provider abstraction in `backend/infrastructure/payment/`.
+  - Family App Subscription & checkout flow.
 
-Deliverables
+### Phase 3 — Radio inside Elder Hub 🔜
+- **Goal:** Deliver a calm, companion entertainment feature for the elder directly on the Hub.
+- **Objectives:**
+  - Streaming audio player engine in Hub runtime.
+  - Elder-friendly Radio UI on Hub Home screen.
+  - Station management and fallback streams.
 
-- Complete care workflow
-- Remote medication management
-
-Exit Criteria
-
-- Daily caregiving tasks can be managed remotely.
-
----
-
-# Sprint 7 — Smart Home Foundation
-
-Goal
-
-Extend Yara beyond medication reminders.
-
-Objectives
-
-- Power Failure Detection
-- Gas Leak Detection
-- Sensor Framework
-- Alert Escalation
-- SMS Backup Notifications
-
-Deliverables
-
-- Sensor integration
-- Alert engine
-
-Exit Criteria
-
-- Sensor alerts reach caregivers reliably.
+### Phase 4 — Push Notifications 🔜
+- **Goal:** Provide reliable background alerting and remote call ringing.
+- **Objectives:**
+  - Notification provider integration (FCM for Android, APNs for iOS) in `backend/infrastructure/notification/`.
+  - Device token registration in Identity / Notification domain.
+  - Background call ringing and urgent missed-dose push delivery.
 
 ---
 
-# Sprint 8 — Pilot Release
+# Hardware Integration Phase
 
-Goal
+### 1. Smart Pill Box (Firmware & Hub BLE Integration)
+- **Sprint 3 — Firmware MVP (ESP32-C3):**
+  - ESP32-C3 firmware implementation (`firmware/pillbox`).
+  - BLE GATT service, Reed switch open/close detection, battery ADC monitoring, low-power sleep.
+- **Sprint 4 — Hub ↔ Pill Box Integration:**
+  - Implement Hub BLE Central driver in `apps/hub/runtime` (replace `DeferredDeviceActionHandler`).
+  - Hardware confirmation pipeline: `OPEN_COMPARTMENT` $\rightarrow$ BLE command $\rightarrow$ Door Closed $\rightarrow$ Hardware Evidence $\rightarrow$ Care `MedicationTaken`.
 
-Prepare the first production-ready pilot.
+### 2. Smart Wearable Integration
+- BLE pairing and connection management.
+- Emergency SOS button trigger $\rightarrow$ initiates priority call via Communication domain.
+- Vital alert delivery $\rightarrow$ caregiver notification for critical anomalies.
 
-Objectives
+---
 
-- Bug Fixes
-- Performance Optimization
-- Security Review
-- UX Improvements
-- Documentation Cleanup
-- Internal Pilot
+# Production Readiness & Deployment Hardening
 
-Deliverables
+Prior to pilot release:
 
-- Release Candidate
-- Deployment Guide
-- Installation Guide
-
-Exit Criteria
-
-- MVP ready for pilot deployment.
+- **Hub Kiosk Mode / Android LockTask:** Enable Device Owner provisioning and pin app to prevent accidental elder exit.
+- **Real-Time Reliability:** LiveKit reconnection resilience and network handover testing.
+- **Background Behavior:** Android Doze mode and WorkManager recovery hardening.
+- **Offline/Online Recovery:** Stress-testing multi-day offline queue drain and monotonic checkpoint advance.
+- **Comprehensive E2E Testing & Bug Fixing.**
+- **Pilot Deployment Preparation.**
 
 ---
 
@@ -400,12 +329,11 @@ Exit Criteria
 
 ---
 
-## Communication
+## Communication (Future Additions)
 
-- Voice Calls
-- Video Calls
-- Voice Messages
-- Family Timeline
+- Group Calling (Multi-caregiver conference)
+- Family Timeline / Story Sharing
+- Transcription & Call Summaries
 
 ---
 
@@ -413,18 +341,16 @@ Exit Criteria
 
 - Doctor Portal
 - Nurse Portal
-- Health Reports
-- Prescription Management
+- Health Reports & Trends
+- Prescription Management Expansion
 
 ---
 
 ## Smart Home
 
+- Environmental Sensors (Gas leak, power failure)
 - Smart Camera
 - Motion Detection
-- Wearables
-- Medical Devices
-- Environmental Sensors
 
 ---
 

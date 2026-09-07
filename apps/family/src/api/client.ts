@@ -69,10 +69,11 @@ async function refreshAccessToken(): Promise<string | null> {
 
 export async function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const store = getTokenStore();
+  const isFormData = typeof FormData !== "undefined" && options.body instanceof FormData;
   const headers: Record<string, string> = {
     Accept: "application/json",
   };
-  if (options.body !== undefined) {
+  if (options.body !== undefined && !isFormData) {
     headers["Content-Type"] = "application/json";
   }
   if (options.auth !== false) {
@@ -85,7 +86,11 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
   const response = await fetch(buildUrl(path, options.query), {
     method: options.method ?? "GET",
     headers,
-    body: options.body === undefined ? undefined : JSON.stringify(options.body),
+    body: isFormData
+      ? (options.body as BodyInit)
+      : options.body === undefined
+        ? undefined
+        : JSON.stringify(options.body),
   });
 
   if (response.status === 401 && options.auth !== false && !options.skipRefresh) {

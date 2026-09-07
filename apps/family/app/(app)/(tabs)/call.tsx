@@ -227,6 +227,24 @@ export default function CallScreen() {
           <Button label={t.hangUp} loading={busyId === "hangup"} onPress={() => void onHangup()} />
         </Card>
       ) : null}
+      {/* Hub Messaging Card */}
+      <Card>
+        <View style={styles.row}>
+          <View style={{ flex: 1, gap: spacing.xs }}>
+            <AppText variant="label">{t.openChatWithHub}</AppText>
+            <AppText variant="caption" color={colors.textSecondary}>
+              {t.chatWithHubSubtitle}
+            </AppText>
+          </View>
+          <Button
+            label={t.messagesTitle}
+            variant="secondary"
+            icon="envelope"
+            onPress={() => router.push("/(app)/messages" as never)}
+          />
+        </View>
+      </Card>
+
       {items.length === 0 ? (
         <EmptyState
           title={t.callNoContactsTitle}
@@ -254,8 +272,9 @@ export default function CallScreen() {
                 <Button
                   label={t.sendVoiceMessage}
                   variant="secondary"
+                  icon="envelope"
                   disabled={!voiceMessage.available}
-                  onPress={() => undefined}
+                  onPress={() => router.push("/(app)/messages" as never)}
                 />
               </View>
             </View>

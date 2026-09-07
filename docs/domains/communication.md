@@ -2,8 +2,8 @@
 
 **Domain:** Communication  
 **Classification:** Core Domain  
-**Status:** Frozen  
-**Version:** 1.1
+**Status:** Frozen (Core) / Approved Addendum (Messaging)  
+**Version:** 1.2
 
 ---
 
@@ -539,4 +539,85 @@ Communication به مدل داخلی Workflow یا Licensing وابسته نیس
 > **Workflow decides when communication is needed.  
 > Licensing decides whether the capability is available.  
 > Identity decides who may use it.  
-> Communication owns the actual session and its outcome.**
+> Communication owns the actual session, messages, and outcomes.**
+
+---
+
+# 17. Addendum V1.2 — Two-Way Messaging Subsystem (MVP Scope)
+
+**Status:** Approved Addendum  
+**Scope:** Asynchronous communication between Android Hub and Family App
+
+### 17.1 Purpose & Architectural Separation
+While real-time audio and video calls are modeled as synchronous `CommunicationSession` aggregates over LiveKit WebRTC, elder care requires calm, non-intrusive asynchronous messaging.
+
+**Core Rule:**
+> **`Voice Message != Voice Call`**
+- A **Voice Call** is a live session with participants, a connection lifecycle, and WebRTC streaming.
+- A **Voice Message** is an asynchronous stored media attachment linked to a `Message` aggregate.
+- Messaging and Calling have separate database tables, lifecycles, and state machines.
+
+### 17.2 Entities & Ubiquitous Language
+
+#### Message (Aggregate Root)
+Represents a single two-way message between an Elder (on the Hub) and Caregivers (on the Family App).
+- `id`: UUID (Primary Key)
+- `elder`: FK to `identity_access.Elder`
+- `sender_user_id`: UUID (Nullable — present when sent from Caregiver/User)
+- `sender_contact`: FK to `Contact` (Nullable — present when sent from Elder)
+- `direction`: `HUB_TO_FAMILY` | `FAMILY_TO_HUB`
+- `message_type`: `TEXT` | `VOICE` | `IMAGE` | `VIDEO`
+- `body`: Text string (optional caption or text body)
+- `attachment`: OneToOne to `MessageAttachment` (optional)
+- `status`: `PENDING` | `SENT` | `FAILED` (base lifecycle status)
+- `idempotency_key`: Client-generated deduplication token
+- `created_at`: Creation timestamp
+- `sent_at`: Timestamp when server accepted the message
+
+#### MessageRecipient (Entity)
+Tracks delivery and read state independently per recipient caregiver.
+- `id`: UUID (Primary Key)
+- `message`: FK to `Message` (`on_delete=CASCADE`, `related_name="recipients"`)
+- `user_id`: UUID (`db_index=True`, refers to `identity_access.User` without cross-domain DB FK)
+- `delivered_at`: Timestamp when this specific caregiver's client acknowledged receipt
+- `read_at`: Timestamp when this specific caregiver opened or listened to the message
+- `created_at`: Creation timestamp
+- Constraint: `UniqueConstraint(fields=["message", "user_id"])`
+
+#### MessageAttachment (Entity)
+Metadata and physical storage pointer for binary media files.
+- `id`: UUID (Primary Key)
+- `file_path`: Internal storage reference
+- `file_size`: Size in bytes
+- `mime_type`: Content MIME type (validated on upload)
+- `duration_seconds`: Float (duration for voice/video clips)
+- `width`, `height`: Integer dimensions (for photos/videos)
+- `original_filename`: Client-provided filename
+
+### 17.3 Media Constraints & Validation
+To ensure reliability on low-bandwidth elder home networks and prevent storage abuse:
+- **Voice Messages:** MIME types `audio/m4a`, `audio/aac`, `audio/mp4`, `audio/ogg`, `audio/mpeg`. Maximum size: 10 MB (typically 30–60 seconds).
+- **Images:** MIME types `image/jpeg`, `image/png`, `image/webp`. Maximum size: 10 MB.
+- **Videos:** MIME types `video/mp4`, `video/quicktime`. Maximum size: 50 MB.
+
+### 17.4 Public API Contract
+
+- `GET /api/v1/communication/elders/{elder_id}/messages/` — List conversation history (paginated, ordered by `-created_at`). Dynamically projects `status`, `delivered`, `delivered_at`, `read`, `read_at` isolated to the requesting caregiver without leaking other caregivers' state.
+- `POST /api/v1/communication/elders/{elder_id}/messages/` — Send a text message or link an already-uploaded attachment. Resolves active caregivers via Identity & Access memberships and creates a `MessageRecipient` record for each.
+- `POST /api/v1/messages/{message_id}/delivered/` — Acknowledge message delivery for the authenticated caregiver's `MessageRecipient`. Non-recipients receive HTTP 403 Forbidden.
+- `POST /api/v1/messages/{message_id}/read/` — Mark message as read/listened for the authenticated caregiver's `MessageRecipient`. Non-recipients receive HTTP 403 Forbidden.
+- `POST /api/v1/media/upload/` — Multipart upload of media file; returns created `attachment_id` and metadata.
+- `GET /api/v1/media/{attachment_id}/download/` — Stream or download attachment file.
+
+### 17.5 Invariants
+
+1. A `Message` cannot belong to more than one `Elder`.
+2. A `Message` with `message_type` of `VOICE`, `IMAGE`, or `VIDEO` must be accompanied by a valid `MessageAttachment`.
+3. `Message` creation is idempotent based on `(elder_id, idempotency_key)`.
+4. Recipient state isolation: Every active caregiver has an independent `MessageRecipient` row. Delivery and read transitions are monotonic and private to that caregiver (`SENT` $\rightarrow$ `DELIVERED` $\rightarrow$ `READ`). One caregiver opening a message never changes another caregiver's state.
+5. Delivery and read acknowledgment requires authorization: only resolved recipients of the message may update their respective delivery/read timestamps.
+6. Voice messages never trigger `CommunicationSession` events or provider room allocations.
+7. Offline Hub stores messages in local Room database (`MessageEntity`) and queues outgoing messages in `Outbox` until internet is available.
+
+### 17.6 Registered Technical Debt
+- **Direct Attachment Ownership (`MessageAttachment`):** Currently, `MessageAttachment` directly owns generic media metadata (`file_size`, `mime_type`, `duration_seconds`, `width`, `height`). When media support expands across other domains (e.g. care prescriptions, medical logs, user avatars), this should be extracted into a standalone `MediaAsset` aggregate root with independent storage lifecycle and access control.

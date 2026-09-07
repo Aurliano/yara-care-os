@@ -12,6 +12,7 @@ from domains.communication.services.contacts import create_contact, set_priority
 from domains.identity_access.enums import MembershipStatus
 from domains.identity_access.models import Membership, User
 from domains.identity_access.services.profiles import create_elder, create_user
+from domains.identity_access.services.roles import seed_baseline_roles_and_permissions
 from domains.licensing.services.licenses import (
     activate_license,
     change_license_plan,
@@ -63,6 +64,7 @@ def _ensure_premium_license(elder_id: uuid.UUID) -> None:
 @transaction.atomic
 def ensure_family_lab_seed() -> dict[str, str]:
     """Create Family caregiver, licensed elder, VIDEO priority contact, and care workflow."""
+    seed_baseline_roles_and_permissions()
     _ensure_medication_workflow()
 
     user = User.objects.filter(phone=FAMILY_CAREGIVER_PHONE).first()

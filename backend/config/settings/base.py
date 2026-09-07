@@ -108,6 +108,9 @@ USE_TZ = True
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
+MEDIA_URL = "/media/"
+MEDIA_ROOT = BASE_DIR / "media"
+
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 REST_FRAMEWORK = {
@@ -211,3 +214,7 @@ COMMUNICATION_SESSION_JOIN_TIMEOUT_SECONDS = env.int(
     "COMMUNICATION_SESSION_JOIN_TIMEOUT_SECONDS",
     default=120,
 )
+
+# Global request body upload limit (safe default for all standard endpoints)
+DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10 MB global default
+FILE_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10 MB in memory, then spool to disk

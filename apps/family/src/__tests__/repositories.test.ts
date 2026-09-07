@@ -40,10 +40,9 @@ describe("backend gap repositories", () => {
     expect(inbox.items[0]?.occurredAt).toBe("2026-08-22T08:45:00Z");
   });
 
-  it("does not invent a voice message API", () => {
+  it("enables voice message API when backend messaging is supported", () => {
     const availability = voiceMessageAvailability();
-    expect(availability.available).toBe(false);
-    expect(availability).toEqual({ available: false, reason: "VOICE_MESSAGE_API_MISSING" });
+    expect(availability.available).toBe(true);
   });
 
   it("maps the elder device list from Backend", async () => {

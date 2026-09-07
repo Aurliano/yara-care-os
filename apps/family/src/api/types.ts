@@ -9,7 +9,9 @@ export type PermissionCode =
   | "MANAGE_DEVICES"
   | "INITIATE_CALL"
   | "MANAGE_MEMBERS"
-  | "MANAGE_SUBSCRIPTION";
+  | "MANAGE_SUBSCRIPTION"
+  | "SEND_MESSAGE"
+  | "VIEW_MESSAGES";
 
 export type EntitlementKey =
   | "MAX_CAREGIVERS"
@@ -262,6 +264,55 @@ export type CaregiverAlert = {
   body: string;
   severity: "urgent" | "attention" | "reminder" | "informational";
   occurred_at: ISODateTime;
+};
+
+export type MessageType = "TEXT" | "VOICE" | "IMAGE" | "VIDEO";
+export type MessageDirection = "FAMILY_TO_HUB" | "HUB_TO_FAMILY";
+export type MessageStatus = "PENDING" | "SENT" | "DELIVERED" | "READ" | "FAILED";
+
+export type MessageAttachment = {
+  id: UUID;
+  file_size: number;
+  mime_type: string;
+  duration_seconds: number | null;
+  width: number | null;
+  height: number | null;
+  original_filename: string;
+  created_at: ISODateTime;
+  download_url: string;
+};
+
+export type MessageSender = {
+  id: string | null;
+  display_name: string;
+  is_hub: boolean;
+};
+
+export type Message = {
+  id: UUID;
+  elder_id: UUID;
+  direction: MessageDirection;
+  message_type: MessageType;
+  body: string;
+  status: MessageStatus;
+  idempotency_key: string;
+  created_at: ISODateTime;
+  sent_at: ISODateTime | null;
+  delivered_at: ISODateTime | null;
+  read_at: ISODateTime | null;
+  delivered?: boolean;
+  read?: boolean;
+  sender: MessageSender;
+  attachment: MessageAttachment | null;
+};
+
+export type SendMessageRequest = {
+  direction: MessageDirection;
+  message_type: MessageType;
+  body?: string;
+  attachment_id?: UUID | null;
+  sender_contact_id?: UUID | null;
+  idempotency_key?: string;
 };
 
 export type ApiErrorBody = {

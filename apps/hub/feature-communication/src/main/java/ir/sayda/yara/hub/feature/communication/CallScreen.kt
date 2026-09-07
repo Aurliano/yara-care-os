@@ -65,7 +65,7 @@ fun CallRoute(
 
     LaunchedEffect(ui.kind) {
         if (ui.kind == CallScreenKind.Finished) {
-            delay(8_000)
+            delay(1_500)
             onReturnHome()
         }
     }

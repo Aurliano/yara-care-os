@@ -439,3 +439,47 @@ fun ir.sayda.yara.hub.core.domain.model.CallSession.toEntity() =
         updatedAtEpochMillis = updatedAtEpochMillis,
         direction = direction.name,
     )
+
+fun ir.sayda.yara.hub.database.entity.MessageEntity.toDomain() =
+    ir.sayda.yara.hub.core.domain.model.Message(
+        id = id,
+        elderId = elderId,
+        direction = runCatching {
+            ir.sayda.yara.hub.core.domain.model.MessageDirection.valueOf(direction)
+        }.getOrDefault(ir.sayda.yara.hub.core.domain.model.MessageDirection.FAMILY_TO_HUB),
+        messageType = runCatching {
+            ir.sayda.yara.hub.core.domain.model.MessageType.valueOf(messageType)
+        }.getOrDefault(ir.sayda.yara.hub.core.domain.model.MessageType.TEXT),
+        body = body,
+        attachmentId = attachmentId,
+        localFileUri = localFileUri,
+        durationSeconds = durationSeconds,
+        fileSize = fileSize,
+        status = runCatching {
+            ir.sayda.yara.hub.core.domain.model.MessageStatus.valueOf(status)
+        }.getOrDefault(ir.sayda.yara.hub.core.domain.model.MessageStatus.PENDING),
+        idempotencyKey = idempotencyKey,
+        createdAtEpochMillis = createdAtEpochMillis,
+        deliveredAtEpochMillis = deliveredAtEpochMillis,
+        readAtEpochMillis = readAtEpochMillis,
+        senderDisplayName = senderDisplayName,
+    )
+
+fun ir.sayda.yara.hub.core.domain.model.Message.toEntity() =
+    ir.sayda.yara.hub.database.entity.MessageEntity(
+        id = id,
+        elderId = elderId,
+        direction = direction.name,
+        messageType = messageType.name,
+        body = body,
+        attachmentId = attachmentId,
+        localFileUri = localFileUri,
+        durationSeconds = durationSeconds,
+        fileSize = fileSize,
+        status = status.name,
+        idempotencyKey = idempotencyKey,
+        createdAtEpochMillis = createdAtEpochMillis,
+        deliveredAtEpochMillis = deliveredAtEpochMillis,
+        readAtEpochMillis = readAtEpochMillis,
+        senderDisplayName = senderDisplayName,
+    )

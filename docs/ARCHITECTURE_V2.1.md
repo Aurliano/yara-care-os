@@ -187,8 +187,8 @@ Responsible for: Voice sessions, Call lifecycle, Hub callbacks. No reminder logi
 
 The Hub never calls a communication vendor REST API and never stores a
 vendor API key. Backend owns room/user lifecycle and mints an opaque
-`joinToken` (currently a Skyroom login URL). Hub `CommunicationRuntime`
-passes that token to `SkyroomCallEngine.join(loginUrl)`. The engine is a
+`joinToken` (e.g. LiveKit WebRTC JWT token or Skyroom login URL). Hub `CommunicationRuntime`
+passes that token to the media engine (e.g. `LiveKitCallEngine` / `SkyroomCallEngine`). The engine is a
 thin SDK wrapper: join/leave/mute/unmute/camera/speaker only.
 
 Hub and Family App Communication Runtime states:
@@ -199,10 +199,9 @@ reconnect consumes a fresh or cached `joinToken`.
 See ADR-013.
 
 Family App layering matches the Hub:
-Presentation → CommunicationRuntime → CommunicationGateway → Backend → Skyroom.
-The Family App never calls Skyroom REST. It only consumes Backend `joinToken`.
-Sprint IV Phase A persists `CallSession` locally for reconnect and process-death
-recovery and does not include media or WebRTC rendering.
+Presentation → CommunicationRuntime → CommunicationGateway → Backend → Media Provider (LiveKit / Skyroom).
+The Family App never calls provider management REST APIs. It only consumes Backend `joinToken`.
+Media transport and WebRTC audio/video calling are rendered via LiveKit client SDKs, while session lifecycle remains governed by Backend.
 
 Hub presentation maps those states to elder call screens (incoming,
 outgoing, talking, connection lost, retry, finished) without changing
@@ -479,7 +478,7 @@ If the module structure changes, this document does not need to change — only 
 - Local models that diverge from Backend terminology
 - Runtime components calling each other directly instead of through the Runtime Kernel
 - Treating a stateless coordinator (e.g., Action Dispatcher) as if it were a stateful Replica Engine
-- Hub or Family App calling Skyroom (or any communication vendor) directly
+- Hub or Family App calling LiveKit/Skyroom (or any communication vendor) REST APIs directly (clients only connect via media transport using Backend-minted joinTokens)
 - Storing a communication-vendor API key on the Hub or in client apps
 
 ---

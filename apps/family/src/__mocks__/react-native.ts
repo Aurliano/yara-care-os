@@ -30,6 +30,13 @@ export const Linking = {
 
 export const StyleSheet = {
   create: <T extends Record<string, unknown>>(styles: T): T => styles,
+  flatten: (style: any): any => {
+    if (!style) return {};
+    if (Array.isArray(style)) {
+      return style.reduce((acc, curr) => ({ ...acc, ...(curr ? StyleSheet.flatten(curr) : {}) }), {});
+    }
+    return style;
+  },
 };
 
 export const View = ({ children, ...props }: any) => React.createElement("View", props, children);
