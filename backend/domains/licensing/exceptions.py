@@ -15,3 +15,11 @@ class InvalidEntitlementError(LicensingError):
 
 class LicenseNotFoundError(LicensingError):
     """Raised when no applicable license exists for an Elder."""
+
+
+class InvalidSubscriptionStateError(LicensingError):
+    """Raised when a subscription operation violates lifecycle rules."""
+
+
+class SubscriptionNotFoundError(LicensingError):
+    """Raised when a requested subscription cannot be found."""

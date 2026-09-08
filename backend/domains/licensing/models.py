@@ -8,7 +8,7 @@ from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models import Q
 
-from domains.licensing.enums import EntitlementKind, LicenseStatus, PlanStatus
+from domains.licensing.enums import EntitlementKind, LicenseStatus, PlanStatus, SubscriptionStatus
 
 
 class Plan(models.Model):
@@ -116,6 +116,11 @@ class License(models.Model):
                 condition=Q(valid_until__isnull=True) | Q(valid_until__gte=models.F("valid_from")),
                 name="licensing_license_valid_window",
             ),
+            models.UniqueConstraint(
+                fields=["elder"],
+                condition=Q(status=LicenseStatus.ACTIVE),
+                name="licensing_license_single_active_per_elder",
+            ),
         ]
 
     def __str__(self) -> str:
@@ -148,3 +153,54 @@ class LicensePlanHistory(models.Model):
 
     class Meta:
         db_table = "licensing_license_plan_history"
+
+
+class Subscription(models.Model):
+    """Temporal commercial commitment supporting a License.
+
+    Defines an active term for which commercial access is valid.
+    Supports arbitrary durations (trials, monthly, annual, short-term rentals).
+    """
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    license = models.ForeignKey(
+        License,
+        on_delete=models.CASCADE,
+        related_name="subscriptions",
+    )
+    plan = models.ForeignKey(
+        Plan,
+        on_delete=models.PROTECT,
+        related_name="subscriptions",
+    )
+    status = models.CharField(
+        max_length=16,
+        choices=SubscriptionStatus.choices,
+        default=SubscriptionStatus.PENDING_PAYMENT,
+    )
+    started_at = models.DateTimeField()
+    expires_at = models.DateTimeField()
+    auto_renew = models.BooleanField(default=False)
+    is_trial = models.BooleanField(default=False)
+    payer_user_id = models.UUIDField(null=True, blank=True, db_index=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "licensing_subscription"
+        constraints = [
+            models.CheckConstraint(
+                condition=Q(expires_at__gt=models.F("started_at")),
+                name="licensing_subscription_valid_window",
+            ),
+        ]
+
+    def clean(self) -> None:
+        if self.started_at and self.expires_at and self.expires_at <= self.started_at:
+            raise ValidationError({"expires_at": "Subscription expiration must be strictly after start time."})
+
+    def save(self, *args, **kwargs) -> None:
+        self.full_clean()
+        super().save(*args, **kwargs)
+
+    def __str__(self) -> str:
+        return f"{self.license_id}:{self.plan.code}:{self.status}:{self.expires_at}"

@@ -25,3 +25,11 @@ class EntitlementKey(models.TextChoices):
     PILLBOX_SUPPORT = "PILLBOX_SUPPORT", "Pillbox Support"
     SENSOR_SUPPORT = "SENSOR_SUPPORT", "Sensor Support"
     VIDEO_CALL = "VIDEO_CALL", "Video Call"
+
+
+class SubscriptionStatus(models.TextChoices):
+    PENDING_PAYMENT = "PENDING_PAYMENT", "Pending Payment"
+    ACTIVE = "ACTIVE", "Active"
+    PAST_DUE = "PAST_DUE", "Past Due"
+    EXPIRED = "EXPIRED", "Expired"
+    CANCELLED = "CANCELLED", "Cancelled"

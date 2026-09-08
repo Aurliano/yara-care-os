@@ -167,6 +167,26 @@ Entitlement باید با یک Key پایدار شناخته شود تا Domain�
 
 ---
 
+## Subscription — Aggregate
+
+رابطه و تعهد زمانی تجاری معتبر نگه‌دارنده‌ی یک لایسنس.
+
+شامل:
+- `subscription_id`
+- `license_id` (ForeignKey)
+- `plan_id` (ForeignKey)
+- `status` (`PENDING_PAYMENT`, `ACTIVE`, `PAST_DUE`, `EXPIRED`, `CANCELLED`)
+- `started_at`
+- `expires_at`
+- `auto_renew`
+- `is_trial`
+- `payer_user_id` (شناسه غیروابسته به User خریدار)
+
+پشتیبانی از بازه زمانی دلخواه (شامل ترایال ۱۴ روزه، اجاره کوتاه‌مدت، اشتراک ماهانه و سالانه).
+منطبق با ADR-016.
+
+---
+
 # 4. Entitlement Model
 
 Domainهای دیگر نباید Plan Name را تفسیر کنند.
@@ -459,15 +479,12 @@ In the current backend implementation (`backend/domains/licensing`):
 - `LicensePlanHistory` exists for plan change audit.
 - Query API `GET /api/v1/elders/{id}/entitlements/` is operational and used by Family App and backend services.
 
-### 17.2 Identified Implementation Gaps (Phase 2 Target)
-1. **Missing `Subscription` Model:**  
-   While `Subscription` is defined in ERD V2.1 and ubiquitous language (Section 2), it has **not yet been modeled in Django** (`backend/domains/licensing/models.py`). In Phase 2, `Subscription` must be implemented to track the commercial active period and renewal cycles without corrupting the stable `License` identity.
-2. **Missing `Billing` Domain Module:**  
-   Billing is not implemented. It will own invoices, purchase transactions, and receipts.
-3. **Payment Gateway as Infrastructure:**  
-   Per Yara architectural principles and ADR-013 conventions:
-   - Payment gateways (e.g. Zarinpal, Stripe) are **Infrastructure Providers**, not domain concepts.
-   - They belong in `backend/infrastructure/payment/`.
-   - Licensing must never import payment vendor SDKs, calculate financial amounts, or manage gateway callbacks.
+### 17.2 Phase 2 Implementation & ADR-016
+1. **`Subscription` Aggregate (Stage 1 — Implemented per ADR-016):**  
+   مدل `Subscription` در `backend/domains/licensing/models.py` پیاده‌سازی شده و از طریق `license_id` به `License` متصل است تا دوره‌های زمانی تجاری و تمدیدها را مدیریت کند بدون اینکه هویت پایدار `License` دچار تغییر شود. این مدل از بازه‌های دلخواه (ترایال، اجاره و ماهانه/سالانه) پشتیبانی می‌کند.
+2. **`Billing` Supporting Domain (Stage 2 — Target):**  
+   مالک صورتحساب‌ها (`Invoice`)، سوابق تراکنش (`PaymentAttempt`) و قیمت‌گذاری تجاری (`PlanPrice`) طبق قرارداد `docs/domains/billing.md` و ADR-016.
+3. **Payment Gateway as Infrastructure (Stage 3 — Target):**  
+   درگاه‌های پرداخت طبق الگوی ADR-013 در `backend/infrastructure/payment/` قرار دارند و دامنه‌های Licensing و Billing هیچ وابستگی مستقیمی به SDKهای بانکی ندارند.
 4. **Offline Decoupling:**  
-   The Android Hub does NOT store or evaluate licenses. Reminder execution works completely offline regardless of license status. Entitlements are enforced strictly at the cloud backend and Family App presentation layers.
+   اندروید هاب هیچ‌گونه اطلاعات لایسنس یا اشتراکی را ذخیره نمی‌کند. یادآورهای دارویی هاب ۱۰۰٪ آفلاین و دائمی اجرا می‌شوند. Entitlementها منحصراً در لایه بک‌اند و اپلیکیشن مراقب ارزیابی می‌شوند.

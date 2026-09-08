@@ -34,6 +34,7 @@ INSTALLED_APPS = [
     "common",
     "domains.identity_access",
     "domains.licensing",
+    "domains.billing",
     "domains.event",
     "domains.scheduling",
     "domains.workflow",
@@ -185,13 +186,20 @@ LOGGING = {
             "level": env("LOG_LEVEL"),
             "propagate": False,
         },
+        "yara.payment": {
+            "handlers": ["console"],
+            "level": env("LOG_LEVEL"),
+            "propagate": False,
+        },
     },
 }
 
 # Domain apps are registered here as they are implemented in B1+.
+# Must stay in sync with INSTALLED_APPS domain entries and DOMAIN_APP_LABELS.
 DOMAIN_APPS: list[str] = [
     "domains.identity_access",
     "domains.licensing",
+    "domains.billing",
     "domains.event",
     "domains.scheduling",
     "domains.workflow",
@@ -199,6 +207,7 @@ DOMAIN_APPS: list[str] = [
     "domains.device",
     "domains.communication",
     "domains.notification",
+    "domains.synchronization",
 ]
 
 COMMUNICATION_PROVIDER = env("COMMUNICATION_PROVIDER", default="livekit")
@@ -213,6 +222,15 @@ COMMUNICATION_LOGIN_TTL_SECONDS = env.int("COMMUNICATION_LOGIN_TTL_SECONDS", def
 COMMUNICATION_SESSION_JOIN_TIMEOUT_SECONDS = env.int(
     "COMMUNICATION_SESSION_JOIN_TIMEOUT_SECONDS",
     default=120,
+)
+
+# Payment Infrastructure
+PAYMENT_PROVIDER = env("PAYMENT_PROVIDER", default="fake")
+ZARINPAL_MERCHANT_ID = env("ZARINPAL_MERCHANT_ID", default="")
+ZARINPAL_SANDBOX = env.bool("ZARINPAL_SANDBOX", default=True)
+ZARINPAL_CALLBACK_URL = env(
+    "ZARINPAL_CALLBACK_URL",
+    default="https://api.yara.care/api/v1/payments/verify/",
 )
 
 # Global request body upload limit (safe default for all standard endpoints)
