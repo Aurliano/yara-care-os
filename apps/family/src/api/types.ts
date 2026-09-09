@@ -232,6 +232,26 @@ export type License = {
   created_at: ISODateTime;
 };
 
+export type BillingInterval = "MONTHLY" | "ANNUAL";
+
+export type CheckoutRequest = {
+  elder_id: UUID;
+  plan_code: string;
+  interval: BillingInterval;
+  idempotency_key?: string;
+  payer_mobile?: string;
+  payer_email?: string;
+};
+
+export type CheckoutResponse = {
+  provider_reference: string;
+  redirect_url: string;
+  invoice_id: UUID;
+  payment_attempt_id: UUID;
+  amount: string | number;
+  currency: string;
+};
+
 export type CommunicationSession = {
   id: UUID;
   elder_id: UUID;

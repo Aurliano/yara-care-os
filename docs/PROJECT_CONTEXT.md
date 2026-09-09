@@ -429,7 +429,7 @@ The following features are intentionally excluded from MVP:
 - Kiosk Mode / Android LockTask (Postponed to Production Readiness)
 - Push Notifications (FCM / APNs — Planned Software Phase 4)
 - Radio inside Elder Hub (Planned Software Phase 3)
-- Licensing Plans, Billing & Payment Gateway (Planned Software Phase 2)
+- Licensing Plans, Billing & Payment Gateway (Software Phase 2 — Backend Foundation Stages 0–4 Complete, Stage 5 Mobile UI In Progress)
 - Ambient Camera Streaming (Passive 24/7 room surveillance / CCTV — distinct from interactive Video Calling)
 - Smart Home Integration (Gas leak, power failure environmental sensors)
 - Medical Device & Continuous Wearable Telemetry (Doctor portal, continuous ECG/vitals graphs)

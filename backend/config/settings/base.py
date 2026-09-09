@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     "domains.synchronization",
     "integration",
     "infrastructure",
+    "application.payments",
 ]
 
 AUTH_USER_MODEL = "identity_access.User"

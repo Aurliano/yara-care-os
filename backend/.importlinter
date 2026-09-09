@@ -6,6 +6,15 @@ root_packages =
     architecture
     integration
     infrastructure
+    application
+
+[importlinter:contract:domains-do-not-import-application]
+name = Domains must not import Application layer
+type = forbidden
+source_modules =
+    domains
+forbidden_modules =
+    application
 
 [importlinter:contract:common-isolation]
 name = Common infrastructure must not import domain apps

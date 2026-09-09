@@ -28,6 +28,11 @@ export const Linking = {
   canOpenURL: jest.fn(async () => true),
 };
 
+export const AppState = {
+  currentState: "active",
+  addEventListener: jest.fn(() => ({ remove: jest.fn() })),
+};
+
 export const StyleSheet = {
   create: <T extends Record<string, unknown>>(styles: T): T => styles,
   flatten: (style: any): any => {
@@ -51,6 +56,7 @@ export default {
   Platform,
   PermissionsAndroid,
   Linking,
+  AppState,
   StyleSheet,
   View,
   Text,

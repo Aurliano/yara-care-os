@@ -20,6 +20,8 @@ export const queryKeys = {
   pairings: (deviceId: string) => ["device", deviceId, "pairings"] as const,
   alerts: (elderId: string) => ["elder", elderId, "alerts"] as const,
   messages: (elderId: string) => ["elder", elderId, "messages"] as const,
+  plans: ["plans"] as const,
+  license: (elderId: string) => ["elder", elderId, "license"] as const,
 };
 
 export const elderScopePrefix = (elderId: string) => ["elder", elderId];

@@ -1,8 +1,20 @@
 import { apiRequest } from "../client";
+import { ApiError } from "../errors";
 import type { EntitlementKey, EntitlementMap, License, Plan } from "../types";
 
 export function listPlans(): Promise<Plan[]> {
   return apiRequest("/plans/");
+}
+
+export async function getActiveLicense(elderId: string): Promise<License | null> {
+  try {
+    return await apiRequest<License>(`/elders/${elderId}/license/`);
+  } catch (err) {
+    if (err instanceof ApiError && err.status === 404) {
+      return null;
+    }
+    throw err;
+  }
 }
 
 export function getEntitlements(elderId: string): Promise<{ entitlements: EntitlementMap }> {

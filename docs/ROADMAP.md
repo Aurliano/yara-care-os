@@ -264,13 +264,15 @@ Production Readiness: Kiosk Mode, E2E Reliability, Pilot Deployment
 
 ## Software Completion Roadmap
 
-### Phase 2 — Licensing-based Plans + Billing + Payment 🔜 (Next Milestone)
+### Phase 2 — Licensing-based Plans + Billing + Payment 🔄 (In Progress)
 - **Goal:** Commercialize the platform and bind subscription lifecycles to elder profiles.
-- **Objectives:**
-  - Complete `Subscription` aggregate in Licensing domain.
-  - Implement Billing module (Invoices, Payment Transactions).
-  - Implement Payment Gateway provider abstraction in `backend/infrastructure/payment/`.
-  - Family App Subscription & checkout flow.
+- **Progress:**
+  - Stage 0 — complete (ADR-016 & Frozen Domain Contracts)
+  - Stage 1 — complete (`Subscription` aggregate in Licensing domain)
+  - Stage 2 — complete (`domains.billing` supporting domain foundation: `Invoice`, `PlanPrice`, `PaymentAttempt`)
+  - Stage 3 — complete (`infrastructure.payment` provider abstraction & ZarinPal adapter)
+  - Stage 4 — complete (`application.payments` coordinator, REST API, & `PaymentSucceeded` domain event outbox)
+  - Stage 5 — pending (Family App Subscription & checkout flow)
 
 ### Phase 3 — Radio inside Elder Hub 🔜
 - **Goal:** Deliver a calm, companion entertainment feature for the elder directly on the Hub.
