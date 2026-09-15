@@ -115,6 +115,7 @@ abstract class RepositoryModule {
     ): ir.sayda.yara.hub.core.media.AudioPlayer
     @Binds @Singleton abstract fun bindReplicaIdentityProvider(impl: DataStoreReplicaIdentityProvider): ReplicaIdentityProvider
     @Binds @Singleton abstract fun bindCorrelationIdProvider(impl: DataStoreReplicaIdentityProvider): CorrelationIdProvider
+    @Binds @Singleton abstract fun bindHubIdentityStore(impl: ir.sayda.yara.hub.data.identity.SecureHubIdentityStore): ir.sayda.yara.hub.data.identity.HubIdentityStore
 }
 
 @Module

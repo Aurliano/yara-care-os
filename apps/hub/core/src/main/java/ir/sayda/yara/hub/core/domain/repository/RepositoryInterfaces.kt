@@ -64,6 +64,7 @@ interface CareReplicaRepository : ReplicaRepository<CareActivity> {
     override val replicaType: String get() = "care"
     fun observeActiveCareActivities(elderId: String): Flow<List<CareActivity>>
     fun observeAllCareActivities(): Flow<List<CareActivity>>
+    suspend fun getCareActivityById(careActivityId: String): CareActivity?
     suspend fun getCareActivityByScheduleDefinition(scheduleDefinitionId: String): CareActivity?
     suspend fun upsertCareActivity(activity: CareActivity)
     override suspend fun upsert(item: CareActivity) = upsertCareActivity(item)
@@ -86,6 +87,10 @@ interface SchedulingReplicaRepository : ReplicaRepository<ScheduleDefinition> {
     suspend fun getScheduledOccurrencesDueBefore(epochMillis: Long): List<Occurrence>
     suspend fun getScheduledOccurrencesAfter(epochMillis: Long): List<Occurrence>
     suspend fun replaceOccurrencesForSchedule(scheduleDefinitionId: String, occurrences: List<Occurrence>)
+    suspend fun cancelFutureOccurrencesForSchedule(
+        scheduleDefinitionId: String,
+        nowEpochMillis: Long = System.currentTimeMillis(),
+    )
     fun observeNextScheduledOccurrence(afterEpochMillis: Long): Flow<Occurrence?>
 
     fun observeNextReminderOccurrence(

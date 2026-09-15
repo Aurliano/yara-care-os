@@ -11,6 +11,7 @@ export type MessageBubbleProps = {
   message: Message;
   isPlayingVoice?: boolean;
   onPlayVoice?: (messageId: string) => void;
+  onRetry?: (messageId: string) => void;
   authToken?: string | null;
 };
 
@@ -18,6 +19,7 @@ export function MessageBubble({
   message,
   isPlayingVoice = false,
   onPlayVoice,
+  onRetry,
   authToken,
 }: MessageBubbleProps) {
   const isCaregiver = message.direction === "FAMILY_TO_HUB";
@@ -52,9 +54,17 @@ export function MessageBubble({
         );
       case "FAILED":
         return (
-          <AppText variant="caption" color={colors.error}>
-            ⚠ {t.statusFailed}
-          </AppText>
+          <Pressable
+            onPress={() => onRetry?.(message.id)}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel={`${t.statusFailed} - ${t.retry}`}
+            style={styles.retryButton}
+          >
+            <AppText variant="caption" color={colors.error}>
+              ⚠ {t.statusFailed} ({t.retry})
+            </AppText>
+          </Pressable>
         );
       default:
         return null;
@@ -270,6 +280,10 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
     alignItems: "center",
     marginTop: 2,
+  },
+  retryButton: {
+    paddingVertical: 2,
+    paddingHorizontal: 4,
   },
   mediaContainer: {
     gap: spacing.xs,

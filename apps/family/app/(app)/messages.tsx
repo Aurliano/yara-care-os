@@ -34,7 +34,7 @@ import { Audio } from "expo-av";
 async function getMediaPicker() {
   try {
     // Dynamic require to prevent crash when ExponentImagePicker is not in native binary
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const picker = require("expo-image-picker");
     return picker as typeof import("expo-image-picker");
   } catch {
@@ -44,7 +44,7 @@ async function getMediaPicker() {
 
 async function createSampleMediaFile(kind: "IMAGE" | "VIDEO") {
   try {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const FileSystem = require("expo-file-system");
     const filename = kind === "IMAGE" ? `photo_${Date.now()}.jpg` : `video_${Date.now()}.mp4`;
     const targetPath = `${FileSystem.cacheDirectory}${filename}`;
@@ -81,6 +81,7 @@ export default function MessagesScreen() {
     markAsRead,
     sendTextMessage,
     sendMediaMessage,
+    retryMessage,
     isSending,
   } = useMessages(elderId);
 
@@ -409,6 +410,7 @@ export default function MessagesScreen() {
                 message={msg}
                 isPlayingVoice={playingVoiceId === msg.id}
                 onPlayVoice={handleVoiceToggle}
+                onRetry={(id) => void retryMessage(id)}
                 authToken={authToken}
               />
             ))

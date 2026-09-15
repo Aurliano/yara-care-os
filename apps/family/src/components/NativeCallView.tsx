@@ -1,16 +1,16 @@
 import "../polyfills";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Modal, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
-  LiveKitRoom,
+  RoomContext,
   useTracks,
   VideoTrack,
   useConnectionState,
   useLocalParticipant,
   useRemoteParticipants,
 } from "@livekit/react-native";
-import { Track, ConnectionState } from "livekit-client";
+import { Track, ConnectionState, Room } from "livekit-client";
 import { colors, radius, sizes, spacing } from "../theme/tokens";
 import { AppText } from "./AppText";
 import { Avatar } from "./Avatar";
@@ -50,7 +50,6 @@ function CallContent({
   const isCameraOn = localParticipant?.isCameraEnabled;
 
   const [callDuration, setCallDuration] = useState(0);
-  const [hadRemoteParticipant, setHadRemoteParticipant] = useState(false);
 
   useEffect(() => {
     let interval: ReturnType<typeof setInterval> | undefined;
@@ -64,13 +63,7 @@ function CallContent({
     };
   }, [isAnswered]);
 
-  useEffect(() => {
-    if (remoteParticipants.length > 0) {
-      setHadRemoteParticipant(true);
-    } else if (hadRemoteParticipant) {
-      onHangup();
-    }
-  }, [remoteParticipants.length, hadRemoteParticipant, onHangup]);
+
 
   const formatDuration = (seconds: number) => {
     const m = Math.floor(seconds / 60).toString().padStart(2, '0');
@@ -175,28 +168,70 @@ export function NativeCallView({
     return () => { isMounted = false; };
   }, [visible, session?.channel]);
 
-  if (!visible || !session) return null;
+  const [room] = useState(() => new Room({
+    adaptiveStream: true,
+    dynacast: true,
+  }));
+
+  const actionQueue = useRef(Promise.resolve());
+  const latestState = useRef({ visible, hasPermissions, token: session?.joinToken, channel: session?.channel });
+
+  useEffect(() => {
+    latestState.current = { visible, hasPermissions, token: session?.joinToken, channel: session?.channel };
+
+    actionQueue.current = actionQueue.current.then(async () => {
+      const { visible: v, hasPermissions: p, token: t, channel } = latestState.current;
+
+      if (v && p && t) {
+        if (room.state === ConnectionState.Disconnected) {
+          try {
+            await room.connect(LIVEKIT_URL, t);
+            if (latestState.current.visible) {
+               await room.localParticipant?.setMicrophoneEnabled(true);
+               if (channel === "VIDEO") {
+                 await room.localParticipant?.setCameraEnabled(true);
+               }
+            }
+          } catch (error) {
+            console.warn("Room connection failed", error);
+            if (latestState.current.visible) {
+              onHangup();
+            }
+          }
+        }
+      } else {
+        if (room.state !== ConnectionState.Disconnected) {
+          await room.disconnect();
+        }
+      }
+    }).catch(err => console.error("Room action queue error", err));
+  }, [visible, hasPermissions, session?.joinToken, session?.channel, room]);
+
+  useEffect(() => {
+    const handleDisconnect = () => {
+      if (latestState.current.visible) {
+         onHangup();
+      }
+    };
+    room.on(ConnectionState.Disconnected, handleDisconnect);
+    return () => {
+      room.off(ConnectionState.Disconnected, handleDisconnect);
+    };
+  }, [room]);
 
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="fullScreen">
-      {!hasPermissions ? (
-        <SafeAreaView style={[styles.container, { justifyContent: 'center' }]}>
-           <AppText align="center" color={colors.error}>{permissionError || "Requesting permissions..."}</AppText>
-           <Button label={t.hangUp} onPress={onHangup} style={{ marginTop: 20 }} />
-        </SafeAreaView>
-      ) : (
-        <LiveKitRoom
-          serverUrl={LIVEKIT_URL}
-          token={session.joinToken}
-          connect={true}
-          audio={true}
-          video={session.channel === "VIDEO"}
-          onDisconnected={onHangup}
-        >
-           <CallContent session={session} titleName={titleName} onHangup={onHangup} />
-        </LiveKitRoom>
-      )}
-    </Modal>
+    <RoomContext.Provider value={room}>
+      <Modal visible={visible} animationType="slide" presentationStyle="fullScreen">
+        {!hasPermissions ? (
+          <SafeAreaView style={[styles.container, { justifyContent: 'center' }]}>
+             <AppText align="center" color={colors.error}>{permissionError || "Requesting permissions..."}</AppText>
+             <Button label={t.hangUp} onPress={onHangup} style={{ marginTop: 20 }} />
+          </SafeAreaView>
+        ) : (
+          session ? <CallContent session={session} titleName={titleName} onHangup={onHangup} /> : null
+        )}
+      </Modal>
+    </RoomContext.Provider>
   );
 }
 

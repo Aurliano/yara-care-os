@@ -13,7 +13,7 @@ import javax.inject.Singleton
 
 @Singleton
 class DataStoreReplicaIdentityProvider @Inject constructor(
-    private val secureStore: SecureHubIdentityStore,
+    private val secureStore: HubIdentityStore,
     private val snapshotHolder: IdentitySnapshotHolder,
 ) : ReplicaIdentityProvider, CorrelationIdProvider {
 

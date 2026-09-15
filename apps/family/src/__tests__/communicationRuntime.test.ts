@@ -246,7 +246,7 @@ describe("CommunicationRuntime", () => {
     const { runtime, gateway, repository } = createHarness({ incoming });
     runtime.startCollectors();
     incoming.emit([
-      { elderId: ELDER_ID, channel: "VOICE", status: "CONNECTING" },
+      { id: "rep-1", elderId: ELDER_ID, channel: "VOICE", status: "CONNECTING" },
     ]);
     await flush();
 
@@ -445,5 +445,76 @@ describe("CommunicationRuntime", () => {
 
     expect(second.ok).toBe(true);
     expect(gateway.startCount).toBe(2);
+  });
+
+  it("clears local session when remote becomes CANCELLED (decline poisoning fix)", async () => {
+    const { runtime, gateway, repository } = createHarness();
+    await runtime.startCall(ELDER_ID, "VOICE", CONTACT_ID);
+    await expect(repository.getCurrent()).resolves.toMatchObject({
+      sessionId: "session-1",
+      runtimeState: "Connected",
+    });
+
+    // Backend polling returns the same session now CANCELLED (Hub declined)
+    await runtime.handleRemoteSessions([
+      { id: "session-1", elderId: ELDER_ID, channel: "VOICE", status: "CANCELLED" },
+    ]);
+    await flush();
+
+    // Local runtime must have transitioned to terminal and cleared
+    await expect(repository.getCurrent()).resolves.toBeNull();
+
+    // Next call must create a NEW backend session, not reuse N
+    gateway.startSession = makeSession({
+      sessionId: "session-2",
+      joinToken: "opaque-join-token-2",
+      direction: "Outgoing",
+    });
+    const next = await runtime.startCall(ELDER_ID, "VOICE", CONTACT_ID);
+    expect(next.ok).toBe(true);
+    if (!next.ok) return;
+    expect(next.data.sessionId).toBe("session-2");
+    expect(gateway.startCount).toBe(2);
+  });
+
+  it("clears local session when remote becomes DECLINED", async () => {
+    const { runtime, repository } = createHarness();
+    await runtime.startCall(ELDER_ID, "VOICE", CONTACT_ID);
+
+    await runtime.handleRemoteSessions([
+      { id: "session-1", elderId: ELDER_ID, channel: "VOICE", status: "DECLINED" },
+    ]);
+    await flush();
+
+    await expect(repository.getCurrent()).resolves.toBeNull();
+  });
+
+  it("does not clear when remote status is not terminal", async () => {
+    const { runtime, repository } = createHarness();
+    await runtime.startCall(ELDER_ID, "VOICE", CONTACT_ID);
+
+    await runtime.handleRemoteSessions([
+      { id: "session-1", elderId: ELDER_ID, channel: "VOICE", status: "CONNECTING" },
+    ]);
+    await flush();
+
+    await expect(repository.getCurrent()).resolves.toMatchObject({
+      sessionId: "session-1",
+      runtimeState: "Connected",
+    });
+  });
+
+  it("stale terminal for a different session id does not clear current", async () => {
+    const { runtime, repository } = createHarness();
+    await runtime.startCall(ELDER_ID, "VOICE", CONTACT_ID);
+
+    await runtime.handleRemoteSessions([
+      { id: "other-session", elderId: ELDER_ID, channel: "VOICE", status: "CANCELLED" },
+    ]);
+    await flush();
+
+    await expect(repository.getCurrent()).resolves.toMatchObject({
+      sessionId: "session-1",
+    });
   });
 });

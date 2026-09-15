@@ -42,7 +42,7 @@ class WorkManagerRuntimeScheduler @Inject constructor(
             .build()
         WorkManager.getInstance(context).enqueueUniqueWork(
             IntegrationRuntimeWorker.POLL_WORK_NAME,
-            ExistingWorkPolicy.REPLACE,
+            ExistingWorkPolicy.KEEP,
             request,
         )
     }

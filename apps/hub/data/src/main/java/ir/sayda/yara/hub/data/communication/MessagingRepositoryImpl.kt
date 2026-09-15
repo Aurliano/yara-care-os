@@ -184,7 +184,7 @@ class MessagingRepositoryImpl @Inject constructor(
                 val file = File(localFileUri)
                 if (file.exists()) {
                     val mimeType = when (messageType.uppercase()) {
-                        "VOICE" -> "audio/mp4"
+                        "VOICE" -> "audio/m4a"
                         "IMAGE" -> "image/jpeg"
                         "VIDEO" -> "video/mp4"
                         else -> "application/octet-stream"
@@ -271,9 +271,32 @@ class MessagingRepositoryImpl @Inject constructor(
                     MessageType.valueOf(dto.messageType.uppercase())
                 }.getOrDefault(MessageType.TEXT)
 
-                val status = runCatching {
-                    MessageStatus.valueOf(dto.status.uppercase())
-                }.getOrDefault(MessageStatus.SENT)
+                var status = runCatching { MessageStatus.valueOf(dto.status.uppercase()) }
+                    .getOrDefault(MessageStatus.SENT)
+                var deliveredAtEpoch = dto.deliveredAt?.let {
+                    runCatching { java.time.Instant.parse(it).toEpochMilli() }.getOrNull()
+                }
+                var readAtEpoch = dto.readAt?.let {
+                    runCatching { java.time.Instant.parse(it).toEpochMilli() }.getOrNull()
+                }
+
+                if (existing != null) {
+                    val currentStatus = runCatching { MessageStatus.valueOf(existing.status) }.getOrDefault(MessageStatus.SENT)
+                    val priorities = mapOf(
+                        MessageStatus.PENDING to 0,
+                        MessageStatus.FAILED to 0,
+                        MessageStatus.SENT to 1,
+                        MessageStatus.DELIVERED to 2,
+                        MessageStatus.READ to 3
+                    )
+                    val currentPriority = priorities[currentStatus] ?: 0
+                    val newPriority = priorities[status] ?: 0
+                    if (currentPriority > newPriority) {
+                        status = currentStatus
+                        deliveredAtEpoch = existing.deliveredAtEpochMillis ?: deliveredAtEpoch
+                        readAtEpoch = existing.readAtEpochMillis ?: readAtEpoch
+                    }
+                }
 
                 val message = Message(
                     id = dto.id,
@@ -290,16 +313,15 @@ class MessagingRepositoryImpl @Inject constructor(
                     createdAtEpochMillis = runCatching {
                         java.time.Instant.parse(dto.createdAt).toEpochMilli()
                     }.getOrDefault(System.currentTimeMillis()),
-                    deliveredAtEpochMillis = dto.deliveredAt?.let {
-                        runCatching { java.time.Instant.parse(it).toEpochMilli() }.getOrNull()
-                    },
-                    readAtEpochMillis = dto.readAt?.let {
-                        runCatching { java.time.Instant.parse(it).toEpochMilli() }.getOrNull()
-                    },
+                    deliveredAtEpochMillis = deliveredAtEpoch,
+                    readAtEpochMillis = readAtEpoch,
                     senderDisplayName = dto.sender?.displayName ?: dto.senderDisplayName ?: "خانواده",
                 )
 
-                messageDao.upsert(message.toEntity())
+                val entityToUpsert = message.toEntity()
+                if (existing != entityToUpsert) {
+                    messageDao.upsert(entityToUpsert)
+                }
 
                 // If this is an incoming family message and not delivered yet, mark delivered
                 if (direction == MessageDirection.FAMILY_TO_HUB && status == MessageStatus.SENT) {

@@ -24,6 +24,9 @@ class CareReplicaRepositoryImpl @Inject constructor(
     override fun observeAllCareActivities(): Flow<List<CareActivity>> =
         careActivityDao.observeAll().map { entities -> entities.map { it.toDomain() } }
 
+    override suspend fun getCareActivityById(careActivityId: String): CareActivity? =
+        careActivityDao.getById(careActivityId)?.toDomain()
+
     override suspend fun getCareActivityByScheduleDefinition(scheduleDefinitionId: String): CareActivity? =
         careActivityDao.getByScheduleDefinitionId(scheduleDefinitionId)?.toDomain()
 

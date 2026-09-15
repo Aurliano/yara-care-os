@@ -1,8 +1,9 @@
 # ROADMAP.md
 
-Version: 5.0
+Version: 6.0
 Status: Approved
 Product: Yara Care Ecosystem
+Last Updated: 2026-09-09
 
 ---
 
@@ -247,13 +248,17 @@ Exit Criteria
 The software capabilities are prioritized ahead of physical hardware to establish a rock-solid cloud and client foundation:
 
 ```text
-Phase 2: Licensing + Plans + Billing + Payment
+Phase 2: Licensing + Plans + Billing + Payment              ✅ CLOSED
                    │
                    ▼
-Phase 3: Radio inside Elder Hub
+Phase 3: MVP Core Stabilization & Elder UX                  🔜 CURRENT
+                   │
+                   ├── Sprint 1: Baseline & Core Bug Fixes
+                   ├── Sprint 2: Real Device Validation
+                   └── Sprint 3: Elder UX Hardening
                    │
                    ▼
-Phase 4: Push Notifications (FCM / APNs)
+Phase 4: Push Notifications + MVP Completion
                    │
                    ▼
 Hardware Integration: Smart Pill Box & Wearable
@@ -264,29 +269,47 @@ Production Readiness: Kiosk Mode, E2E Reliability, Pilot Deployment
 
 ## Software Completion Roadmap
 
-### Phase 2 — Licensing-based Plans + Billing + Payment 🔄 (In Progress)
+### Phase 2 — Licensing-based Plans + Billing + Payment ✅ CLOSED (2026-09-09)
 - **Goal:** Commercialize the platform and bind subscription lifecycles to elder profiles.
-- **Progress:**
-  - Stage 0 — complete (ADR-016 & Frozen Domain Contracts)
-  - Stage 1 — complete (`Subscription` aggregate in Licensing domain)
-  - Stage 2 — complete (`domains.billing` supporting domain foundation: `Invoice`, `PlanPrice`, `PaymentAttempt`)
-  - Stage 3 — complete (`infrastructure.payment` provider abstraction & ZarinPal adapter)
-  - Stage 4 — complete (`application.payments` coordinator, REST API, & `PaymentSucceeded` domain event outbox)
-  - Stage 5 — pending (Family App Subscription & checkout flow)
+- **Status:** COMPLETE — All 6 stages accepted.
+- **Closure conditions:** Reopen only on real integration bugs.
+- **Stages completed:**
+  - Stage 0 — ADR-016 & Frozen Domain Contracts
+  - Stage 1 — `Subscription` aggregate in Licensing domain
+  - Stage 2 — `domains.billing` supporting domain foundation (`Invoice`, `PlanPrice`, `PaymentAttempt`)
+  - Stage 3 — `infrastructure.payment` provider abstraction & ZarinPal adapter
+  - Stage 4 — `application.payments` coordinator, REST API, & `PaymentSucceeded` domain event outbox
+  - Stage 5 — Family App Subscription & Checkout flow (zero backend changes)
+- **Test results:** Backend 419 tests green | Frontend 125 tests green
 
-### Phase 3 — Radio inside Elder Hub 🔜
-- **Goal:** Deliver a calm, companion entertainment feature for the elder directly on the Hub.
-- **Objectives:**
-  - Streaming audio player engine in Hub runtime.
-  - Elder-friendly Radio UI on Hub Home screen.
-  - Station management and fallback streams.
+### Phase 3 — MVP Core Stabilization & Elder UX 🔜 CURRENT
+- **Goal:** Stabilize the core product (messaging, medication, reminders), validate on real devices, and harden the elder-facing UX before adding new features.
+- **Key insight:** Backend is mature and well-tested. Frontend and Hub need stabilization. No new feature development until core flows are reliable.
+- **Sprint 1 — Baseline & Core Bug Fixes:**
+  - Fix known messaging bugs (Family App + Hub)
+  - Fix known medication / reminder bugs
+  - Establish stable baseline across all core flows
+  - Automated regression test coverage for critical paths
+- **Sprint 2 — Real Device Validation:**
+  - Physical Hub device testing (reminder, messaging, calling, sync)
+  - Family App on real Android/iOS devices
+  - End-to-end flow verification (caregiver → backend → hub → caregiver)
+  - Network condition testing (offline, slow, recovery)
+- **Sprint 3 — Elder UX Hardening:**
+  - RTL layout verification and fixes
+  - Elder-facing screen simplification (Hub)
+  - Accessibility (font sizes, contrast, touch targets)
+  - Calm UI audit (no anxiety-inducing elements)
 
-### Phase 4 — Push Notifications 🔜
-- **Goal:** Provide reliable background alerting and remote call ringing.
+### Phase 4 — Push Notifications + MVP Completion 🔜
+- **Goal:** Complete the MVP with background alerting and production readiness.
 - **Objectives:**
-  - Notification provider integration (FCM for Android, APNs for iOS) in `backend/infrastructure/notification/`.
-  - Device token registration in Identity / Notification domain.
-  - Background call ringing and urgent missed-dose push delivery.
+  - Push notification provider integration (FCM for Android, APNs for iOS)
+  - Device token registration
+  - Background call ringing and urgent missed-dose push delivery
+  - Subscription expiry cron job
+  - `PaymentSucceeded` event consumer for Audit logging
+  - TD-MSG-001: Migrate messaging from polling bridge to unified Sync architecture
 
 ---
 

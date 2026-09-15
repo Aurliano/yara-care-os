@@ -32,9 +32,18 @@ export type CallSession = {
 };
 
 export type IncomingSessionNotice = {
+  id: string;
   elderId: string;
   channel: string;
   status: string;
 };
 
 export const INCOMING_SESSION_STATUSES = ["INITIATED", "CONNECTING", "CONNECTED"] as const;
+
+export const TERMINAL_SESSION_STATUSES = [
+  "ENDED",
+  "MISSED",
+  "DECLINED",
+  "FAILED",
+  "CANCELLED",
+] as const;

@@ -54,8 +54,23 @@ class SchedulingReplicaRepositoryImpl @Inject constructor(
         scheduleDefinitionId: String,
         occurrences: List<Occurrence>,
     ) {
-        occurrenceDao.deleteByScheduleDefinitionId(scheduleDefinitionId)
-        occurrences.forEach { occurrenceDao.upsert(it.toEntity()) }
+        val now = System.currentTimeMillis()
+        occurrenceDao.deleteFutureByScheduleDefinitionId(scheduleDefinitionId, now)
+        for (occurrence in occurrences) {
+            val existing = occurrenceDao.getById(occurrence.id)
+            if (existing != null && existing.status != ir.sayda.yara.hub.core.scheduling.OccurrenceStatus.SCHEDULED.name) {
+                // Preserve local execution / completion / due state
+                continue
+            }
+            occurrenceDao.upsert(occurrence.toEntity())
+        }
+    }
+
+    override suspend fun cancelFutureOccurrencesForSchedule(
+        scheduleDefinitionId: String,
+        nowEpochMillis: Long,
+    ) {
+        occurrenceDao.deleteFutureByScheduleDefinitionId(scheduleDefinitionId, nowEpochMillis)
     }
 
     override fun observeNextScheduledOccurrence(afterEpochMillis: Long): Flow<Occurrence?> =

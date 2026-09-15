@@ -14,7 +14,7 @@ import javax.inject.Singleton
 @Singleton
 class SecureHubIdentityStore @Inject constructor(
     @ApplicationContext context: Context,
-) {
+) : HubIdentityStore {
     private val masterKey = MasterKey.Builder(context)
         .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
         .build()
@@ -34,9 +34,9 @@ class SecureHubIdentityStore @Inject constructor(
             .getOrDefault(ProvisioningState.UNPROVISIONED)
     }
 
-    fun readProvisioning(): StoredProvisioning? {
+    override fun readProvisioning(): HubIdentityStore.StoredProvisioning? {
         val deviceId = prefs.getString(Keys.DEVICE_ID, null) ?: return null
-        return StoredProvisioning(
+        return HubIdentityStore.StoredProvisioning(
             deviceId = deviceId,
             replicaId = prefs.getString(Keys.REPLICA_ID, null),
             elderId = prefs.getString(Keys.ELDER_ID, null),
@@ -47,12 +47,12 @@ class SecureHubIdentityStore @Inject constructor(
         )
     }
 
-    fun read(): StoredHubIdentity? {
+    override fun read(): HubIdentityStore.StoredHubIdentity? {
         val deviceId = prefs.getString(Keys.DEVICE_ID, null) ?: return null
         val replicaId = prefs.getString(Keys.REPLICA_ID, null) ?: return null
         val accessToken = prefs.getString(Keys.ACCESS_TOKEN, null) ?: return null
         val refreshToken = prefs.getString(Keys.REFRESH_TOKEN, null) ?: return null
-        return StoredHubIdentity(
+        return HubIdentityStore.StoredHubIdentity(
             deviceId = deviceId,
             replicaId = replicaId,
             elderId = prefs.getString(Keys.ELDER_ID, null),
@@ -66,7 +66,7 @@ class SecureHubIdentityStore @Inject constructor(
         )
     }
 
-    fun write(identity: HubIdentity) {
+    override fun write(identity: HubIdentity) {
         prefs.edit()
             .putString(Keys.DEVICE_ID, identity.deviceId)
             .putString(Keys.REPLICA_ID, identity.replicaId)
@@ -121,44 +121,8 @@ class SecureHubIdentityStore @Inject constructor(
             .apply()
     }
 
-    fun clear() {
+    override fun clear() {
         prefs.edit().clear().apply()
-    }
-
-    data class StoredProvisioning(
-        val deviceId: String,
-        val replicaId: String?,
-        val elderId: String?,
-        val backendUrl: String,
-        val provisionedAtEpochMillis: Long,
-        val lastAuthenticatedAtEpochMillis: Long,
-        val provisioningState: ProvisioningState,
-    )
-
-    data class StoredHubIdentity(
-        val deviceId: String,
-        val replicaId: String,
-        val elderId: String?,
-        val accessToken: String,
-        val refreshToken: String,
-        val tokenExpiresAtEpochMillis: Long,
-        val backendUrl: String,
-        val provisionedAtEpochMillis: Long,
-        val lastAuthenticatedAtEpochMillis: Long,
-        val provisioningState: ProvisioningState,
-    ) {
-        fun toHubIdentity(): HubIdentity = HubIdentity(
-            deviceId = deviceId,
-            replicaId = replicaId,
-            elderId = elderId,
-            accessToken = accessToken,
-            refreshToken = refreshToken,
-            tokenExpiresAtEpochMillis = tokenExpiresAtEpochMillis,
-            backendUrl = backendUrl,
-            provisionedAtEpochMillis = provisionedAtEpochMillis,
-            lastAuthenticatedAtEpochMillis = lastAuthenticatedAtEpochMillis,
-            provisioningState = provisioningState,
-        )
     }
 
     private object Keys {
@@ -180,3 +144,4 @@ class SecureHubIdentityStore @Inject constructor(
         private const val PREFS_NAME = "hub_identity_secure"
     }
 }
+

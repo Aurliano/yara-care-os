@@ -8,6 +8,7 @@ import ir.sayda.yara.hub.runtime.support.sampleSchedule
 import ir.sayda.yara.hub.runtime.alarm.RuntimeAlarmCoordinator
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class SchedulingReplicaRuntimeTest {
@@ -54,5 +55,41 @@ class SchedulingReplicaRuntimeTest {
         val secondId = schedulingRepository.allOccurrences().single().id
 
         assertEquals(firstId, secondId)
+    }
+
+    @Test
+    fun cancelsFutureOccurrencesForInactiveSchedules() = runTest {
+        val now = 1_700_000_000_000L
+        val schedulingRepository = InMemorySchedulingRepository()
+        val cancelledSchedule = sampleSchedule(
+            id = "schedule-cancelled",
+            startAtEpochMillis = now + 60_000L,
+        ).copy(status = ir.sayda.yara.hub.core.scheduling.ScheduleStatus.CANCELLED.name)
+
+        schedulingRepository.upsertScheduleDefinition(cancelledSchedule)
+        schedulingRepository.upsertOccurrence(
+            ir.sayda.yara.hub.core.domain.model.Occurrence(
+                id = "occ-future-cancelled",
+                scheduleDefinitionId = "schedule-cancelled",
+                scheduledForEpochMillis = now + 120_000L,
+                status = OccurrenceStatus.SCHEDULED.name,
+                updatedAtEpochMillis = now,
+            ),
+        )
+
+        val alarmCoordinator = RuntimeAlarmCoordinator(
+            schedulingRepository,
+            InMemoryOccurrenceAlarmRegistry(),
+        )
+        val runtime = SchedulingReplicaRuntime(
+            schedulingRepository,
+            RuntimeEventBusImpl(),
+            alarmCoordinator,
+        )
+
+        runtime.hydrateAndEvaluate(now)
+
+        val remainingOccurrences = schedulingRepository.allOccurrences()
+        assertTrue(remainingOccurrences.none { it.scheduleDefinitionId == "schedule-cancelled" })
     }
 }

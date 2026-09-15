@@ -2,6 +2,7 @@ import { ActiveCallExistsError, err, ok } from "./result";
 import type { AppResult } from "./result";
 import {
   INCOMING_SESSION_STATUSES,
+  TERMINAL_SESSION_STATUSES,
   isActiveCallState,
 } from "./model";
 import type { CallRuntimeState, CallSession } from "./model";
@@ -336,8 +337,29 @@ export class CommunicationRuntime {
   }
 
   private async maybeAcceptIncoming(
-    sessions: { elderId: string; channel: string; status: string }[],
+    sessions: { id: string; elderId: string; channel: string; status: string }[],
   ): Promise<void> {
+    const current = await this.repository.getCurrent();
+    if (current && isActiveCallState(current.runtimeState)) {
+      const remoteMatch = sessions.find((session) => session.id === current.sessionId);
+      if (
+        remoteMatch &&
+        (TERMINAL_SESSION_STATUSES as readonly string[]).includes(remoteMatch.status)
+      ) {
+        await this.serialized(async () => {
+          const fresh = await this.repository.getCurrent();
+          if (
+            fresh &&
+            fresh.sessionId === remoteMatch.id &&
+            isActiveCallState(fresh.runtimeState)
+          ) {
+            await this.finishAndCleanup(fresh);
+          }
+        });
+        return;
+      }
+    }
+
     const ringing = sessions.find(
       (session) =>
         session.channel !== "MESSAGE" &&
@@ -346,11 +368,17 @@ export class CommunicationRuntime {
     if (!ringing) {
       return;
     }
-    const current = await this.repository.getCurrent();
-    if (current && isActiveCallState(current.runtimeState)) {
+    const active = await this.repository.getCurrent();
+    if (active && isActiveCallState(active.runtimeState)) {
       return;
     }
     await this.joinIncomingCall(ringing.elderId, ringing.channel || "VOICE");
+  }
+
+  handleRemoteSessions(
+    sessions: { id: string; elderId: string; channel: string; status: string }[],
+  ): Promise<void> {
+    return this.maybeAcceptIncoming(sessions);
   }
 
   private serialized<T>(work: () => Promise<T>): Promise<T> {

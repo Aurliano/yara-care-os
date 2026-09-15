@@ -67,6 +67,8 @@ class CommunicationRuntime(
     private val mutex = Mutex()
     private val collectorsLock = Mutex()
     private var collectorsStarted = false
+    @Volatile
+    private var activeMediaSessionId: String? = null
 
     fun observeCurrent(): Flow<CallSession?> = repository.observeCurrent()
 
@@ -75,7 +77,10 @@ class CommunicationRuntime(
             if (collectorsStarted) return
             collectorsStarted = true
             scope.launch {
-                callEngine.observeEvents().collect { event -> handleMediaEvent(event) }
+                callEngine.observeEvents().collect { raw ->
+                    val tagged = tagEventWithSession(raw, activeMediaSessionId)
+                    handleMediaEvent(tagged)
+                }
             }
             scope.launch {
                 replicaRepository?.observeSessions()?.collect { sessions ->
@@ -103,10 +108,14 @@ class CommunicationRuntime(
         recipientContactId: String,
     ): AppResult<CallSession> {
         startCollectors()
+        val current = repository.getCurrent()
+        if (current != null && current.runtimeState.isActive() && current.expiresAtEpochMillis > nowMillis()) {
+            return AppResult.Success(current)
+        }
         val prepared = mutex.withLock {
-            val current = repository.getCurrent()
-            if (current != null && current.runtimeState.isActive() && current.expiresAtEpochMillis > nowMillis()) {
-                return@withLock AppResult.Success(current)
+            val lockedCurrent = repository.getCurrent()
+            if (lockedCurrent != null && lockedCurrent.runtimeState.isActive() && lockedCurrent.expiresAtEpochMillis > nowMillis()) {
+                return@withLock AppResult.Success(lockedCurrent)
             }
             when (val started = gateway.startCall(elderId, channel, recipientContactId)) {
                 is AppResult.Success -> persistConnecting(
@@ -174,18 +183,18 @@ class CommunicationRuntime(
         val current = mutex.withLock { repository.getCurrent() } ?: return AppResult.Success(Unit)
         callEngine.leave()
         return mutex.withLock {
-            when (val ended = gateway.endCall(current.sessionId)) {
+            val ended = gateway.endCall(current.sessionId)
+            persistAndPresent(
+                current.copy(
+                    runtimeState = CallRuntimeState.Finished,
+                    updatedAtEpochMillis = nowMillis(),
+                ),
+            )
+            activeMediaSessionId = null
+            repository.clear()
+            when (ended) {
                 is AppResult.Error -> ended
-                is AppResult.Success -> {
-                    persistAndPresent(
-                        current.copy(
-                            runtimeState = CallRuntimeState.Finished,
-                            updatedAtEpochMillis = nowMillis(),
-                        ),
-                    )
-                    repository.clear()
-                    AppResult.Success(Unit)
-                }
+                is AppResult.Success -> AppResult.Success(Unit)
             }
         }
     }
@@ -206,6 +215,7 @@ class CommunicationRuntime(
             current.copy(
                 runtimeState = CallRuntimeState.Connected,
                 updatedAtEpochMillis = nowMillis(),
+                expiresAtEpochMillis = nowMillis() + 14400_000L,
             ),
         )
     }
@@ -233,7 +243,6 @@ class CommunicationRuntime(
             stored
         } ?: return AppResult.Success(null)
         joinMedia(current.joinToken)
-        markConnectedAfterJoin()
         return AppResult.Success(repository.getCurrent() ?: current)
     }
 
@@ -264,13 +273,15 @@ class CommunicationRuntime(
         }
     }
 
-    private suspend fun persistConnecting(session: CallSession): AppResult<CallSession> =
-        persistAndPresent(
+    private suspend fun persistConnecting(session: CallSession): AppResult<CallSession> {
+        activeMediaSessionId = session.sessionId
+        return persistAndPresent(
             session.copy(
                 runtimeState = CallRuntimeState.Connecting,
                 updatedAtEpochMillis = nowMillis(),
             ),
         )
+    }
 
     private suspend fun joinPrepared(prepared: AppResult<CallSession>): AppResult<CallSession> {
         val session = when (prepared) {
@@ -281,7 +292,7 @@ class CommunicationRuntime(
             return prepared
         }
         joinMedia(session.joinToken)
-        return markConnectedAfterJoin()
+        return prepared
     }
 
     private suspend fun joinMedia(loginUrl: String) {
@@ -289,40 +300,31 @@ class CommunicationRuntime(
         callEngine.join(loginUrl)
     }
 
-    private suspend fun markConnectedAfterJoin(): AppResult<CallSession> = mutex.withLock {
-        val current = repository.getCurrent()
-            ?: return@withLock AppResult.Error(IllegalStateException("No current call session."))
-        if (
-            current.runtimeState == CallRuntimeState.Connecting ||
-            current.runtimeState == CallRuntimeState.Reconnecting ||
-            current.runtimeState == CallRuntimeState.ConnectionLost
-        ) {
-            persistAndPresent(
-                current.copy(
-                    runtimeState = CallRuntimeState.Connected,
-                    updatedAtEpochMillis = nowMillis(),
-                ),
-            )
-        } else {
-            AppResult.Success(current)
-        }
-    }
-
     private suspend fun handleMediaEvent(event: CallMediaEvent) {
         mutex.withLock {
             val current = repository.getCurrent() ?: return@withLock
+            val eventSessionId: String? = when (event) {
+                is CallMediaEvent.Joined -> event.sessionId
+                is CallMediaEvent.Left -> event.sessionId
+                is CallMediaEvent.ConnectionLost -> event.sessionId
+                is CallMediaEvent.ConnectionRestored -> event.sessionId
+            }
+            if (eventSessionId != null && eventSessionId != current.sessionId) {
+                return@withLock
+            }
             when (event) {
-                CallMediaEvent.Joined, CallMediaEvent.ConnectionRestored -> {
+                is CallMediaEvent.Joined, is CallMediaEvent.ConnectionRestored -> {
                     if (current.runtimeState.isActive() && current.runtimeState != CallRuntimeState.Connected) {
                         persistAndPresent(
                             current.copy(
                                 runtimeState = CallRuntimeState.Connected,
                                 updatedAtEpochMillis = nowMillis(),
+                                expiresAtEpochMillis = nowMillis() + 14400_000L,
                             ),
                         )
                     }
                 }
-                CallMediaEvent.ConnectionLost -> {
+                is CallMediaEvent.ConnectionLost -> {
                     if (
                         current.runtimeState == CallRuntimeState.Connected ||
                         current.runtimeState == CallRuntimeState.Connecting ||
@@ -336,7 +338,7 @@ class CommunicationRuntime(
                         )
                     }
                 }
-                CallMediaEvent.Left -> {
+                is CallMediaEvent.Left -> {
                     if (current.runtimeState.isActive()) {
                         callEngine.leave()
                         persistAndPresent(
@@ -355,7 +357,11 @@ class CommunicationRuntime(
     private suspend fun handleNetworkLost() {
         mutex.withLock {
             val current = repository.getCurrent() ?: return@withLock
-            if (current.runtimeState == CallRuntimeState.Connected) {
+            if (
+                current.runtimeState == CallRuntimeState.Connected ||
+                current.runtimeState == CallRuntimeState.Connecting ||
+                current.runtimeState == CallRuntimeState.Reconnecting
+            ) {
                 persistAndPresent(
                     current.copy(
                         runtimeState = CallRuntimeState.ConnectionLost,
@@ -487,6 +493,16 @@ class CommunicationRuntime(
         repository.saveCurrent(session)
         presentationGateway.onCallSession(session)
         return AppResult.Success(session)
+    }
+
+    private fun tagEventWithSession(event: CallMediaEvent, sessionId: String?): CallMediaEvent {
+        if (sessionId == null) return event
+        return when (event) {
+            is CallMediaEvent.Joined -> if (event.sessionId == null) event.copy(sessionId = sessionId) else event
+            is CallMediaEvent.Left -> if (event.sessionId == null) event.copy(sessionId = sessionId) else event
+            is CallMediaEvent.ConnectionLost -> if (event.sessionId == null) event.copy(sessionId = sessionId) else event
+            is CallMediaEvent.ConnectionRestored -> if (event.sessionId == null) event.copy(sessionId = sessionId) else event
+        }
     }
 
     private companion object {

@@ -20,11 +20,15 @@ class HubTokenRefreshCoordinator @Inject constructor(
 ) {
     private val mutex = Mutex()
 
-    suspend fun refreshIfNeeded(): Boolean = refresh(force = false)
+    suspend fun refreshIfNeeded(failedAccessToken: String? = null): Boolean = refresh(failedAccessToken = failedAccessToken, force = false)
 
-    suspend fun refresh(force: Boolean = true): Boolean {
+    suspend fun refresh(failedAccessToken: String? = null, force: Boolean = true): Boolean {
         return mutex.withLock {
             val current = identityStore.readIdentity() ?: return false
+            if (failedAccessToken != null && failedAccessToken != current.accessToken) {
+                // Another thread already refreshed the token
+                return true
+            }
             if (!force && !isExpired(current.tokenExpiresAtEpochMillis)) {
                 return true
             }
@@ -32,8 +36,8 @@ class HubTokenRefreshCoordinator @Inject constructor(
         }
     }
 
-    suspend fun refreshAndGetAccessToken(force: Boolean = true): String? {
-        if (!refresh(force = force)) {
+    suspend fun refreshAndGetAccessToken(failedAccessToken: String? = null, force: Boolean = true): String? {
+        if (!refresh(failedAccessToken = failedAccessToken, force = force)) {
             return null
         }
         return identityStore.peekAccessToken()
@@ -45,7 +49,7 @@ class HubTokenRefreshCoordinator @Inject constructor(
             val response = authApi.refreshToken(TokenRefreshRequestDto(refresh = current.refreshToken))
             val refreshed = current.copy(
                 accessToken = response.access,
-                refreshToken = response.refresh,
+                refreshToken = response.refresh ?: current.refreshToken,
                 tokenExpiresAtEpochMillis = JwtExpiryParser.expiresAtEpochMillis(
                     response.access,
                     System.currentTimeMillis(),

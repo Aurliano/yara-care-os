@@ -14,12 +14,12 @@ internal class FakeLivekitClient : LivekitClient {
     override suspend fun join(loginUrl: String) {
         joinedTokens += loginUrl
         commands += "join"
-        events.tryEmit(CallMediaEvent.Joined)
+        events.tryEmit(CallMediaEvent.Joined())
     }
 
     override suspend fun leave() {
         commands += "leave"
-        events.tryEmit(CallMediaEvent.Left)
+        events.tryEmit(CallMediaEvent.Left())
     }
 
     override suspend fun mute() {

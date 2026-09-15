@@ -60,6 +60,11 @@ export default function CallScreen() {
     void runtime.recover();
   }, [runtime]);
 
+  useEffect(() => {
+    if (!remoteSessions.data) return;
+    void runtime.handleRemoteSessions(remoteSessions.data as never);
+  }, [remoteSessions.data, runtime]);
+
   if (!isPending && !can(PERMISSIONS.INITIATE_CALL)) {
     return <PermissionDenied />;
   }
@@ -283,14 +288,12 @@ export default function CallScreen() {
       )}
 
       {/* In-app Native Call View for LiveKit */}
-      {Boolean(localActive) ? (
-        <NativeCallView
-          visible={Boolean(localActive)}
-          session={session}
-          contactName={activeContactName}
-          onHangup={() => void onHangup()}
-        />
-      ) : null}
+      <NativeCallView
+        visible={Boolean(localActive)}
+        session={session}
+        contactName={activeContactName}
+        onHangup={() => void onHangup()}
+      />
     </Screen>
   );
 }

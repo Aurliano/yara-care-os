@@ -18,8 +18,10 @@ class TokenAuthenticator @Inject constructor(
         if (response.request.header(RETRY_HEADER) != null) {
             return null
         }
+        val authHeader = response.request.header("Authorization")
+        val failedToken = if (authHeader?.startsWith("Bearer ") == true) authHeader.substring(7) else null
         val token = kotlinx.coroutines.runBlocking {
-            tokenRefreshHandler.get().refreshAndGetAccessToken()
+            tokenRefreshHandler.get().refreshAndGetAccessToken(failedAccessToken = failedToken)
         } ?: return null
         return response.request.newBuilder()
             .header("Authorization", "Bearer $token")

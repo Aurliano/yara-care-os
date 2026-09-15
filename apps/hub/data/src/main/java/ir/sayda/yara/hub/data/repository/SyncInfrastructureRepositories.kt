@@ -57,12 +57,25 @@ class ReplicaSnapshotWriterImpl @Inject constructor(
 
     override suspend fun replaceReplicaTables(bundle: ReplicaSnapshotBundle) {
         database.withTransaction {
-            database.careActivityDao().deleteAll()
-            database.prescriptionDao().deleteAll()
-            database.workflowDefinitionDao().deleteAll()
-            database.workflowExecutionDao().deleteAll()
-            database.scheduleDefinitionDao().deleteAll()
-            database.occurrenceDao().deleteAll()
+            val now = System.currentTimeMillis()
+            
+            val currentActivities = database.careActivityDao().getAll()
+            val newActivityIds = bundle.careActivities.map { it.id }.toSet()
+            currentActivities.forEach {
+                if (it.id !in newActivityIds && it.status == "ACTIVE") {
+                    database.careActivityDao().upsert(it.copy(status = "CANCELLED", updatedAtEpochMillis = now))
+                }
+            }
+
+            val currentSchedules = database.scheduleDefinitionDao().getAll()
+            val newScheduleIds = bundle.scheduleDefinitions.map { it.id }.toSet()
+            currentSchedules.forEach {
+                if (it.id !in newScheduleIds && it.status == "ACTIVE") {
+                    database.scheduleDefinitionDao().upsert(it.copy(status = "CANCELLED", updatedAtEpochMillis = now))
+                    database.occurrenceDao().deleteFutureByScheduleDefinitionId(it.id, now)
+                }
+            }
+
             database.deviceDao().deleteAll()
             database.deviceCommandDao().deleteAll()
             database.communicationSessionDao().deleteAll()

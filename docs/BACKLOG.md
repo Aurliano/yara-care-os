@@ -1,8 +1,9 @@
 # BACKLOG.md
 
-Version: 2.0
+Version: 3.0
 Status: Approved
 Product: Yara Care Ecosystem
+Last Updated: 2026-09-09
 
 ---
 
@@ -84,6 +85,7 @@ Priority: P0
 
 Note:
 Subscription model and Billing/Payment Gateway are scheduled for Phase 2 (Licensing & Billing).
+Phase 2 is now CLOSED (2026-09-09). All 6 stages accepted.
 
 ---
 
@@ -217,6 +219,79 @@ Priority: P0
 
 ---
 
+# Epic 10 — Phase 3: MVP Core Stabilization & Elder UX
+
+Sprint 9–11
+
+Priority: P0
+
+**Goal:** Stabilize core product flows, validate on real devices, and harden elder-facing UX before adding new features.
+
+**Key principle:** No new feature development until core flows (messaging, medication, reminders) are reliable on real devices.
+
+## Sprint 9 — Baseline & Core Bug Fixes
+
+### Messaging Bug Fixes
+- Fix known Family App messaging bugs
+- Fix known Hub messaging bugs
+- Messaging reliability under network instability
+- Voice message recording/playback edge cases
+
+### Medication / Reminder Bug Fixes
+- Fix known medication management bugs
+- Reminder accuracy and timing verification
+- Medication schedule CRUD reliability
+- Caregiver alert generation correctness
+
+### Baseline Stability
+- Establish stable baseline across all core flows
+- Automated regression test coverage for critical paths
+- Backend-Frontend integration verification for messaging and medication
+
+## Sprint 10 — Real Device Validation
+
+### Hub Physical Device Testing
+- Reminder execution on physical Hub
+- Messaging send/receive on physical Hub
+- LiveKit calling on physical Hub
+- Synchronization behavior on physical Hub
+- Offline operation verification (multi-day)
+
+### Family App Physical Device Testing
+- Authentication and elder selection
+- Dashboard data accuracy
+- Messaging on real Android/iOS
+- Calling on real Android/iOS
+- Subscription checkout on real device
+
+### End-to-End Flow Verification
+- Complete caregiver → backend → hub → caregiver flows
+- Multi-caregiver concurrent usage
+- Network condition testing (offline, slow, recovery)
+- Long-running stability (24+ hours)
+
+## Sprint 11 — Elder UX Hardening
+
+### RTL & Accessibility
+- RTL layout verification across all Hub screens
+- Font size verification (elder-friendly large text)
+- Contrast ratio verification (WCAG AA minimum)
+- Touch target size verification (minimum 48dp)
+
+### Elder-Facing Screen Simplification
+- Hub home screen clarity audit
+- Reminder interaction simplicity audit
+- Confirmation flow simplification
+- Emergency calling accessibility
+
+### Calm UI Audit
+- No anxiety-inducing elements (red alerts, complex menus)
+- Consistent Persian language throughout
+- Loading states are calm, not alarming
+- Error messages are helpful, not technical
+
+---
+
 # Future Backlog
 
 Priority: P3
@@ -286,5 +361,31 @@ A feature is complete only if:
 - **Component:** Hub Messaging Polling vs Unified Sync Architecture (`Session`, `Delta`, `Checkpoint`)
 - **Current State:** Phase 1 asynchronous messaging uses an adaptive checkpointed polling bridge (`syncElderMessages` with `since` delta and exponential backoff) in `HomeViewModel`. Outbox dispatch is opportunistic immediate-dispatch with durable fallback to `UploadSessionRunner`.
 - **Target Architecture:** Migrate incoming messaging events from the polling bridge into the unified Synchronization Domain Session/Checkpoint model or unified server-sent event stream (`MessageCreated` / `MessageDelivered`).
-- **Priority:** P1 (Post-MVP / Next Phase)
+- **Priority:** P1 (Phase 4)
 - **Status:** Documented & Tracked
+
+## TD-PAY-001 — PaymentSucceeded Event Consumer (Audit)
+- **Component:** `PaymentSucceeded` domain event is published to Event Domain outbox but no consumer exists yet.
+- **Target:** Implement audit logging consumer for payment events.
+- **Priority:** P1 (Phase 4)
+- **Status:** Documented & Tracked
+
+## TD-PAY-002 — Subscription Expiry Cron Job
+- **Component:** Expired subscriptions are not automatically deactivated.
+- **Target:** Implement periodic job to transition EXPIRED subscriptions and suspend associated licenses.
+- **Priority:** P1 (Phase 4)
+- **Status:** Documented & Tracked
+
+## TD-MSG-002 — Duplicate Media Uploads on Dispatch Failure
+- **Component:** `MessagingRepositoryImpl.dispatchOutboxMessage`
+- **Current State:** Multipart media upload does not persist `attachmentId` in the outbox payload. If `uploadMedia` succeeds but `sendMessage` fails (e.g. 401), subsequent outbox retries will re-upload the entire file, creating orphan files on the backend.
+- **Target:** Save `attachmentId` into the outbox payload immediately after successful upload, or implement a backend-side deduplication mechanism based on file hash / idempotency key.
+- **Priority:** P1 (Sprint 3 / Phase 4)
+- **Status:** Documented & Tracked
+
+## TD-MSG-003 — Messaging Delivery Latency (15-Minute Polling)
+- **Component:** Hub `WorkManagerRuntimeScheduler`
+- **Current State:** Incoming messages rely on `PeriodicWorkRequest` polling bounded to 15-minute minimum intervals. This architectural choice results in up to 15 minutes of latency for receiving messages.
+- **Target:** Implement a realtime signaling channel (e.g. FCM Data Messages, WebSockets, or LiveKit Data Channels) to trigger immediate sync/fetch upon new message arrival.
+- **Priority:** P1 (Sprint 3 / Phase 4)
+- **Status:** Documented & Tracked

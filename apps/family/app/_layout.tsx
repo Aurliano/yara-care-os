@@ -24,8 +24,9 @@ if (!I18nManager.isRTL) {
   I18nManager.forceRTL(true);
 }
 
-import { registerGlobals } from "@livekit/react-native";
+import { registerGlobals, AudioSession } from "@livekit/react-native";
 registerGlobals();
+AudioSession.startAudioSession();
 
 const queryClient = createQueryClient();
 

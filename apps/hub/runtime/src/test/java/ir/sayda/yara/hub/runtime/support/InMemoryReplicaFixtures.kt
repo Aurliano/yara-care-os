@@ -85,6 +85,17 @@ class InMemorySchedulingRepository : SchedulingReplicaRepository {
             .filterNot { it.scheduleDefinitionId == scheduleDefinitionId } + occurrences
     }
 
+    override suspend fun cancelFutureOccurrencesForSchedule(
+        scheduleDefinitionId: String,
+        nowEpochMillis: Long,
+    ) {
+        occurrences.value = occurrences.value.filterNot {
+            it.scheduleDefinitionId == scheduleDefinitionId &&
+                it.scheduledForEpochMillis > nowEpochMillis &&
+                (it.status == OccurrenceStatus.SCHEDULED.name || it.status == OccurrenceStatus.DUE.name)
+        }
+    }
+
     override fun observeNextScheduledOccurrence(afterEpochMillis: Long): Flow<Occurrence?> =
         occurrences.asStateFlow().map { list ->
             list.filter {
@@ -162,6 +173,9 @@ class InMemoryCareRepository : CareReplicaRepository {
         MutableStateFlow(activities.value.filter { it.elderId == elderId }).asStateFlow()
 
     override fun observeAllCareActivities(): Flow<List<CareActivity>> = activities.asStateFlow()
+
+    override suspend fun getCareActivityById(careActivityId: String): CareActivity? =
+        activities.value.firstOrNull { it.id == careActivityId }
 
     override suspend fun getCareActivityByScheduleDefinition(scheduleDefinitionId: String): CareActivity? =
         activities.value.firstOrNull { it.scheduleDefinitionId == scheduleDefinitionId }

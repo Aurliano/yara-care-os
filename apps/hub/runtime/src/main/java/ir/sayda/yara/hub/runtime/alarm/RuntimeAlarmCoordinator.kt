@@ -5,6 +5,8 @@ import ir.sayda.yara.hub.core.runtime.AlarmRegistrationPlanner
 import ir.sayda.yara.hub.core.runtime.OccurrenceAlarmRegistry
 import ir.sayda.yara.hub.core.runtime.OccurrenceAlarmSpec
 import ir.sayda.yara.hub.core.scheduling.OccurrenceStatus
+import ir.sayda.yara.hub.core.scheduling.ScheduleStatus
+import kotlinx.coroutines.flow.first
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -15,7 +17,15 @@ class RuntimeAlarmCoordinator @Inject constructor(
 ) {
 
     suspend fun syncAlarmsFromReplicas(nowEpochMillis: Long = System.currentTimeMillis()): AlarmSyncResult {
+        val inactiveScheduleIds = schedulingRepository.observeScheduleDefinitions()
+            .first()
+            .filter { it.status != ScheduleStatus.ACTIVE.name }
+            .map { it.id }
+            .toSet()
+
         val scheduled = schedulingRepository.getScheduledOccurrencesAfter(nowEpochMillis)
+            .filterNot { it.scheduleDefinitionId in inactiveScheduleIds }
+
         val specs = AlarmRegistrationPlanner.dedupeByOccurrenceId(
             scheduled.map { occurrence ->
                 OccurrenceAlarmSpec(
@@ -51,8 +61,14 @@ class RuntimeAlarmCoordinator @Inject constructor(
     }
 
     suspend fun registerAlarmsForNewOccurrences(nowEpochMillis: Long) {
+        val inactiveScheduleIds = schedulingRepository.observeScheduleDefinitions()
+            .first()
+            .filter { it.status != ScheduleStatus.ACTIVE.name }
+            .map { it.id }
+            .toSet()
+
         val scheduled = schedulingRepository.getScheduledOccurrencesAfter(nowEpochMillis)
-            .filter { it.status == OccurrenceStatus.SCHEDULED.name }
+            .filter { it.status == OccurrenceStatus.SCHEDULED.name && it.scheduleDefinitionId !in inactiveScheduleIds }
         scheduled.forEach { occurrence ->
             registerAlarmForOccurrence(
                 occurrenceId = occurrence.id,

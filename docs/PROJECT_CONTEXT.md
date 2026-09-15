@@ -1,9 +1,10 @@
 # PROJECT_CONTEXT.md
 
-Version: 2.0  
-Status: Approved  
-Product: Yara Care Ecosystem  
+Version: 2.1
+Status: Approved
+Product: Yara Care Ecosystem
 Company: SAYDA Technology
+Last Updated: 2026-09-09
 
 ---
 
@@ -332,19 +333,36 @@ Not:
 
 # Current Project Status
 
-The Hub project already exists.
+**Phase 2 (Licensing & Billing) is CLOSED.** All 6 stages accepted. Backend is mature and well-tested (419 tests green).
 
-Current development focuses on:
+**Current phase: Phase 3 — MVP Core Stabilization & Elder UX.**
 
-- completing remaining Hub features
-- backend implementation
-- firmware implementation
-- Caregiver App development
-- platform integration
+### Component Maturity
 
-The project is no longer in the idea phase.
+| Component | Status | Notes |
+|-----------|--------|-------|
+| Backend | Mature | All domains implemented, 419 tests green, Phase 2 complete |
+| Family App | Substantially complete, needs stabilization | Core flows work but known bugs in messaging and medication screens |
+| Android Hub | Substantially complete (~85%) | Runtime, sync, calling, messaging implemented; needs real device validation |
+| Firmware | Scaffold only | ESP32-C3 scaffolded; Hub↔PillBox integration deferred to Hardware Phase |
 
-It is in the product implementation phase.
+### Known Issues Requiring Stabilization
+
+- Messaging bugs (Family App and Hub)
+- Medication / Reminder bugs
+- No real device validation completed yet
+- UI not yet hardened for elder users (RTL, accessibility, font sizes)
+- TD-MSG-001: Messaging polling bridge should migrate to unified Sync architecture
+
+### Current Focus
+
+Phase 3 prioritizes stabilization over new features:
+
+1. Fix core flow bugs (messaging, medication, reminders)
+2. Validate on real devices (Hub + Family App)
+3. Harden elder-facing UX (RTL, accessibility, simplicity)
+
+New feature development (Radio, Push Notifications) is deferred until core flows are stable.
 
 ---
 
@@ -402,6 +420,10 @@ The MVP includes:
 - Event Store & Transactional Outbox
 - Synchronization Engine & Hub Sync Facade
 - In-App Caregiver Alert Inbox (ADR-015)
+- Licensing Domain (Plan, Entitlement, License, Subscription)
+- Billing Domain (Invoice, InvoiceLineItem, PaymentAttempt, PlanPrice)
+- Payment Provider Infrastructure (Provider Port, ZarinPal Adapter, FakePaymentProvider)
+- Payment Application Coordinator (Checkout, Settlement, Subscription Activation, PaymentSucceeded Event)
 
 ### Caregiver App (Family App)
 - Authentication & Login (Phone / Password / OTP)
@@ -413,6 +435,7 @@ The MVP includes:
 - Two-Way Messaging (Text, Voice Message, Image, Video)
 - Contacts & Emergency Recipients
 - In-App Alert Center (ADR-015)
+- Subscription Management & Payment Checkout (Two-step checkout, server-authoritative pricing, ZarinPal gateway redirect)
 
 ### Smart Pill Box (Hardware Integration Phase)
 - ESP32-C3 Firmware
@@ -427,9 +450,8 @@ The MVP includes:
 The following features are intentionally excluded from MVP:
 
 - Kiosk Mode / Android LockTask (Postponed to Production Readiness)
-- Push Notifications (FCM / APNs — Planned Software Phase 4)
-- Radio inside Elder Hub (Planned Software Phase 3)
-- Licensing Plans, Billing & Payment Gateway (Software Phase 2 — Backend Foundation Stages 0–4 Complete, Stage 5 Mobile UI In Progress)
+- Push Notifications (FCM / APNs — Planned Phase 4)
+- Radio inside Elder Hub (Deferred until after MVP stabilization)
 - Ambient Camera Streaming (Passive 24/7 room surveillance / CCTV — distinct from interactive Video Calling)
 - Smart Home Integration (Gas leak, power failure environmental sensors)
 - Medical Device & Continuous Wearable Telemetry (Doctor portal, continuous ECG/vitals graphs)

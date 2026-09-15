@@ -8,8 +8,8 @@ import javax.inject.Singleton
 class AuthTokenRefreshHandler @Inject constructor(
     private val coordinator: HubTokenRefreshCoordinator,
 ) : TokenRefreshHandler {
-    override suspend fun refreshAccessToken(): Boolean = coordinator.refresh(force = true)
+    override suspend fun refreshAccessToken(failedAccessToken: String?): Boolean = coordinator.refresh(failedAccessToken = failedAccessToken, force = true)
 
-    override suspend fun refreshAndGetAccessToken(): String? =
-        coordinator.refreshAndGetAccessToken(force = true)
+    override suspend fun refreshAndGetAccessToken(failedAccessToken: String?): String? =
+        coordinator.refreshAndGetAccessToken(failedAccessToken = failedAccessToken, force = true)
 }

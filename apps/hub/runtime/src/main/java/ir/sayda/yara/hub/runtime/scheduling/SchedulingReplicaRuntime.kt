@@ -22,9 +22,13 @@ class SchedulingReplicaRuntime @Inject constructor(
 ) {
 
     suspend fun hydrateAndEvaluate(nowEpochMillis: Long = System.currentTimeMillis()): SchedulingCycleResult {
-        val activeSchedules = schedulingRepository.observeScheduleDefinitions()
-            .first()
-            .filter { it.status == ScheduleStatus.ACTIVE.name }
+        val allSchedules = schedulingRepository.observeScheduleDefinitions().first()
+        val activeSchedules = allSchedules.filter { it.status == ScheduleStatus.ACTIVE.name }
+        val inactiveSchedules = allSchedules.filter { it.status != ScheduleStatus.ACTIVE.name }
+
+        inactiveSchedules.forEach { inactive ->
+            schedulingRepository.cancelFutureOccurrencesForSchedule(inactive.id, nowEpochMillis)
+        }
 
         var generated = 0
         activeSchedules.forEach { schedule ->

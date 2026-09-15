@@ -6,6 +6,19 @@ function pad2(value: string): string {
   return value.padStart(2, "0");
 }
 
+export function datePartInTehran(dateInput: Date | string = new Date()): string | null {
+  const d = typeof dateInput === "string" ? new Date(dateInput) : dateInput;
+  if (Number.isNaN(d.getTime())) {
+    return null;
+  }
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: TEHRAN_TIMEZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(d);
+}
+
 export function todayPartsInTehran(now = new Date()): { date: string; time: string } {
   const date = new Intl.DateTimeFormat("en-CA", {
     timeZone: TEHRAN_TIMEZONE,

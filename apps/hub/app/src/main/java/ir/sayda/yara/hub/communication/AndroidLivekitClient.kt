@@ -50,6 +50,7 @@ class AndroidLivekitClient @Inject constructor(
 
     override suspend fun join(loginUrl: String) {
         withContext(Dispatchers.Main) {
+            events.resetReplayCache()
             leaveInternal()
             val (serverUrl, token) = parseJoinCredentials(loginUrl)
             val currentRoom = LiveKit.create(context.applicationContext)
@@ -77,10 +78,10 @@ class AndroidLivekitClient @Inject constructor(
                 } catch (_: Exception) {
                 }
                 if (currentRoom.remoteParticipants.isNotEmpty()) {
-                    events.tryEmit(CallMediaEvent.Joined)
+                    events.tryEmit(CallMediaEvent.Joined())
                 }
             } catch (e: Exception) {
-                events.tryEmit(CallMediaEvent.ConnectionLost)
+                events.tryEmit(CallMediaEvent.ConnectionLost())
                 leaveInternal()
                 throw e
             }
@@ -93,27 +94,27 @@ class AndroidLivekitClient @Inject constructor(
                 joined = true
                 val currentRoom = room
                 if (currentRoom != null && currentRoom.remoteParticipants.isNotEmpty()) {
-                    events.tryEmit(CallMediaEvent.Joined)
+                    events.tryEmit(CallMediaEvent.Joined())
                 }
             }
             is RoomEvent.ParticipantConnected -> {
-                events.tryEmit(CallMediaEvent.Joined)
+                events.tryEmit(CallMediaEvent.Joined())
             }
             is RoomEvent.ParticipantDisconnected -> {
-                if (joined) {
-                    events.tryEmit(CallMediaEvent.Left)
-                }
+                // If a participant disconnects (e.g. Family App has a network hiccup),
+                // we should NOT aggressively end the entire session by emitting Left().
+                // We just wait for them to reconnect or for the backend to destroy the room.
             }
             is RoomEvent.Disconnected -> {
                 if (joined) {
-                    events.tryEmit(CallMediaEvent.Left)
+                    events.tryEmit(CallMediaEvent.Left())
                 }
             }
             is RoomEvent.Reconnecting -> {
-                events.tryEmit(CallMediaEvent.ConnectionLost)
+                events.tryEmit(CallMediaEvent.ConnectionLost())
             }
             is RoomEvent.Reconnected -> {
-                events.tryEmit(CallMediaEvent.ConnectionRestored)
+                events.tryEmit(CallMediaEvent.ConnectionRestored())
             }
             is RoomEvent.TrackSubscribed -> {
                 val track = event.track
@@ -133,7 +134,7 @@ class AndroidLivekitClient @Inject constructor(
     override suspend fun leave() {
         withContext(Dispatchers.Main) {
             leaveInternal()
-            events.tryEmit(CallMediaEvent.Left)
+            events.tryEmit(CallMediaEvent.Left())
         }
     }
 

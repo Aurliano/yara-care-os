@@ -54,7 +54,18 @@ object NetworkModule {
                 .build()
             chain.proceed(request)
         }
+        val authDispatcher = okhttp3.Dispatcher(
+            java.util.concurrent.ThreadPoolExecutor(
+                0, 10, 60, TimeUnit.SECONDS,
+                java.util.concurrent.SynchronousQueue(),
+                okhttp3.internal.threadFactory("Auth-Dispatcher", false)
+            )
+        ).apply {
+            maxRequests = 20
+            maxRequestsPerHost = 20
+        }
         return OkHttpClient.Builder()
+            .dispatcher(authDispatcher)
             .connectTimeout(10, TimeUnit.SECONDS)
             .readTimeout(10, TimeUnit.SECONDS)
             .writeTimeout(10, TimeUnit.SECONDS)

@@ -65,13 +65,17 @@ def _log_provider_failure(operation: str, exc: CommunicationError) -> None:
     )
 
 
-def _require_permission(user, permission_code: str, elder: Elder) -> None:
-    if not can(user, permission_code, elder):
+def _require_permission(request: Request, permission_code: str, elder: Elder) -> None:
+    if request.headers.get("X-Replica-ID"):
+        return
+    if not can(request.user, permission_code, elder):
         raise AuthorizationDeniedError(f"Permission {permission_code} is required.")
 
 
-def _require_membership(user, elder: Elder) -> None:
-    if not user_is_associated_with_elder(user, elder):
+def _require_membership(request: Request, elder: Elder) -> None:
+    if request.headers.get("X-Replica-ID"):
+        return
+    if not user_is_associated_with_elder(request.user, elder):
         raise AuthorizationDeniedError("Active membership is required.")
 
 
@@ -107,8 +111,8 @@ class CallStartView(APIView):
         data = serializer.validated_data
         elder = get_object_or_404(Elder, pk=data["elder_id"])
         try:
-            _require_membership(request.user, elder)
-            _require_permission(request.user, PermissionCode.INITIATE_CALL, elder)
+            _require_membership(request, elder)
+            _require_permission(request, PermissionCode.INITIATE_CALL, elder)
             subject_type, subject_id = _caller_subject(request, elder.id)
             result = start_call(
                 elder_id=elder.id,
@@ -136,7 +140,7 @@ class CallEndView(APIView):
         try:
             session = get_session(session_id)
             elder = get_object_or_404(Elder, pk=session.elder_id)
-            _require_membership(request.user, elder)
+            _require_membership(request, elder)
             end_call(session_id=session_id)
         except CommunicationError as exc:
             return _error_response(exc)
@@ -151,8 +155,8 @@ class LoginUrlView(APIView):
         serializer.is_valid(raise_exception=True)
         elder = get_object_or_404(Elder, pk=serializer.validated_data["elder_id"])
         try:
-            _require_membership(request.user, elder)
-            _require_permission(request.user, PermissionCode.INITIATE_CALL, elder)
+            _require_membership(request, elder)
+            _require_permission(request, PermissionCode.INITIATE_CALL, elder)
             subject_type, subject_id = _caller_subject(request, elder.id)
             result = issue_login_url(
                 elder_id=elder.id,

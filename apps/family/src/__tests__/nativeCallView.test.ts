@@ -18,6 +18,13 @@ jest.mock("react-native", () => {
 import { NativeCallView } from "../components/NativeCallView";
 import * as mediaPermissions from "../permissions/mediaPermissions";
 
+describe("polyfills — Event compatibility for LiveKit", () => {
+  it("exposes global Event/EventTarget before LiveKit is imported (regression)", () => {
+    require("../polyfills");
+    expect(typeof (globalThis as any).Event !== "undefined" || typeof (global as any).Event !== "undefined").toBe(true);
+  });
+});
+
 describe("NativeCallView component contract", () => {
   afterEach(() => {
     jest.clearAllMocks();

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   listMessages,
@@ -19,44 +19,115 @@ export type SendMediaParams = {
   height?: number;
 };
 
+function deduplicateAndSort(messages: Message[]): Message[] {
+  const byId = new Map<string, Message>();
+  const byIdempotency = new Map<string, Message>();
+
+  for (const msg of messages) {
+    if (msg.idempotency_key && byIdempotency.has(msg.idempotency_key)) {
+      const existing = byIdempotency.get(msg.idempotency_key)!;
+      if (existing.id.startsWith("temp_") && !msg.id.startsWith("temp_")) {
+        byId.delete(existing.id);
+        byId.set(msg.id, msg);
+        byIdempotency.set(msg.idempotency_key, msg);
+      }
+      continue;
+    }
+    byId.set(msg.id, msg);
+    if (msg.idempotency_key) {
+      byIdempotency.set(msg.idempotency_key, msg);
+    }
+  }
+
+  return Array.from(byId.values()).sort(
+    (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
+  );
+}
+
 export function useMessages(elderId: string | null | undefined) {
   const queryClient = useQueryClient();
   const deliveredAcks = useRef<Set<string>>(new Set());
+  const readAcks = useRef<Set<string>>(new Set());
 
-  const messagesQueryKey = elderId ? queryKeys.messages(elderId) : ["messages"];
+  const messagesQueryKey = useMemo(
+    () => (elderId ? queryKeys.messages(elderId) : ["messages"]),
+    [elderId],
+  );
 
   const query = useQuery({
     queryKey: messagesQueryKey,
     enabled: Boolean(elderId),
-    queryFn: () => listMessages(elderId as string),
+    queryFn: async () => {
+      const serverMessages = await listMessages(elderId as string);
+      const currentCache = queryClient.getQueryData<Message[]>(messagesQueryKey) ?? [];
+      const inFlightOrFailed = currentCache.filter(
+        (local) =>
+          (local.status === "PENDING" || local.status === "FAILED") &&
+          !serverMessages.some(
+            (server) =>
+              server.id === local.id ||
+              (server.idempotency_key &&
+                local.idempotency_key &&
+                server.idempotency_key === local.idempotency_key),
+          ),
+      );
+      return deduplicateAndSort([...serverMessages, ...inFlightOrFailed]);
+    },
     refetchInterval: 3000,
   });
 
-  const messages = query.data ?? [];
+  const rawMessages = query.data;
+  const messages = useMemo(() => {
+    return deduplicateAndSort(rawMessages ?? []);
+  }, [rawMessages]);
 
-  // Automatically acknowledge delivery for incoming HUB_TO_FAMILY messages
+  // Automatically acknowledge delivery and read for incoming HUB_TO_FAMILY messages
   useEffect(() => {
     if (!messages.length) return;
     for (const msg of messages) {
-      if (
-        msg.direction === "HUB_TO_FAMILY" &&
-        msg.status === "SENT" &&
-        !deliveredAcks.current.has(msg.id)
-      ) {
-        deliveredAcks.current.add(msg.id);
-        markMessageDelivered(msg.id).catch(() => {
-          deliveredAcks.current.delete(msg.id);
-        });
+      if (msg.direction === "HUB_TO_FAMILY") {
+        if (msg.status === "SENT" && !deliveredAcks.current.has(msg.id)) {
+          deliveredAcks.current.add(msg.id);
+          markMessageDelivered(msg.id)
+            .then((updated) => {
+              queryClient.setQueryData<Message[]>(messagesQueryKey, (prev = []) =>
+                prev.map((m) =>
+                  m.id === msg.id
+                    ? { ...m, status: updated.status, delivered_at: updated.delivered_at }
+                    : m,
+                ),
+              );
+            })
+            .catch(() => {
+              deliveredAcks.current.delete(msg.id);
+            });
+        }
+        if (msg.status !== "READ" && !msg.read && !readAcks.current.has(msg.id)) {
+          readAcks.current.add(msg.id);
+          markMessageRead(msg.id)
+            .then((updated) => {
+              queryClient.setQueryData<Message[]>(messagesQueryKey, (prev = []) =>
+                prev.map((m) =>
+                  m.id === msg.id
+                    ? { ...m, status: "READ", read: true, read_at: updated.read_at }
+                    : m,
+                ),
+              );
+            })
+            .catch(() => {
+              readAcks.current.delete(msg.id);
+            });
+        }
       }
     }
-  }, [messages]);
+  }, [messages, messagesQueryKey, queryClient]);
 
   const markAsRead = useCallback(
     async (messageId: string) => {
       try {
         const updated = await markMessageRead(messageId);
-        queryClient.setQueryData<Message[]>(messagesQueryKey, (prev) =>
-          prev ? prev.map((m) => (m.id === messageId ? updated : m)) : [updated],
+        queryClient.setQueryData<Message[]>(messagesQueryKey, (prev = []) =>
+          prev.map((m) => (m.id === messageId ? updated : m)),
         );
       } catch {
         // Best-effort read acknowledgement
@@ -93,24 +164,25 @@ export function useMessages(elderId: string | null | undefined) {
         attachment: null,
       };
 
-      queryClient.setQueryData<Message[]>(messagesQueryKey, (prev) => [
-        ...(prev ?? []),
-        optimisticMessage,
-      ]);
+      queryClient.setQueryData<Message[]>(messagesQueryKey, (prev = []) =>
+        deduplicateAndSort([...prev, optimisticMessage]),
+      );
 
       try {
         const saved = await sendMessage(elderId, request);
-        queryClient.setQueryData<Message[]>(messagesQueryKey, (prev) =>
-          prev ? prev.map((m) => (m.id === optimisticId ? saved : m)) : [saved],
+        queryClient.setQueryData<Message[]>(messagesQueryKey, (prev = []) =>
+          deduplicateAndSort(
+            prev.map((m) =>
+              m.id === optimisticId || m.idempotency_key === idempotencyKey ? saved : m,
+            ),
+          ),
         );
         return saved;
       } catch (err) {
-        queryClient.setQueryData<Message[]>(messagesQueryKey, (prev) =>
-          prev
-            ? prev.map((m) =>
-                m.id === optimisticId ? { ...m, status: "FAILED" as const } : m,
-              )
-            : [],
+        queryClient.setQueryData<Message[]>(messagesQueryKey, (prev = []) =>
+          prev.map((m) =>
+            m.id === optimisticId ? { ...m, status: "FAILED" as const } : m,
+          ),
         );
         throw err;
       }
@@ -122,7 +194,6 @@ export function useMessages(elderId: string | null | undefined) {
       if (!elderId) throw new Error("Elder ID is required");
 
       const formData = new FormData();
-      // Handle React Native vs Web FormData
       if ("uri" in params.file) {
         formData.append("file", {
           uri: params.file.uri,
@@ -161,10 +232,9 @@ export function useMessages(elderId: string | null | undefined) {
         attachment: null,
       };
 
-      queryClient.setQueryData<Message[]>(messagesQueryKey, (prev) => [
-        ...(prev ?? []),
-        optimisticMessage,
-      ]);
+      queryClient.setQueryData<Message[]>(messagesQueryKey, (prev = []) =>
+        deduplicateAndSort([...prev, optimisticMessage]),
+      );
 
       try {
         const attachment = await uploadMedia(formData);
@@ -176,22 +246,58 @@ export function useMessages(elderId: string | null | undefined) {
           idempotency_key: idempotencyKey,
         };
         const saved = await sendMessage(elderId, request);
-        queryClient.setQueryData<Message[]>(messagesQueryKey, (prev) =>
-          prev ? prev.map((m) => (m.id === optimisticId ? saved : m)) : [saved],
+        queryClient.setQueryData<Message[]>(messagesQueryKey, (prev = []) =>
+          deduplicateAndSort(
+            prev.map((m) =>
+              m.id === optimisticId || m.idempotency_key === idempotencyKey ? saved : m,
+            ),
+          ),
         );
         return saved;
       } catch (err) {
-        queryClient.setQueryData<Message[]>(messagesQueryKey, (prev) =>
-          prev
-            ? prev.map((m) =>
-                m.id === optimisticId ? { ...m, status: "FAILED" as const } : m,
-              )
-            : [],
+        queryClient.setQueryData<Message[]>(messagesQueryKey, (prev = []) =>
+          prev.map((m) =>
+            m.id === optimisticId ? { ...m, status: "FAILED" as const } : m,
+          ),
         );
         throw err;
       }
     },
   });
+
+  const retryMessage = useCallback(
+    async (messageId: string) => {
+      if (!elderId) return;
+      const currentMessages = queryClient.getQueryData<Message[]>(messagesQueryKey) ?? [];
+      const target = currentMessages.find((m) => m.id === messageId);
+      if (!target || target.status !== "FAILED") return;
+
+      queryClient.setQueryData<Message[]>(messagesQueryKey, (prev = []) =>
+        prev.map((m) => (m.id === messageId ? { ...m, status: "PENDING" as const } : m)),
+      );
+
+      try {
+        const request: SendMessageRequest = {
+          direction: "FAMILY_TO_HUB",
+          message_type: target.message_type,
+          body: target.body,
+          attachment_id: target.attachment?.id ?? null,
+          idempotency_key: target.idempotency_key,
+        };
+        const saved = await sendMessage(elderId, request);
+        queryClient.setQueryData<Message[]>(messagesQueryKey, (prev = []) =>
+          deduplicateAndSort(prev.map((m) => (m.id === messageId ? saved : m))),
+        );
+        return saved;
+      } catch (err) {
+        queryClient.setQueryData<Message[]>(messagesQueryKey, (prev = []) =>
+          prev.map((m) => (m.id === messageId ? { ...m, status: "FAILED" as const } : m)),
+        );
+        throw err;
+      }
+    },
+    [elderId, messagesQueryKey, queryClient],
+  );
 
   return {
     messages,
@@ -199,6 +305,7 @@ export function useMessages(elderId: string | null | undefined) {
     isError: query.isError,
     refetch: query.refetch,
     markAsRead,
+    retryMessage,
     sendTextMessage: sendTextMutation.mutateAsync,
     sendMediaMessage: sendMediaMutation.mutateAsync,
     isSending: sendTextMutation.isPending || sendMediaMutation.isPending,

@@ -26,8 +26,14 @@ interface CareActivityDao {
     @Query("SELECT * FROM care_activity WHERE elder_id = :elderId AND status = 'ACTIVE' ORDER BY display_title")
     fun observeActiveByElder(elderId: String): Flow<List<CareActivityEntity>>
 
+    @Query("SELECT * FROM care_activity")
+    suspend fun getAll(): List<CareActivityEntity>
+
     @Query("SELECT * FROM care_activity ORDER BY display_title")
     fun observeAll(): Flow<List<CareActivityEntity>>
+
+    @Query("SELECT * FROM care_activity WHERE id = :careActivityId LIMIT 1")
+    suspend fun getById(careActivityId: String): CareActivityEntity?
 
     @Query("SELECT * FROM care_activity WHERE schedule_definition_id = :scheduleDefinitionId LIMIT 1")
     suspend fun getByScheduleDefinitionId(scheduleDefinitionId: String): CareActivityEntity?
@@ -94,6 +100,9 @@ interface WorkflowExecutionDao {
 interface ScheduleDefinitionDao {
     @Query("SELECT * FROM schedule_definition ORDER BY owner_reference")
     fun observeAll(): Flow<List<ScheduleDefinitionEntity>>
+
+    @Query("SELECT * FROM schedule_definition")
+    suspend fun getAll(): List<ScheduleDefinitionEntity>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(entity: ScheduleDefinitionEntity)
@@ -194,6 +203,9 @@ interface OccurrenceDao {
 
     @Query("DELETE FROM occurrence WHERE schedule_definition_id = :scheduleDefinitionId")
     suspend fun deleteByScheduleDefinitionId(scheduleDefinitionId: String)
+
+    @Query("DELETE FROM occurrence WHERE schedule_definition_id = :scheduleDefinitionId AND status IN ('DUE', 'SCHEDULED') AND scheduled_for_epoch_millis > :nowEpochMillis")
+    suspend fun deleteFutureByScheduleDefinitionId(scheduleDefinitionId: String, nowEpochMillis: Long)
 }
 
 @Dao

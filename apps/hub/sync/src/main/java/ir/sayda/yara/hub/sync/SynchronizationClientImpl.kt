@@ -306,68 +306,54 @@ class SynchronizationClientImpl @Inject constructor(
 
 
         val localCheckpoint = replicaMetadataRepository.getReplicaState()?.checkpointSequence ?: 0L
+        runCatching {
+            android.util.Log.i("YaraSync", "sync.session.started key=$idempotencyKey checkpoint=$localCheckpoint")
+        }
 
         val pending = when (val operations = downloadSessionRunner.downloadPendingOperations()) {
             is AppResult.Success -> operations.data
-            is AppResult.Error -> return operations.mapError()
+            is AppResult.Error -> {
+                runCatching {
+                    android.util.Log.w("YaraSync", "sync.download.failed key=$idempotencyKey error=${operations.exception.message}")
+                }
+                return operations.mapError()
+            }
         }
         val snapshots = pending.filter(::isSnapshotOperation)
         val deltas = pending.filterNot(::isSnapshotOperation)
 
-
-
         val operations = snapshots + deltas
-
         val token = syncSessionStore.getCached()?.synchronizationToken
 
-
-
         if (operations.isEmpty()) {
-
             when (val advanced = advanceCheckpoint(token)) {
-
                 is AppResult.Error -> return advanced.mapError()
-
                 is AppResult.Success -> Unit
-
             }
-
             replicaMetadataRepository.touchLastSuccessfulSync()
-
             when (val completed = downloadSessionRunner.complete()) {
-
                 is AppResult.Error -> return completed.mapError()
-
                 is AppResult.Success -> Unit
-
             }
-
+            runCatching {
+                android.util.Log.i("YaraSync", "sync.session.completed key=$idempotencyKey operations=0 applied=0")
+            }
             return AppResult.Success(emptySummary())
-
         }
 
-
-
         val summary = try {
-
             val nextCheckpoint = localCheckpoint + 1
-
             syncApplyTransaction.withReplicaMutation(nextCheckpoint, token) {
-
                 when (val applied = downloadSessionRunner.applyAndFinalize(operations)) {
-
                     is AppResult.Success -> applied.data
-
                     is AppResult.Error -> throw applied.exception
-
                 }
-
             }
-
         } catch (exception: Exception) {
-
+            runCatching {
+                android.util.Log.e("YaraSync", "sync.apply.failed key=$idempotencyKey error=${exception.message}", exception)
+            }
             return AppResult.Error(exception)
-
         }
 
 
@@ -401,12 +387,15 @@ class SynchronizationClientImpl @Inject constructor(
         }
 
         if (!refreshScope.isEmpty) {
-
             runtimeRefreshPort.refreshAfterSync(refreshScope)
-
         }
 
-
+        runCatching {
+            android.util.Log.i(
+                "YaraSync",
+                "sync.session.completed key=$idempotencyKey operations=${operations.size} applied=${summary.appliedCount} skipped=${summary.skippedCount} conflicts=${summary.conflictCount}",
+            )
+        }
 
         return AppResult.Success(summary)
 

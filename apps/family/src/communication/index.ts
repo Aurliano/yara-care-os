@@ -1,5 +1,5 @@
 export type { CallDirection, CallRuntimeState, CallSession, IncomingSessionNotice } from "./model";
-export { ACTIVE_CALL_STATES, INCOMING_SESSION_STATUSES, isActiveCallState } from "./model";
+export { ACTIVE_CALL_STATES, INCOMING_SESSION_STATUSES, TERMINAL_SESSION_STATUSES, isActiveCallState } from "./model";
 export { ActiveCallExistsError, IllegalTransitionError, err, ok } from "./result";
 export type { AppResult } from "./result";
 export { CommunicationStateMachine } from "./CommunicationStateMachine";

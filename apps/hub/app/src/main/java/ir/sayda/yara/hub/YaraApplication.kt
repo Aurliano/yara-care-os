@@ -19,6 +19,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
 @HiltAndroidApp
@@ -50,15 +52,29 @@ class YaraApplication : Application(), Configuration.Provider {
     }
 
     private suspend fun startRuntimeServices() {
-        val syncResult = runSynchronizationCycleUseCase("app-start:${System.currentTimeMillis()}")
+        runCatching { runSynchronizationCycleUseCase("app-start:${System.currentTimeMillis()}") }
         recoverRuntimeUseCase()
-        if (syncResult is AppResult.Success && !syncResult.data.hasAppliedChanges) {
-            reconcileRuntimeUseCase()
-        }
+        reconcileRuntimeUseCase()
         runtimeScheduler.schedulePeriodicRuntimeWork()
         runtimeScheduler.scheduleRecurringSyncPoll()
         connectivitySyncTrigger.register()
         communicationRuntime.startIncomingCallPoller()
+        startForegroundSyncLoop()
+    }
+
+    private fun startForegroundSyncLoop() {
+        applicationScope.launch {
+            while (isActive) {
+                delay(FOREGROUND_SYNC_INTERVAL_MS)
+                runCatching {
+                    runSynchronizationCycleUseCase("foreground-poll:${System.currentTimeMillis()}")
+                }
+            }
+        }
+    }
+
+    companion object {
+        private const val FOREGROUND_SYNC_INTERVAL_MS = 30_000L
     }
 
     override val workManagerConfiguration: Configuration

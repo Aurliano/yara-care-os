@@ -12,6 +12,7 @@ import type {
   Prescription,
 } from "../../api/types";
 import { loadElderDevices, type ElderDeviceCatalog } from "../devices/deviceRepository";
+import { shouldShowOnTodayProgram } from "../program/todayProgram";
 
 export type DashboardTone = "calm" | "attention" | "urgent" | "unknown";
 
@@ -69,6 +70,9 @@ export async function composeDashboard(elderId: string): Promise<DashboardModel>
       completions.push(...history);
       const occurrences = Array.isArray(occResult) ? occResult : occResult ? [occResult] : [];
       for (const occurrence of occurrences) {
+        if (!shouldShowOnTodayProgram(activity, occurrence)) {
+          continue;
+        }
         today.push({
           activity,
           occurrence,

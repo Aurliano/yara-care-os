@@ -32,9 +32,15 @@ class ReplicaChangeApplier @Inject constructor(
         val confirmedExecutions = mutableSetOf<String>()
 
         for (operation in operations) {
+            runCatching {
+                android.util.Log.i("YaraSync", "replica.operation.received aggregate=${operation.aggregateReference} type=${operation.payloadType} version=${operation.aggregateVersion}")
+            }
             if (operation.operationType == SyncOperationType.SNAPSHOT || operation.payloadType.endsWith(".snapshot")) {
                 domains += snapshotApplier.apply(operation)
                 applied++
+                runCatching {
+                    android.util.Log.i("YaraSync", "replica.operation.applied aggregate=${operation.aggregateReference} type=snapshot")
+                }
                 continue
             }
 
@@ -43,12 +49,23 @@ class ReplicaChangeApplier @Inject constructor(
                     ApplyOutcome.APPLIED -> {
                         applied++
                         domains += ReplicaDomain.CARE
-                        if (syncPayloadParser.careDeltaIncludesScheduling(operation.payloadJson)) {
-                            domains += ReplicaDomain.SCHEDULING
+                        domains += ReplicaDomain.SCHEDULING
+                        runCatching {
+                            android.util.Log.i("YaraSync", "replica.operation.applied aggregate=${operation.aggregateReference} type=${operation.payloadType}")
                         }
                     }
-                    ApplyOutcome.SKIPPED -> skipped++
-                    ApplyOutcome.CONFLICT -> conflicts++
+                    ApplyOutcome.SKIPPED -> {
+                        skipped++
+                        runCatching {
+                            android.util.Log.i("YaraSync", "replica.operation.skipped aggregate=${operation.aggregateReference} reason=version_guard")
+                        }
+                    }
+                    ApplyOutcome.CONFLICT -> {
+                        conflicts++
+                        runCatching {
+                            android.util.Log.w("YaraSync", "replica.operation.conflict aggregate=${operation.aggregateReference} version=${operation.aggregateVersion}")
+                        }
+                    }
                 }
                 "workflow.execution.delta" -> when (applyWorkflowDelta(operation)) {
                     ApplyOutcome.APPLIED -> {
@@ -61,27 +78,71 @@ class ReplicaChangeApplier @Inject constructor(
                         if (execution.status == "CONFIRMED") {
                             confirmedExecutions += execution.id
                         }
+                        runCatching {
+                            android.util.Log.i("YaraSync", "replica.operation.applied aggregate=${operation.aggregateReference} type=${operation.payloadType}")
+                        }
                     }
-                    ApplyOutcome.SKIPPED -> skipped++
-                    ApplyOutcome.CONFLICT -> conflicts++
+                    ApplyOutcome.SKIPPED -> {
+                        skipped++
+                        runCatching {
+                            android.util.Log.i("YaraSync", "replica.operation.skipped aggregate=${operation.aggregateReference} reason=version_guard")
+                        }
+                    }
+                    ApplyOutcome.CONFLICT -> {
+                        conflicts++
+                        runCatching {
+                            android.util.Log.w("YaraSync", "replica.operation.conflict aggregate=${operation.aggregateReference} version=${operation.aggregateVersion}")
+                        }
+                    }
                 }
                 "device.delta" -> when (applyDeviceDelta(operation)) {
                     ApplyOutcome.APPLIED -> {
                         applied++
                         domains += ReplicaDomain.DEVICE
+                        runCatching {
+                            android.util.Log.i("YaraSync", "replica.operation.applied aggregate=${operation.aggregateReference} type=${operation.payloadType}")
+                        }
                     }
-                    ApplyOutcome.SKIPPED -> skipped++
-                    ApplyOutcome.CONFLICT -> conflicts++
+                    ApplyOutcome.SKIPPED -> {
+                        skipped++
+                        runCatching {
+                            android.util.Log.i("YaraSync", "replica.operation.skipped aggregate=${operation.aggregateReference} reason=version_guard")
+                        }
+                    }
+                    ApplyOutcome.CONFLICT -> {
+                        conflicts++
+                        runCatching {
+                            android.util.Log.w("YaraSync", "replica.operation.conflict aggregate=${operation.aggregateReference} version=${operation.aggregateVersion}")
+                        }
+                    }
                 }
                 "communication.session.delta" -> when (applyCommunicationDelta(operation)) {
                     ApplyOutcome.APPLIED -> {
                         applied++
                         domains += ReplicaDomain.COMMUNICATION
+                        runCatching {
+                            android.util.Log.i("YaraSync", "replica.operation.applied aggregate=${operation.aggregateReference} type=${operation.payloadType}")
+                        }
                     }
-                    ApplyOutcome.SKIPPED -> skipped++
-                    ApplyOutcome.CONFLICT -> conflicts++
+                    ApplyOutcome.SKIPPED -> {
+                        skipped++
+                        runCatching {
+                            android.util.Log.i("YaraSync", "replica.operation.skipped aggregate=${operation.aggregateReference} reason=version_guard")
+                        }
+                    }
+                    ApplyOutcome.CONFLICT -> {
+                        conflicts++
+                        runCatching {
+                            android.util.Log.w("YaraSync", "replica.operation.conflict aggregate=${operation.aggregateReference} version=${operation.aggregateVersion}")
+                        }
+                    }
                 }
-                else -> skipped++
+                else -> {
+                    skipped++
+                    runCatching {
+                        android.util.Log.w("YaraSync", "replica.operation.skipped aggregate=${operation.aggregateReference} reason=unknown_payload_type type=${operation.payloadType}")
+                    }
+                }
             }
         }
 
@@ -98,7 +159,8 @@ class ReplicaChangeApplier @Inject constructor(
 
     private suspend fun applyCareDelta(operation: SyncOperation): ApplyOutcome {
         val bundle = syncPayloadParser.parseCareActivityBundle(operation.payloadJson, operation.aggregateVersion)
-        val current = careReplicaRepository.getCareActivityByScheduleDefinition(bundle.activity.scheduleDefinitionId)
+        val current = careReplicaRepository.getCareActivityById(bundle.activity.id)
+            ?: careReplicaRepository.getCareActivityByScheduleDefinition(bundle.activity.scheduleDefinitionId)
         return applyWithVersionGuard(
             operation = operation,
             localVersion = current?.aggregateVersion?.toString(),
@@ -106,12 +168,23 @@ class ReplicaChangeApplier @Inject constructor(
             careReplicaRepository.upsertCareActivity(bundle.activity)
             bundle.prescription?.let { careReplicaRepository.upsertPrescription(it) }
             val schedule = bundle.schedule
+            val isCareEnded = bundle.activity.status.equals("ENDED", ignoreCase = true) ||
+                              bundle.activity.status.equals("CANCELLED", ignoreCase = true)
+            val isScheduleEnded = schedule?.status?.equals("CANCELLED", ignoreCase = true) == true ||
+                                  schedule?.status?.equals("ENDED", ignoreCase = true) == true
+
             if (schedule != null) {
                 schedulingReplicaRepository.upsertScheduleDefinition(schedule)
-                schedulingReplicaRepository.replaceOccurrencesForSchedule(
-                    scheduleDefinitionId = schedule.id,
-                    occurrences = bundle.occurrences,
-                )
+                if (isCareEnded || isScheduleEnded) {
+                    schedulingReplicaRepository.cancelFutureOccurrencesForSchedule(schedule.id)
+                } else {
+                    schedulingReplicaRepository.replaceOccurrencesForSchedule(
+                        scheduleDefinitionId = schedule.id,
+                        occurrences = bundle.occurrences,
+                    )
+                }
+            } else if (isCareEnded && bundle.activity.scheduleDefinitionId.isNotBlank()) {
+                schedulingReplicaRepository.cancelFutureOccurrencesForSchedule(bundle.activity.scheduleDefinitionId)
             }
         }
     }

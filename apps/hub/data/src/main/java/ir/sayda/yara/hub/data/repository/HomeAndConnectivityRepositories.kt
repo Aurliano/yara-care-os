@@ -73,15 +73,15 @@ class HomeRepositoryImpl @Inject constructor(
             }
         } ?: flowOf(emptyList())
 
-        return clockFlow().flatMapLatest { nowEpochMillis ->
+        return combine(
+            clockFlow(),
             combine(
-                combine(
-                    workflowReplicaRepository.observeActiveExecutions(),
-                    schedulingReplicaRepository.observeTodayReminders(endOfDay),
-                    schedulingReplicaRepository.observeNextReminderOccurrence(nowEpochMillis, endOfDay),
-                ) { executions, todayOccurrences, nextOccurrence ->
-                    Triple(executions, todayOccurrences, nextOccurrence)
-                },
+                workflowReplicaRepository.observeActiveExecutions(),
+                schedulingReplicaRepository.observeTodayReminders(endOfDay),
+                schedulingReplicaRepository.observeNextScheduledOccurrence(System.currentTimeMillis()),
+            ) { executions, todayOccurrences, nextScheduled ->
+                Triple(executions, todayOccurrences, nextScheduled)
+            },
             combine(
                 careReplicaRepository.observeAllCareActivities(),
                 careReplicaRepository.observePrescriptions(),
@@ -115,9 +115,22 @@ class HomeRepositoryImpl @Inject constructor(
                 )
             },
             replicaDiagnosticsReader.observeCounts(),
-            ) { executionInputs, careInputs, runtimeInputs, diagnostics ->
-                val (executions, todayOccurrences, nextOccurrence) = executionInputs
+            ) { nowEpochMillis: Long, executionInputs, careInputs, runtimeInputs, diagnostics ->
+                val (executions, todayOccurrences, nextScheduled) = executionInputs
                 val (careActivities, prescriptions, replicaState) = careInputs
+                val activeScheduleIds = careActivities
+                    .filter { it.status.equals("ACTIVE", ignoreCase = true) }
+                    .map { it.scheduleDefinitionId }
+                    .toSet()
+
+                val nextOccurrence = todayOccurrences
+                    .filter {
+                        it.scheduledForEpochMillis > nowEpochMillis &&
+                            it.status == "SCHEDULED" &&
+                            (activeScheduleIds.isEmpty() || it.scheduleDefinitionId in activeScheduleIds)
+                    }
+                    .minByOrNull { it.scheduledForEpochMillis }
+                    ?: nextScheduled?.takeIf { activeScheduleIds.isEmpty() || it.scheduleDefinitionId in activeScheduleIds }
                 buildSnapshot(
                     identity = identity,
                     nowEpochMillis = nowEpochMillis,
@@ -140,7 +153,6 @@ class HomeRepositoryImpl @Inject constructor(
                     diagnostics = diagnostics,
                 )
             }
-        }
     }
 
     private fun clockFlow(intervalMs: Long = 15_000L): Flow<Long> = flow {
@@ -181,9 +193,12 @@ class HomeRepositoryImpl @Inject constructor(
         val activityBySchedule = careActivities.associateBy { it.scheduleDefinitionId }
         val prescriptionByActivity = prescriptions.associateBy { it.careActivityId }
         val executionByOccurrence = executions.associateBy { it.occurrenceId }
-        val allTodayReminders = todayOccurrences.map { occurrence ->
+        val allTodayReminders = todayOccurrences.mapNotNull { occurrence ->
             val activity = activityBySchedule[occurrence.scheduleDefinitionId]
-            val prescription = activity?.let { prescriptionByActivity[it.id] }
+            if (activity == null || activity.status != "ACTIVE") {
+                return@mapNotNull null
+            }
+            val prescription = prescriptionByActivity[activity.id]
             val confirmedAt = executionByOccurrence[occurrence.id]?.id?.let { confirmedAtByExecutionId[it] }
             TodayReminderItem(
                 occurrenceId = occurrence.id,

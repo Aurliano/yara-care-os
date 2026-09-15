@@ -40,4 +40,8 @@ class HubNavigationCoordinator @Inject constructor(
             }
         }
     }
+
+    fun consumeOpenRequest() {
+        _openRequests.value = null
+    }
 }

@@ -73,4 +73,32 @@ class RuntimeAlarmCoordinatorTest {
         assertFalse(alarmRegistry.isOccurrenceAlarmRegistered("stale"))
         assertTrue(alarmRegistry.isOccurrenceAlarmRegistered("occ-1"))
     }
+
+    @Test
+    fun cancelledSchedulesDoNotRegisterAlarms() = runTest {
+        val schedulingRepository = InMemorySchedulingRepository()
+        val alarmRegistry = InMemoryOccurrenceAlarmRegistry()
+        val coordinator = RuntimeAlarmCoordinator(schedulingRepository, alarmRegistry)
+        val now = 1_700_000_000_000L
+
+        val cancelledSchedule = ir.sayda.yara.hub.runtime.support.sampleSchedule(
+            id = "schedule-cancelled",
+            startAtEpochMillis = now,
+        ).copy(status = ir.sayda.yara.hub.core.scheduling.ScheduleStatus.CANCELLED.name)
+
+        schedulingRepository.upsertScheduleDefinition(cancelledSchedule)
+        schedulingRepository.upsertOccurrence(
+            Occurrence(
+                id = "occ-cancelled",
+                scheduleDefinitionId = "schedule-cancelled",
+                scheduledForEpochMillis = now + 60_000L,
+                status = OccurrenceStatus.SCHEDULED.name,
+                updatedAtEpochMillis = now,
+            ),
+        )
+
+        coordinator.syncAlarmsFromReplicas(nowEpochMillis = now)
+
+        assertFalse(alarmRegistry.isOccurrenceAlarmRegistered("occ-cancelled"))
+    }
 }

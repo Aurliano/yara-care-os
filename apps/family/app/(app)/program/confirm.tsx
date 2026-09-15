@@ -6,8 +6,8 @@ import { endCareActivity } from "../../../src/api/endpoints/care";
 import { createScheduleException } from "../../../src/api/endpoints/scheduling";
 import { AppText, Button, Card, Screen, TextField, TopAppBar } from "../../../src/components";
 import { t } from "../../../src/i18n";
-import { toLatinDigits } from "../../../src/i18n/numerals";
 import { firstParam } from "../../../src/navigation/params";
+import { combineTehranDateTime, datePartInTehran } from "../../../src/services/program/onceSchedule";
 import { invalidateProgramQueries } from "../../../src/services/program/todayProgram";
 import { useElderStore } from "../../../src/stores/elderStore";
 import { colors, spacing } from "../../../src/theme/tokens";
@@ -39,13 +39,16 @@ export default function ConfirmScreen() {
       if (params.kind === "end") {
         await endCareActivity(params.activityId);
       } else if (params.kind === "reschedule" && params.scheduleId && params.originalTime) {
-        const [h, m] = toLatinDigits(time).split(":");
-        const original = new Date(params.originalTime);
-        original.setHours(Number(h), Number(m), 0, 0);
+        const datePart = datePartInTehran(params.originalTime);
+        const replacementTime = datePart ? combineTehranDateTime(datePart, time) : null;
+        if (!replacementTime) {
+          setError(t.invalidDateTime);
+          return;
+        }
         await createScheduleException(params.scheduleId, {
           original_time: params.originalTime,
           exception_type: "RESCHEDULE",
-          replacement_time: original.toISOString(),
+          replacement_time: replacementTime,
         });
       }
       invalidateProgramQueries(queryClient, elderId, params.activityId);

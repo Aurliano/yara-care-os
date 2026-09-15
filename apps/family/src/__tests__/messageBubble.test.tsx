@@ -122,4 +122,25 @@ describe("MessageBubble Component", () => {
     expect(getByText(/park\.mp/i)).toBeTruthy();
     expect(getByText("ویدیوی پارک")).toBeTruthy();
   });
+
+  it("renders failed status with retry button and calls onRetry when clicked", () => {
+    const failedMsg: Message = {
+      ...baseTextMessage,
+      id: "msg-fail",
+      direction: "FAMILY_TO_HUB",
+      status: "FAILED",
+    };
+    const onRetry = jest.fn();
+
+    const { getByText } = render(
+      <MessageBubble message={failedMsg} onRetry={onRetry} />,
+    );
+
+    expect(getByText(/ارسال ناموفق/)).toBeTruthy();
+    expect(getByText(/تلاش دوباره/)).toBeTruthy();
+
+    const retryBtn = getByText(/تلاش دوباره/);
+    fireEvent.press(retryBtn);
+    expect(onRetry).toHaveBeenCalledWith("msg-fail");
+  });
 });

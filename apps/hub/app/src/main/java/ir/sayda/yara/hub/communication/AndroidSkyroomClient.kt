@@ -53,10 +53,10 @@ class AndroidSkyroomClient @Inject constructor(
                     override fun onPageFinished(view: WebView?, url: String?) {
                         if (continuation.isActive) {
                             joined = true
-                            events.tryEmit(CallMediaEvent.Joined)
+                            events.tryEmit(CallMediaEvent.Joined())
                             continuation.resume(Unit)
                         } else if (joined) {
-                            events.tryEmit(CallMediaEvent.ConnectionRestored)
+                            events.tryEmit(CallMediaEvent.ConnectionRestored())
                         }
                     }
 
@@ -65,7 +65,7 @@ class AndroidSkyroomClient @Inject constructor(
                         request: WebResourceRequest?,
                         error: WebResourceError?,
                     ) {
-                        events.tryEmit(CallMediaEvent.ConnectionLost)
+                        events.tryEmit(CallMediaEvent.ConnectionLost())
                     }
                 }
                 view.loadUrl(loginUrl)
@@ -77,7 +77,7 @@ class AndroidSkyroomClient @Inject constructor(
     override suspend fun leave() {
         withContext(Dispatchers.Main) {
             leaveInternal()
-            events.tryEmit(CallMediaEvent.Left)
+            events.tryEmit(CallMediaEvent.Left())
         }
     }
 

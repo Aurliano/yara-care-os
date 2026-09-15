@@ -13,7 +13,7 @@ data class TokenRequestDto(
 @Serializable
 data class TokenResponseDto(
     val access: String,
-    val refresh: String,
+    val refresh: String? = null,
 )
 
 @Serializable

@@ -46,7 +46,7 @@ class AuthRepositoryImpl @Inject constructor(
             val now = System.currentTimeMillis()
             val identity = current.copy(
                 accessToken = response.access,
-                refreshToken = response.refresh,
+                refreshToken = response.refresh ?: "",
                 tokenExpiresAtEpochMillis = JwtExpiryParser.expiresAtEpochMillis(response.access, now),
                 lastAuthenticatedAtEpochMillis = now,
                 provisioningState = ProvisioningState.READY,

@@ -7,7 +7,7 @@ import {
   pendingInvitationTitle,
   usesInviteCodeAsName,
 } from "../services/family/invitationDisplay";
-import { combineTehranDateTime, onceRecurrence } from "../services/program/onceSchedule";
+import { combineTehranDateTime, datePartInTehran, onceRecurrence } from "../services/program/onceSchedule";
 import { resolveCareWorkflowDefinitionId } from "../services/program/workflowDefinition";
 import { listCareActivities, listPrescriptions } from "../api/endpoints/care";
 import { getWorkflowDefinitionByCode } from "../api/endpoints/workflow";
@@ -47,6 +47,13 @@ describe("one-time schedule", () => {
   it("builds a Tehran once slot from date and time", () => {
     expect(combineTehranDateTime("2026-08-16", "08:30")).toBe("2026-08-16T08:30:00+03:30");
     expect(onceRecurrence()).toEqual({ type: "once" });
+  });
+
+  it("extracts Tehran date part accurately from ISO strings", () => {
+    // 2026-09-08 22:00:00 UTC is 2026-09-09 01:30:00 in Asia/Tehran (+03:30)
+    expect(datePartInTehran("2026-09-08T22:00:00Z")).toBe("2026-09-09");
+    expect(datePartInTehran("2026-09-09T08:00:00+03:30")).toBe("2026-09-09");
+    expect(datePartInTehran("invalid-date")).toBeNull();
   });
 
   it("rejects invalid date or time", () => {

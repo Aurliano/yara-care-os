@@ -55,7 +55,10 @@ fun HubNavHost(
 
     LaunchedEffect(openRequest) {
         val request = openRequest ?: return@LaunchedEffect
-        navController.navigate("${HubRoutes.REMINDER}/${request.executionId}")
+        navigationCoordinator.consumeOpenRequest()
+        navController.navigate("${HubRoutes.REMINDER}/${request.executionId}") {
+            launchSingleTop = true
+        }
     }
 
     LaunchedEffect(activeCall?.sessionId, activeCall?.runtimeState) {
