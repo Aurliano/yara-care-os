@@ -8,10 +8,10 @@ enum class CallDirection {
 }
 
 sealed class CallMediaEvent {
-    data class Joined(val sessionId: String? = null) : CallMediaEvent()
-    data class Left(val sessionId: String? = null) : CallMediaEvent()
-    data class ConnectionLost(val sessionId: String? = null) : CallMediaEvent()
-    data class ConnectionRestored(val sessionId: String? = null) : CallMediaEvent()
+    data object Joined : CallMediaEvent()
+    data object Left : CallMediaEvent()
+    data object ConnectionLost : CallMediaEvent()
+    data object ConnectionRestored : CallMediaEvent()
 }
 
 /**

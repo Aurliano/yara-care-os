@@ -415,3 +415,35 @@ def test_hub_confirmation_does_not_pull_future_occurrence_forward(
     assert occurrence.status == OccurrenceStatus.SCHEDULED
     assert WorkflowExecution.objects.filter(occurrence_id=occurrence.id).count() == 0
 
+
+def test_register_hub_device_with_advanced_replica_succeeds(api_client, hub_model):
+    serial = f"HUB-ADV-{uuid.uuid4().hex[:8]}"
+    first_res = api_client.post(
+        "/api/v1/hub/provision/register/",
+        {"serial_number": serial, "device_model_code": hub_model.model_code},
+        format="json",
+    )
+    assert first_res.status_code == 201
+    first = first_res.json()
+    replica_id = uuid.UUID(first["replica_identifier"])
+
+    from domains.synchronization.services.replicas import advance_checkpoint, reset_replica
+    advance_checkpoint(replica_identifier=replica_id, checkpoint_token=uuid.uuid4())
+    advance_checkpoint(replica_identifier=replica_id, checkpoint_token=uuid.uuid4())
+
+    # Re-registering the same serial should succeed with 201 and not throw DuplicateEventError
+    second_res = api_client.post(
+        "/api/v1/hub/provision/register/",
+        {"serial_number": serial, "device_model_code": hub_model.model_code},
+        format="json",
+    )
+    assert second_res.status_code == 201
+    second = second_res.json()
+    assert second["device_id"] == first["device_id"]
+    assert second["replica_identifier"] == first["replica_identifier"]
+
+    # Calling reset_replica multiple times must not raise DuplicateEventError
+    reset_replica(replica_identifier=replica_id)
+    reset_replica(replica_identifier=replica_id)
+
+

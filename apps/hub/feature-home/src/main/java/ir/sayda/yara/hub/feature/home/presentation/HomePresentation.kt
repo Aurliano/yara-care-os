@@ -107,10 +107,7 @@ fun HomeRuntimeSnapshot.todayRemindersSectionTitle(): String? =
     if (todayReminders.size > 1) "یادآورهای دیگر امروز" else null
 
 fun HomeRuntimeSnapshot.needsCaregiverLogin(): Boolean {
-    if (deviceId.isNullOrBlank()) return false
-    return provisioningState == ProvisioningState.REGISTERED ||
-        provisioningState == ProvisioningState.AUTHENTICATING ||
-        provisioningState == ProvisioningState.ERROR
+    return provisioningState != ProvisioningState.READY
 }
 
 fun HomeRuntimeSnapshot.emptyMedicationMessage(): String? = when {

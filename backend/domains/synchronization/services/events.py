@@ -89,11 +89,13 @@ def emit_replica_updated(
     replica_identifier: uuid.UUID,
     discriminator: str = "",
 ) -> None:
+    occurred_at = timezone.now()
+    event_discriminator = f"{discriminator}:{occurred_at.isoformat()}" if discriminator else occurred_at.isoformat()
     publish_synchronization_fact(
         event_type="ReplicaUpdated",
         subject_id=replica_state_id,
-        occurred_at=timezone.now(),
-        discriminator=discriminator,
+        occurred_at=occurred_at,
+        discriminator=event_discriminator,
         payload={
             "replica_state_id": str(replica_state_id),
             "replica_identifier": str(replica_identifier),

@@ -37,6 +37,13 @@ import androidx.compose.material.icons.rounded.Medication
 import androidx.compose.material.icons.rounded.Mic
 import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material.icons.rounded.PlayArrow
+import androidx.compose.material.icons.rounded.AccessTime
+import androidx.compose.material.icons.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.BatteryFull
+import androidx.compose.material.icons.rounded.Chat
+import androidx.compose.material.icons.rounded.Favorite
+import androidx.compose.material.icons.rounded.Person
+import androidx.compose.material.icons.rounded.Security
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.Spa
 import androidx.compose.material.icons.rounded.Stop
@@ -47,6 +54,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -74,14 +83,40 @@ import androidx.compose.ui.unit.sp
 import ir.sayda.yara.hub.ui.R
 import ir.sayda.yara.hub.ui.presentation.ConnectionVisualState
 import ir.sayda.yara.hub.ui.presentation.formatEpochForDisplay
+import ir.sayda.yara.hub.ui.theme.BadgeRed
+import ir.sayda.yara.hub.ui.theme.CardCallAccent
+import ir.sayda.yara.hub.ui.theme.CardCallBadgeBg
+import ir.sayda.yara.hub.ui.theme.CardCallBadgeText
+import ir.sayda.yara.hub.ui.theme.CardCallBgEnd
+import ir.sayda.yara.hub.ui.theme.CardCallBgStart
+import ir.sayda.yara.hub.ui.theme.CardCallBorder
+import ir.sayda.yara.hub.ui.theme.CardCallIconBg
+import ir.sayda.yara.hub.ui.theme.CardMedicationAccent
+import ir.sayda.yara.hub.ui.theme.CardMedicationBadgeBg
+import ir.sayda.yara.hub.ui.theme.CardMedicationBadgeText
+import ir.sayda.yara.hub.ui.theme.CardMedicationBgEnd
+import ir.sayda.yara.hub.ui.theme.CardMedicationBgStart
+import ir.sayda.yara.hub.ui.theme.CardMedicationBorder
+import ir.sayda.yara.hub.ui.theme.CardMedicationIconBg
+import ir.sayda.yara.hub.ui.theme.CardMessageAccent
+import ir.sayda.yara.hub.ui.theme.CardMessageBadgeBg
+import ir.sayda.yara.hub.ui.theme.CardMessageBadgeText
+import ir.sayda.yara.hub.ui.theme.CardMessageBgEnd
+import ir.sayda.yara.hub.ui.theme.CardMessageBgStart
+import ir.sayda.yara.hub.ui.theme.CardMessageBorder
+import ir.sayda.yara.hub.ui.theme.CardMessageIconBg
 import ir.sayda.yara.hub.ui.theme.Error
 import ir.sayda.yara.hub.ui.theme.SoftBlue
 import ir.sayda.yara.hub.ui.theme.SoftOrange
 import ir.sayda.yara.hub.ui.theme.SoftRed
+import ir.sayda.yara.hub.ui.theme.StatusOnlineGreen
 import ir.sayda.yara.hub.ui.theme.Success
 import ir.sayda.yara.hub.ui.theme.SurfaceGray
 import ir.sayda.yara.hub.ui.theme.TextPrimary
 import ir.sayda.yara.hub.ui.theme.TextSecondary
+import ir.sayda.yara.hub.ui.theme.TextSlateMuted
+import ir.sayda.yara.hub.ui.theme.TextSlatePrimary
+import ir.sayda.yara.hub.ui.theme.TextSlateSecondary
 import ir.sayda.yara.hub.ui.theme.TextTertiary
 import ir.sayda.yara.hub.ui.theme.Warning
 import ir.sayda.yara.hub.ui.theme.WarmWhite
@@ -1189,21 +1224,25 @@ fun CallAvatar(
     modifier: Modifier = Modifier,
     size: Dp = 168.dp,
 ) {
-    val tokens = YaraTheme.colors
     val initial = name.trim().firstOrNull()?.toString().orEmpty()
-    Box(
-        modifier = modifier
-            .size(size)
-            .clip(CircleShape)
-            .background(tokens.wash),
-        contentAlignment = Alignment.Center,
+    Surface(
+        shape = CircleShape,
+        color = CardCallBgEnd,
+        border = BorderStroke(3.5.dp, CardCallBorder),
+        shadowElevation = 4.dp,
+        modifier = modifier.size(size),
     ) {
-        Text(
-            text = initial,
-            style = MaterialTheme.typography.displayMedium,
-            color = tokens.primary,
-            fontWeight = FontWeight.Bold,
-        )
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                text = initial,
+                style = MaterialTheme.typography.displayMedium,
+                color = CardCallAccent,
+                fontWeight = FontWeight.Bold,
+            )
+        }
     }
 }
 
@@ -1226,5 +1265,358 @@ fun SettingsButton(
             tint = Color.White.copy(alpha = 0.8f),
             modifier = Modifier.size(32.dp),
         )
+    }
+}
+
+@Composable
+fun HubTopBar(
+    time: String,
+    dateDayMonth: String,
+    dateYear: String,
+    elderName: String,
+    isOnline: Boolean,
+    connectionState: ConnectionVisualState,
+    onLogoTap: () -> Unit = {},
+    modifier: Modifier = Modifier,
+) {
+    var tapCount by remember { mutableIntStateOf(0) }
+    LaunchedEffect(tapCount) {
+        if (tapCount == 0) return@LaunchedEffect
+        kotlinx.coroutines.delay(2_000)
+        tapCount = 0
+    }
+
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 32.dp, vertical = 20.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        // Left side (in RTL Start): Greeting & Profile + Status Icons
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            // Wifi & Connection Status
+            val (wifiTint, statusDotColor) = when (connectionState) {
+                ConnectionVisualState.Connected -> Pair(Color(0xFF64748B), StatusOnlineGreen)
+                ConnectionVisualState.Waiting -> Pair(SoftOrange, SoftOrange)
+                ConnectionVisualState.Offline -> Pair(Error, Error)
+                ConnectionVisualState.Provisioning -> Pair(TextTertiary, TextTertiary)
+            }
+            Icon(
+                imageVector = if (isOnline) Icons.Rounded.Wifi else Icons.Rounded.CloudOff,
+                contentDescription = if (isOnline) "متصل به اینترنت" else "آفلاین",
+                tint = wifiTint,
+                modifier = Modifier.size(24.dp),
+            )
+            Icon(
+                imageVector = Icons.Rounded.BatteryFull,
+                contentDescription = "باتری",
+                tint = Color(0xFF64748B),
+                modifier = Modifier.size(24.dp),
+            )
+
+            Spacer(modifier = Modifier.width(8.dp))
+
+            // Greeting text
+            Text(
+                text = "سلام، $elderName",
+                style = MaterialTheme.typography.titleLarge,
+                color = TextSlatePrimary,
+                fontWeight = FontWeight.Bold,
+                fontSize = 22.sp,
+            )
+
+            // Online green indicator dot
+            Box(
+                modifier = Modifier
+                    .size(10.dp)
+                    .clip(CircleShape)
+                    .background(statusDotColor),
+            )
+
+            // Circular Elder Avatar
+            Surface(
+                shape = CircleShape,
+                color = CardMedicationBadgeBg,
+                border = BorderStroke(2.dp, Color.White),
+                shadowElevation = 2.dp,
+                modifier = Modifier
+                    .size(48.dp)
+                    .clickable {
+                        tapCount++
+                        if (tapCount >= 5) {
+                            onLogoTap()
+                            tapCount = 0
+                        }
+                    },
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = Icons.Rounded.Person,
+                        contentDescription = "پروفایل سالمند",
+                        tint = CardMedicationAccent,
+                        modifier = Modifier.size(30.dp),
+                    )
+                }
+            }
+        }
+
+        // Right side (in RTL End): Clock + Divider + Persian Date
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            Text(
+                text = time,
+                style = MaterialTheme.typography.displayMedium,
+                color = TextSlatePrimary,
+                fontWeight = FontWeight.Bold,
+                fontSize = 44.sp,
+            )
+            Box(
+                modifier = Modifier
+                    .height(38.dp)
+                    .width(1.5.dp)
+                    .background(Color(0xFFCBD5E1)),
+            )
+            Column(
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.Start,
+            ) {
+                Text(
+                    text = dateDayMonth,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = TextSlatePrimary,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 15.sp,
+                )
+                Text(
+                    text = dateYear,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = TextSlateSecondary,
+                    fontSize = 14.sp,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun HubActionCard(
+    title: String,
+    subtitle: String,
+    icon: ImageVector,
+    iconBgColor: Color,
+    bgStartColor: Color,
+    bgEndColor: Color,
+    borderColor: Color,
+    buttonText: String,
+    buttonColor: Color,
+    onButtonClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    buttonIcon: ImageVector? = null,
+    onCardClick: () -> Unit = onButtonClick,
+    badgeContent: @Composable () -> Unit,
+) {
+    Surface(
+        onClick = onCardClick,
+        shape = RoundedCornerShape(32.dp),
+        color = Color.Transparent,
+        border = BorderStroke(1.5.dp, borderColor),
+        shadowElevation = 2.dp,
+        modifier = modifier
+            .fillMaxWidth()
+            .heightIn(min = 380.dp),
+    ) {
+        Box(
+            modifier = Modifier
+                .background(Brush.verticalGradient(listOf(bgStartColor, bgEndColor)))
+                .padding(horizontal = 22.dp, vertical = 26.dp),
+        ) {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                // Top Circular Icon (with soft glow / inner circle)
+                Surface(
+                    shape = CircleShape,
+                    color = iconBgColor,
+                    shadowElevation = 4.dp,
+                    modifier = Modifier.size(76.dp),
+                ) {
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier.fillMaxSize(),
+                    ) {
+                        Icon(
+                            imageVector = icon,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(42.dp),
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(18.dp))
+
+                // Title
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.headlineLarge,
+                    color = TextSlatePrimary,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 32.sp,
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Subtitle
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = TextSlateSecondary,
+                    textAlign = TextAlign.Center,
+                    minLines = 2,
+                    maxLines = 2,
+                    lineHeight = 22.sp,
+                    fontSize = 15.sp,
+                )
+
+                Spacer(modifier = Modifier.height(20.dp))
+
+                // Status Badge Pill
+                Box(
+                    modifier = Modifier.height(44.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    badgeContent()
+                }
+
+                Spacer(modifier = Modifier.height(22.dp))
+
+                // Bottom Action Pill Button
+                Surface(
+                    onClick = onButtonClick,
+                    shape = RoundedCornerShape(28.dp),
+                    color = buttonColor,
+                    shadowElevation = 3.dp,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(58.dp),
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxSize(),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        if (buttonIcon != null) {
+                            Icon(
+                                imageVector = buttonIcon,
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier.size(24.dp),
+                            )
+                            Spacer(modifier = Modifier.width(10.dp))
+                        }
+                        Text(
+                            text = buttonText,
+                            style = MaterialTheme.typography.titleLarge,
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 18.sp,
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun HubFooterBadges(modifier: Modifier = Modifier) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 32.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        FooterBadgeItem(
+            icon = Icons.Rounded.Security,
+            line1 = "ساده و قابل فهم",
+            line2 = "مخصوص سالمندان",
+        )
+        Box(
+            modifier = Modifier
+                .padding(horizontal = 24.dp)
+                .height(28.dp)
+                .width(1.dp)
+                .background(Color(0xFFCBD5E1)),
+        )
+        FooterBadgeItem(
+            icon = Icons.Rounded.Favorite,
+            line1 = "امن و مطمئن",
+            line2 = "با مراقبت خانواده",
+        )
+        Box(
+            modifier = Modifier
+                .padding(horizontal = 24.dp)
+                .height(28.dp)
+                .width(1.dp)
+                .background(Color(0xFFCBD5E1)),
+        )
+        FooterBadgeItem(
+            icon = Icons.Rounded.Spa,
+            line1 = "طراحی شده برای آرامش شما",
+            line2 = "یک زندگی راحت‌تر",
+        )
+    }
+}
+
+@Composable
+private fun FooterBadgeItem(
+    icon: ImageVector,
+    line1: String,
+    line2: String,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier,
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Surface(
+            shape = CircleShape,
+            color = Color.White,
+            border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+            modifier = Modifier.size(36.dp),
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = CardMedicationAccent,
+                    modifier = Modifier.size(20.dp),
+                )
+            }
+        }
+        Column {
+            Text(
+                text = line1,
+                style = MaterialTheme.typography.labelMedium,
+                color = TextSlatePrimary,
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 13.sp,
+            )
+            Text(
+                text = line2,
+                style = MaterialTheme.typography.bodySmall,
+                color = TextSlateSecondary,
+                fontSize = 11.sp,
+            )
+        }
     }
 }
