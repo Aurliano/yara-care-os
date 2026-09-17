@@ -1,6 +1,7 @@
 package ir.sayda.yara.hub.data.provisioning
 
 import ir.sayda.yara.hub.core.di.HubBaseUrl
+import ir.sayda.yara.hub.core.domain.model.DeviceNotFoundException
 import ir.sayda.yara.hub.core.domain.model.HubIdentity
 import ir.sayda.yara.hub.core.domain.model.ProvisioningState
 import ir.sayda.yara.hub.core.domain.model.ProvisioningStatus
@@ -20,6 +21,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.withTimeout
+import retrofit2.HttpException
 import java.io.IOException
 import java.time.Instant
 import javax.inject.Inject
@@ -113,10 +115,18 @@ class ProvisioningRepositoryImpl @Inject constructor(
         } catch (exception: CancellationException) {
             throw exception
         } catch (exception: Exception) {
-            val message = mapException(exception)
-            stateMachine.transitionTo(ProvisioningState.ERROR, message)
-            HubNetworkLogger.authenticationFailed(message, correlationId)
-            AppResult.Error(exception)
+            if (isConfirmedDeviceNotFound(exception)) {
+                authRepository.clearIdentity()
+                stateMachine.transitionTo(ProvisioningState.UNPROVISIONED)
+                val typedError = DeviceNotFoundException("Device not found on server", exception)
+                HubNetworkLogger.authenticationFailed("Device not found on server — clearing stale identity", correlationId)
+                AppResult.Error(typedError)
+            } else {
+                val message = mapException(exception)
+                stateMachine.transitionTo(ProvisioningState.ERROR, message)
+                HubNetworkLogger.authenticationFailed(message, correlationId)
+                AppResult.Error(exception)
+            }
         }
     }
 
@@ -141,7 +151,13 @@ class ProvisioningRepositoryImpl @Inject constructor(
             stateMachine.transitionTo(restoredState)
             AppResult.Success(toStatus(restoredState))
         } catch (exception: Exception) {
-            AppResult.Success(toStatus(stored.provisioningState))
+            if (isConfirmedDeviceNotFound(exception)) {
+                authRepository.clearIdentity()
+                stateMachine.transitionTo(ProvisioningState.UNPROVISIONED)
+                AppResult.Success(toStatus(ProvisioningState.UNPROVISIONED))
+            } else {
+                AppResult.Success(toStatus(stored.provisioningState))
+            }
         }
     }
 
@@ -213,6 +229,35 @@ class ProvisioningRepositoryImpl @Inject constructor(
 
     private fun parseIsoEpoch(value: String): Long =
         runCatching { Instant.parse(value).toEpochMilli() }.getOrDefault(System.currentTimeMillis())
+
+    private fun isConfirmedDeviceNotFound(exception: Throwable): Boolean {
+        var current: Throwable? = exception
+        while (current != null) {
+            if (current is DeviceNotFoundException) return true
+            if (current is HttpException) {
+                if (current.code() == 404) {
+                    val errorBody = runCatching {
+                        val source = current.response()?.errorBody()?.source()
+                        source?.request(Long.MAX_VALUE)
+                        source?.buffer?.clone()?.readUtf8().orEmpty()
+                    }.getOrElse {
+                        runCatching { current.response()?.errorBody()?.string().orEmpty() }.getOrDefault("")
+                    }
+                    val message = current.message().orEmpty()
+                    if (
+                        errorBody.contains("Device not found", ignoreCase = true) ||
+                        errorBody.contains("DeviceNotFound", ignoreCase = true) ||
+                        message.contains("Device not found", ignoreCase = true)
+                    ) {
+                        return true
+                    }
+                }
+                return false
+            }
+            current = current.cause
+        }
+        return false
+    }
 
     companion object {
         private const val PROVISIONING_CALL_TIMEOUT_MS = 15_000L

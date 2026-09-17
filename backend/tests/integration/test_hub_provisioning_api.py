@@ -447,3 +447,29 @@ def test_register_hub_device_with_advanced_replica_succeeds(api_client, hub_mode
     reset_replica(replica_identifier=replica_id)
 
 
+def test_provisioning_status_returns_404_device_not_found_for_missing_device(db, api_client):
+    missing_device_id = uuid.uuid4()
+    response = api_client.get(f"/api/v1/hub/provision/status/?device_id={missing_device_id}")
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Device not found."
+
+
+def test_provisioning_authenticate_returns_404_device_not_found_for_missing_device(
+    db,
+    api_client,
+    integration_user,
+):
+    missing_device_id = uuid.uuid4()
+    response = api_client.post(
+        "/api/v1/hub/provision/authenticate/",
+        {
+            "device_id": str(missing_device_id),
+            "phone": integration_user.phone,
+            "password": "securepass123",
+        },
+        format="json",
+    )
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Device not found."
+
+

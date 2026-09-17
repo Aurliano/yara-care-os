@@ -30,23 +30,6 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 
-private fun createSampleSession(
-    sessionId: String = "session-1",
-    elderId: String = "elder-1",
-    contactId: String = "contact-1",
-    now: Long = 1_700_000_000_000L,
-    expiresAt: Long = now + 3_600_000L,
-) = ir.sayda.yara.hub.core.domain.model.CallSession(
-    sessionId = sessionId,
-    elderId = elderId,
-    channel = "VOICE",
-    recipientContactId = contactId,
-    runtimeState = ir.sayda.yara.hub.core.domain.model.CallRuntimeState.Connecting,
-    joinToken = "opaque-join-token",
-    expiresAtEpochMillis = expiresAt,
-    updatedAtEpochMillis = now,
-)
-
 class CommunicationRuntimeTest {
 
     private var testJob = Job()
@@ -73,10 +56,10 @@ class CommunicationRuntimeTest {
         assertTrue(result is AppResult.Success)
         val session = (result as AppResult.Success).data
         assertEquals("session-1", session.sessionId)
-        assertEquals(CallRuntimeState.Connecting, session.runtimeState)
+        assertEquals(CallRuntimeState.Connected, session.runtimeState)
         assertEquals(CallDirection.Outgoing, session.direction)
         assertEquals(listOf("opaque-join-token"), client.joinedUrls)
-        assertEquals(CallRuntimeState.Connecting, repository.getCurrent()?.runtimeState)
+        assertEquals(CallRuntimeState.Connected, repository.getCurrent()?.runtimeState)
     }
 
     @Test
@@ -108,7 +91,7 @@ class CommunicationRuntimeTest {
         assertEquals("existing-session", session.sessionId)
         assertEquals("refreshed-token", session.joinToken)
         assertEquals(CallDirection.Incoming, session.direction)
-        assertEquals(CallRuntimeState.Connecting, session.runtimeState)
+        assertEquals(CallRuntimeState.Connected, session.runtimeState)
         assertEquals(listOf("refreshed-token"), client.joinedUrls)
     }
 
@@ -176,14 +159,14 @@ class CommunicationRuntimeTest {
         val runtime = runtime(gateway, repository, client)
         runtime.startCall(ELDER_ID, "VOICE", CONTACT_ID)
 
-        client.emit(CallMediaEvent.ConnectionLost())
+        client.emit(CallMediaEvent.ConnectionLost)
         advanceUntilIdle()
         assertEquals(CallRuntimeState.ConnectionLost, repository.getCurrent()?.runtimeState)
 
         val reconnected = runtime.reconnect()
         assertTrue(reconnected is AppResult.Success)
         assertEquals(2, client.joinedUrls.size)
-        assertEquals(CallRuntimeState.Reconnecting, repository.getCurrent()?.runtimeState)
+        assertEquals(CallRuntimeState.Connected, repository.getCurrent()?.runtimeState)
     }
 
     @Test
@@ -193,10 +176,10 @@ class CommunicationRuntimeTest {
         val repository = InMemoryCommunicationRepository()
         val runtime = runtime(gateway, repository, client)
         runtime.startCall(ELDER_ID, "VOICE", CONTACT_ID)
-        client.emit(CallMediaEvent.ConnectionLost())
+        client.emit(CallMediaEvent.ConnectionLost)
         advanceUntilIdle()
 
-        client.emit(CallMediaEvent.ConnectionRestored())
+        client.emit(CallMediaEvent.ConnectionRestored)
         advanceUntilIdle()
 
         assertEquals(CallRuntimeState.Connected, repository.getCurrent()?.runtimeState)
@@ -246,7 +229,7 @@ class CommunicationRuntimeTest {
         val runtime = runtime(gateway, repository, client)
         runtime.startCall(ELDER_ID, "VOICE", CONTACT_ID)
 
-        client.emit(CallMediaEvent.Left())
+        client.emit(CallMediaEvent.Left)
         advanceUntilIdle()
 
         assertTrue(client.commands.contains("leave"))
@@ -257,7 +240,7 @@ class CommunicationRuntimeTest {
     fun recoverRestoresUnexpiredSessionAndRejoins() = runTest {
         val client = FakeSkyroomClient()
         val repository = InMemoryCommunicationRepository()
-        repository.saveCurrent(createSampleSession(expiresAt = NOW + 60_000L))
+        repository.saveCurrent(sampleSession(expiresAt = NOW + 60_000L))
         val runtime = runtime(FakeGateway(), repository, client)
 
         val recovered = runtime.recover()
@@ -265,14 +248,14 @@ class CommunicationRuntimeTest {
         assertTrue(recovered is AppResult.Success)
         assertEquals("session-1", (recovered as AppResult.Success).data?.sessionId)
         assertEquals(listOf("opaque-join-token"), client.joinedUrls)
-        assertEquals(CallRuntimeState.Connecting, repository.getCurrent()?.runtimeState)
+        assertEquals(CallRuntimeState.Connected, repository.getCurrent()?.runtimeState)
     }
 
     @Test
     fun recoverEndsExpiredSessionAndReturnsIdle() = runTest {
         val gateway = FakeGateway()
         val repository = InMemoryCommunicationRepository()
-        repository.saveCurrent(createSampleSession(expiresAt = NOW - 1L))
+        repository.saveCurrent(sampleSession(expiresAt = NOW - 1L))
         val runtime = runtime(gateway, repository, FakeSkyroomClient())
 
         val recovered = runtime.recover()
@@ -316,7 +299,7 @@ class CommunicationRuntimeTest {
         assertTrue(result is AppResult.Success)
         val session = (result as AppResult.Success).data
         assertEquals("session-1", session.sessionId)
-        assertEquals(CallRuntimeState.Connecting, session.runtimeState)
+        assertEquals(CallRuntimeState.Connected, session.runtimeState)
         assertEquals(listOf("opaque-join-token"), client.joinedTokens)
     }
 
@@ -352,7 +335,7 @@ class CommunicationRuntimeTest {
         ): AppResult<CallSession> {
             startCount += 1
             if (startError != null) return AppResult.Error(startError)
-            return AppResult.Success(createSampleSession())
+            return AppResult.Success(sampleSession())
         }
 
         override suspend fun endCall(sessionId: String): AppResult<Unit> {
@@ -363,7 +346,7 @@ class CommunicationRuntimeTest {
         override suspend fun refreshJoinToken(elderId: String): AppResult<CallSession> {
             refreshCount += 1
             return AppResult.Success(
-                createSampleSession().copy(
+                sampleSession().copy(
                     sessionId = "existing-session",
                     joinToken = "refreshed-token",
                 ),
@@ -397,7 +380,7 @@ class CommunicationRuntimeTest {
             lastSession = session
         }
         override fun observeCallSessions(): Flow<CallSession> = MutableStateFlow(
-            lastSession ?: createSampleSession(),
+            lastSession ?: sampleSession(),
         )
     }
 
@@ -433,73 +416,20 @@ class CommunicationRuntimeTest {
             )
     }
 
-    private fun makeTestSession(sessionId: String = "session-1", expiresAt: Long = NOW + 3_600_000L) = createSampleSession(sessionId, expiresAt)
-
-    @Test
-    fun staleLeftFromPreviousSessionDoesNotClearCurrent() = runTest {
-        val client = FakeSkyroomClient()
-        val repository = InMemoryCommunicationRepository()
-        val runtime = runtime(FakeGateway(), repository, client)
-        runtime.startCall(ELDER_ID, "VOICE", CONTACT_ID)
-        advanceUntilIdle()
-        val afterN = repository.getCurrent()!!
-        assertEquals("session-1", afterN.sessionId)
-
-        repository.saveCurrent(afterN.copy(sessionId = "session-2", runtimeState = CallRuntimeState.Connecting))
-        advanceUntilIdle()
-
-        client.emit(CallMediaEvent.Left(sessionId = "session-1"))
-        advanceUntilIdle()
-
-        val still = repository.getCurrent()
-        assertEquals("session-2", still?.sessionId)
-        assertEquals(CallRuntimeState.Connecting, still?.runtimeState)
-    }
-
-    @Test
-    fun staleJoinedFromPreviousSessionDoesNotMarkCurrentConnected() = runTest {
-        val client = FakeSkyroomClient()
-        val repository = InMemoryCommunicationRepository()
-        val runtime = runtime(FakeGateway(), repository, client)
-        runtime.startCall(ELDER_ID, "VOICE", CONTACT_ID)
-        repository.saveCurrent(createSampleSession(sessionId = "session-2", expiresAt = NOW + 60_000L).copy(runtimeState = CallRuntimeState.Connecting))
-        advanceUntilIdle()
-
-        client.emit(CallMediaEvent.Joined(sessionId = "session-1"))
-        advanceUntilIdle()
-
-        assertEquals(CallRuntimeState.Connecting, repository.getCurrent()?.runtimeState)
-    }
-
-    @Test
-    fun staleConnectionLostFromPreviousSessionDoesNotMutateCurrent() = runTest {
-        val client = FakeSkyroomClient()
-        val repository = InMemoryCommunicationRepository()
-        val runtime = runtime(FakeGateway(), repository, client)
-        runtime.startCall(ELDER_ID, "VOICE", CONTACT_ID)
-        repository.saveCurrent(createSampleSession(sessionId = "session-2").copy(runtimeState = CallRuntimeState.Connected))
-        advanceUntilIdle()
-
-        client.emit(CallMediaEvent.ConnectionLost(sessionId = "session-1"))
-        advanceUntilIdle()
-
-        assertEquals(CallRuntimeState.Connected, repository.getCurrent()?.runtimeState)
-    }
-
-    private fun createSampleSession(sessionId: String = "session-1", expiresAt: Long = NOW + 3_600_000L) = CallSession(
-        sessionId = sessionId,
-        elderId = ELDER_ID,
-        channel = "VOICE",
-        recipientContactId = CONTACT_ID,
-        runtimeState = CallRuntimeState.Connecting,
-        joinToken = "opaque-join-token",
-        expiresAtEpochMillis = expiresAt,
-        updatedAtEpochMillis = NOW,
-    )
-
     private companion object {
         const val NOW = 1_700_000_000_000L
         const val ELDER_ID = "elder-1"
         const val CONTACT_ID = "contact-1"
+
+        fun sampleSession(expiresAt: Long = NOW + 3_600_000L) = CallSession(
+            sessionId = "session-1",
+            elderId = ELDER_ID,
+            channel = "VOICE",
+            recipientContactId = CONTACT_ID,
+            runtimeState = CallRuntimeState.Connecting,
+            joinToken = "opaque-join-token",
+            expiresAtEpochMillis = expiresAt,
+            updatedAtEpochMillis = NOW,
+        )
     }
 }

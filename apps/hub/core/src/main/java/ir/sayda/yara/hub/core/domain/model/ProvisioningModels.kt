@@ -33,3 +33,8 @@ data class ConnectivitySnapshot(
     val connectionType: String = "UNKNOWN",
     val isBackendReachable: Boolean = false,
 )
+
+class DeviceNotFoundException(
+    message: String = "Device not found on server",
+    cause: Throwable? = null,
+) : Exception(message, cause)
