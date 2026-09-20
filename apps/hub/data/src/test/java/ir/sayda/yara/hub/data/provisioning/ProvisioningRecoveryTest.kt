@@ -400,4 +400,65 @@ class ProvisioningRecoveryTest {
         assertEquals(ProvisioningState.UNPROVISIONED, stateMachine.currentState())
         coVerify(exactly = 1) { authRepository.clearIdentity() }
     }
+
+    // ========================================================================
+    // TEST 11: Task 2.4 / F-05 - authenticate() with pure transport exception
+    // on an already-provisioned (READY) device -> preserves READY state!
+    // ========================================================================
+    @Test
+    fun test11_authenticate_whenAlreadyReadyAndPureTransportException_preservesReadyState() = runTest {
+        val stored = sampleStoredProvisioning(state = ProvisioningState.READY)
+        every { identityStore.readProvisioning() } returns stored
+        stateMachine.transitionTo(ProvisioningState.READY)
+
+        coEvery { provisioningApi.authenticate(any()) } throws java.net.ConnectException("Failed to connect to backend")
+
+        val result = repository.authenticate(stored.deviceId, "09123456789", "pass123")
+
+        assertTrue(result is AppResult.Error)
+        // CRITICAL CHECK: state machine MUST remain READY, not demoted to ERROR
+        assertEquals(ProvisioningState.READY, stateMachine.currentState())
+        coVerify(exactly = 0) { authRepository.clearIdentity() }
+    }
+
+    // ========================================================================
+    // TEST 12: Task 2.4 Condition 1 - authenticate() with HTTP 401 rejection
+    // on an already-provisioned device -> transitions to ERROR (security rule)
+    // ========================================================================
+    @Test
+    fun test12_authenticate_whenAlreadyReadyAndHttp401_transitionsToErrorState() = runTest {
+        val stored = sampleStoredProvisioning(state = ProvisioningState.READY)
+        every { identityStore.readProvisioning() } returns stored
+        stateMachine.transitionTo(ProvisioningState.READY)
+
+        coEvery { provisioningApi.authenticate(any()) } throws httpException(
+            401,
+            """{"detail": "Invalid credentials."}""",
+        )
+
+        val result = repository.authenticate(stored.deviceId, "09123456789", "wrongpass")
+
+        assertTrue(result is AppResult.Error)
+        // CRITICAL CHECK: HTTP 401 is NOT pure transport; must transition to ERROR
+        assertEquals(ProvisioningState.ERROR, stateMachine.currentState())
+    }
+
+    // ========================================================================
+    // TEST 13: Task 2.4 - authenticate() with pure transport exception
+    // on an UNPROVISIONED device -> transitions to ERROR to inform caregiver
+    // ========================================================================
+    @Test
+    fun test13_authenticate_whenUnprovisionedAndPureTransportException_transitionsToError() = runTest {
+        every { identityStore.readProvisioning() } returns null
+        stateMachine.transitionTo(ProvisioningState.UNPROVISIONED)
+
+        coEvery { provisioningApi.authenticate(any()) } throws java.net.ConnectException("Failed to connect")
+
+        val result = repository.authenticate("fresh-device-id", "09123456789", "pass123")
+
+        assertTrue(result is AppResult.Error)
+        // Fresh onboarding requires network; network failure transitions to ERROR
+        assertEquals(ProvisioningState.ERROR, stateMachine.currentState())
+    }
 }
+

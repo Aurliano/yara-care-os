@@ -144,17 +144,21 @@ interface OccurrenceDao {
         """
         SELECT * FROM occurrence
         WHERE status IN ('DUE', 'SCHEDULED')
+          AND scheduled_for_epoch_millis >= :startOfDayEpochMillis
           AND scheduled_for_epoch_millis <= :endOfDayEpochMillis
         ORDER BY scheduled_for_epoch_millis
         """,
     )
-    fun observeTodayReminders(endOfDayEpochMillis: Long): Flow<List<OccurrenceEntity>>
+    fun observeTodayReminders(
+        startOfDayEpochMillis: Long,
+        endOfDayEpochMillis: Long,
+    ): Flow<List<OccurrenceEntity>>
 
     @Query(
         """
         SELECT * FROM occurrence
         WHERE (
-            (status = 'DUE' AND scheduled_for_epoch_millis <= :endOfDayEpochMillis)
+            (status = 'DUE' AND scheduled_for_epoch_millis >= :startOfDayEpochMillis AND scheduled_for_epoch_millis <= :endOfDayEpochMillis)
             OR (
                 status = 'SCHEDULED'
                 AND scheduled_for_epoch_millis > :nowEpochMillis
@@ -166,6 +170,7 @@ interface OccurrenceDao {
         """,
     )
     fun observeNextReminderOccurrence(
+        startOfDayEpochMillis: Long,
         nowEpochMillis: Long,
         endOfDayEpochMillis: Long,
     ): Flow<OccurrenceEntity?>

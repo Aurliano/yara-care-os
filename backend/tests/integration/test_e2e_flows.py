@@ -169,3 +169,76 @@ def test_correlation_id_propagation_in_context():
     assert ctx.correlation_id == correlation
     ctx2 = ctx.with_execution(uuid.uuid4())
     assert ctx2.correlation_id == correlation
+
+
+@pytest.mark.django_db
+def test_submit_hub_confirmation_immediate_dispatch_failure_isolation(
+    licensed_elder,
+    workflow_definition,
+    recurrence_definition,
+    schedule_start_at,
+    monkeypatch,
+):
+    from domains.workflow.services.executions import start_execution
+    from domains.workflow.models import ConfirmationEvidence
+    from domains.care.models import CareCompletion
+
+    prescription = create_prescription(
+        elder_id=licensed_elder.id,
+        workflow_definition_id=workflow_definition.id,
+        recurrence_definition=recurrence_definition,
+        timezone_name="UTC",
+        start_at=schedule_start_at,
+        display_title="Morning pill",
+        medication_reference="med-1",
+        dosage_information="1 tablet",
+        elder_friendly_description="Take pill",
+    )
+    occurrence = Occurrence.objects.filter(
+        schedule_definition_id=prescription.care_activity.schedule_definition_id
+    ).first()
+    occurrence.status = OccurrenceStatus.DUE
+    occurrence.save(update_fields=["status"])
+
+    execution = start_execution(
+        occurrence_id=occurrence.id,
+        workflow_definition_id=workflow_definition.id,
+    )
+    ctx = IntegrationContext.new()
+
+    # Simulate an error in immediate dispatch (e.g. transient failure during immediate cycle)
+    def crash_dispatch(*args, **kwargs):
+        raise RuntimeError("Transient dispatch error during immediate cycle")
+
+    monkeypatch.setattr(
+        "integration.runtime.dispatcher.process_pending_events",
+        crash_dispatch,
+    )
+
+    # Confirmation must succeed and NOT raise RuntimeError
+    result = submit_hub_confirmation(
+        ctx,
+        execution_id=execution.id,
+        interaction_reference="hub-fail-iso-1",
+    )
+    assert result["status"] == ExecutionStatus.CONFIRMED
+
+    # Evidence persistence must remain successful
+    execution.refresh_from_db()
+    assert execution.status == ExecutionStatus.CONFIRMED
+    assert ConfirmationEvidence.objects.filter(
+        workflow_execution_id=execution.id,
+        source_reference="hub-fail-iso-1",
+    ).exists()
+
+    # CareCompletion has not been created yet because immediate dispatch failed safely
+    assert not CareCompletion.objects.filter(workflow_execution_id=execution.id).exists()
+
+    # Background / periodic processing remains the backstop:
+    monkeypatch.undo()
+    drained = process_pending_events(ctx, limit=10)
+    assert drained > 0
+
+    # Authoritative CareCompletion is now created by the background backstop
+    completion = CareCompletion.objects.get(workflow_execution_id=execution.id)
+    assert completion.completion_state == "MEDICATION_TAKEN"

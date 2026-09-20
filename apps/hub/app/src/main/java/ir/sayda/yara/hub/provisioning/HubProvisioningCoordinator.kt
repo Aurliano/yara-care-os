@@ -8,6 +8,7 @@ import ir.sayda.yara.hub.core.domain.model.ProvisioningState
 import ir.sayda.yara.hub.core.domain.repository.AuthRepository
 import ir.sayda.yara.hub.core.domain.repository.ConnectivityRepository
 import ir.sayda.yara.hub.core.domain.repository.ProvisioningRepository
+import ir.sayda.yara.hub.core.provisioning.HubDeviceCredentialsProvider
 import ir.sayda.yara.hub.core.result.AppResult
 import ir.sayda.yara.hub.data.identity.SecureHubIdentityStore
 import ir.sayda.yara.hub.data.provisioning.ProvisioningStateMachine
@@ -15,6 +16,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -30,6 +32,7 @@ class HubProvisioningCoordinator @Inject constructor(
     private val connectivityRepository: ConnectivityRepository,
     private val identityStore: SecureHubIdentityStore,
     private val stateMachine: ProvisioningStateMachine,
+    private val credentialsProvider: HubDeviceCredentialsProvider,
     private val deviceModelCode: HubDeviceModelCode,
 ) {
     private val provisioningMutex = Mutex()
@@ -60,6 +63,14 @@ class HubProvisioningCoordinator @Inject constructor(
                     scheduleRetry()
                 }
         }
+        scope.launch {
+            while (isActive) {
+                delay(PERIODIC_BACKSTOP_INTERVAL_MS)
+                if (stateMachine.currentState() != ProvisioningState.READY) {
+                    scheduleRetry()
+                }
+            }
+        }
     }
 
     suspend fun runStartupFlow() {
@@ -75,14 +86,17 @@ class HubProvisioningCoordinator @Inject constructor(
             ProvisioningState.REGISTERING,
             -> registerDevice()
             ProvisioningState.ERROR -> resumeAfterError()
-            ProvisioningState.REGISTERED,
-            ProvisioningState.AUTHENTICATING,
-            -> Unit
+            ProvisioningState.REGISTERED -> {
+                if (credentialsProvider.credentials() != null) {
+                    resumeAfterError()
+                }
+            }
+            ProvisioningState.AUTHENTICATING -> Unit
             ProvisioningState.READY -> authRepository.refreshTokenIfNeeded()
         }
     }
 
-    private suspend fun scheduleRetry() {
+    internal suspend fun scheduleRetry() {
         val now = System.currentTimeMillis()
         if (now - lastProvisionAttemptMs < RETRY_COOLDOWN_MS) return
         lastProvisionAttemptMs = now
@@ -93,13 +107,36 @@ class HubProvisioningCoordinator @Inject constructor(
         when (stateMachine.currentState()) {
             ProvisioningState.ERROR -> resumeAfterError()
             ProvisioningState.UNPROVISIONED -> registerDevice()
+            ProvisioningState.REGISTERED -> {
+                if (credentialsProvider.credentials() != null) {
+                    resumeAfterError()
+                }
+            }
             else -> Unit
         }
     }
 
     private suspend fun resumeAfterError() {
-        if (identityStore.readProvisioning()?.deviceId != null) {
-            stateMachine.transitionTo(ProvisioningState.REGISTERED)
+        val deviceId = identityStore.readProvisioning()?.deviceId
+        if (deviceId != null) {
+            val credentials = credentialsProvider.credentials()
+            if (credentials != null) {
+                if (!provisionInFlight.compareAndSet(false, true)) return
+                try {
+                    provisioningMutex.withLock {
+                        if (stateMachine.currentState() == ProvisioningState.READY) return@withLock
+                        provisioningRepository.authenticate(
+                            deviceId = deviceId,
+                            phone = credentials.phone,
+                            password = credentials.password,
+                        )
+                    }
+                } finally {
+                    provisionInFlight.set(false)
+                }
+            } else {
+                stateMachine.transitionTo(ProvisioningState.REGISTERED)
+            }
         } else {
             registerDevice()
         }
@@ -122,6 +159,7 @@ class HubProvisioningCoordinator @Inject constructor(
 
     companion object {
         private const val RETRY_COOLDOWN_MS = 10_000L
+        internal const val PERIODIC_BACKSTOP_INTERVAL_MS = 60_000L
     }
 }
 

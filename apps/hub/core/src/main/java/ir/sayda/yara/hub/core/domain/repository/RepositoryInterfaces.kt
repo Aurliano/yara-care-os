@@ -78,7 +78,7 @@ interface SchedulingReplicaRepository : ReplicaRepository<ScheduleDefinition> {
     fun observeScheduleDefinitions(): Flow<List<ScheduleDefinition>>
     fun observeOccurrences(): Flow<List<Occurrence>>
     fun observeOccurrencesDueBefore(epochMillis: Long): Flow<List<Occurrence>>
-    fun observeTodayReminders(endOfDayEpochMillis: Long): Flow<List<Occurrence>>
+    fun observeTodayReminders(startOfDayEpochMillis: Long, endOfDayEpochMillis: Long): Flow<List<Occurrence>>
     suspend fun getOccurrence(occurrenceId: String): Occurrence?
     suspend fun upsertScheduleDefinition(schedule: ScheduleDefinition)
     override suspend fun upsert(item: ScheduleDefinition) = upsertScheduleDefinition(item)
@@ -94,6 +94,7 @@ interface SchedulingReplicaRepository : ReplicaRepository<ScheduleDefinition> {
     fun observeNextScheduledOccurrence(afterEpochMillis: Long): Flow<Occurrence?>
 
     fun observeNextReminderOccurrence(
+        startOfDayEpochMillis: Long,
         nowEpochMillis: Long,
         endOfDayEpochMillis: Long,
     ): Flow<Occurrence?>

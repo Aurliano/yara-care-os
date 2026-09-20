@@ -66,21 +66,47 @@ class AuthRepositoryImpl @Inject constructor(
     override suspend fun refreshTokenIfNeeded(): AppResult<HubIdentity> {
         val current = identityStore.readIdentity()
             ?: return AppResult.Error(IllegalStateException("No hub identity configured"))
-        if (tokenRefreshCoordinator.refreshIfNeeded()) {
-            return identityStore.readIdentity()?.let { AppResult.Success(it) }
-                ?: AppResult.Success(current)
+        return when (val result = tokenRefreshCoordinator.refreshIfNeededDetailed()) {
+            is HubTokenRefreshCoordinator.RefreshResult.Success -> {
+                identityStore.readIdentity()?.let { AppResult.Success(it) }
+                    ?: AppResult.Success(current)
+            }
+            is HubTokenRefreshCoordinator.RefreshResult.NotNeeded -> {
+                AppResult.Success(current)
+            }
+            is HubTokenRefreshCoordinator.RefreshResult.PureTransportFailure -> {
+                // Task 2.4 / F-05: Offline / pure transport failure.
+                // Token remains expired in store so when connection is restored, next cycle will refresh.
+                // Do NOT call reauthenticateAfterRefreshFailure over an unreachable network.
+                // Preserve current identity and READY state so local runtime operates offline unimpeded.
+                AppResult.Success(current)
+            }
+            is HubTokenRefreshCoordinator.RefreshResult.AuthenticationFailure,
+            is HubTokenRefreshCoordinator.RefreshResult.UnknownFailure -> {
+                reauthenticateAfterRefreshFailure(current)
+            }
         }
-        return reauthenticateAfterRefreshFailure(current)
     }
 
     override suspend fun refreshToken(): AppResult<HubIdentity> {
         val current = identityStore.readIdentity()
             ?: return AppResult.Error(IllegalStateException("No hub identity configured"))
-        if (tokenRefreshCoordinator.refresh(force = true)) {
-            return identityStore.readIdentity()?.let { AppResult.Success(it) }
-                ?: AppResult.Error(IllegalStateException("Identity missing after token refresh"))
+        return when (val result = tokenRefreshCoordinator.refreshDetailed(force = true)) {
+            is HubTokenRefreshCoordinator.RefreshResult.Success -> {
+                identityStore.readIdentity()?.let { AppResult.Success(it) }
+                    ?: AppResult.Error(IllegalStateException("Identity missing after token refresh"))
+            }
+            is HubTokenRefreshCoordinator.RefreshResult.NotNeeded -> {
+                AppResult.Success(current)
+            }
+            is HubTokenRefreshCoordinator.RefreshResult.PureTransportFailure -> {
+                AppResult.Success(current)
+            }
+            is HubTokenRefreshCoordinator.RefreshResult.AuthenticationFailure,
+            is HubTokenRefreshCoordinator.RefreshResult.UnknownFailure -> {
+                reauthenticateAfterRefreshFailure(current)
+            }
         }
-        return reauthenticateAfterRefreshFailure(current)
     }
 
     override fun observeIdentity(): Flow<HubIdentity?> = identityStore.observeIdentity()

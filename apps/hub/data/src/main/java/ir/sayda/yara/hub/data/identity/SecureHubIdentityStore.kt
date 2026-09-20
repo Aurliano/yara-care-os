@@ -44,6 +44,7 @@ class SecureHubIdentityStore @Inject constructor(
             provisionedAtEpochMillis = prefs.getLong(Keys.PROVISIONED_AT, 0L),
             lastAuthenticatedAtEpochMillis = prefs.getLong(Keys.LAST_AUTHENTICATED_AT, 0L),
             provisioningState = readProvisioningState(),
+            elderDisplayName = prefs.getString(Keys.ELDER_DISPLAY_NAME, null),
         )
     }
 
@@ -63,11 +64,12 @@ class SecureHubIdentityStore @Inject constructor(
             provisionedAtEpochMillis = prefs.getLong(Keys.PROVISIONED_AT, 0L),
             lastAuthenticatedAtEpochMillis = prefs.getLong(Keys.LAST_AUTHENTICATED_AT, 0L),
             provisioningState = readProvisioningState(),
+            elderDisplayName = prefs.getString(Keys.ELDER_DISPLAY_NAME, null),
         )
     }
 
     override fun write(identity: HubIdentity) {
-        prefs.edit()
+        val editor = prefs.edit()
             .putString(Keys.DEVICE_ID, identity.deviceId)
             .putString(Keys.REPLICA_ID, identity.replicaId)
             .putString(Keys.ELDER_ID, identity.elderId)
@@ -78,7 +80,10 @@ class SecureHubIdentityStore @Inject constructor(
             .putLong(Keys.PROVISIONED_AT, identity.provisionedAtEpochMillis)
             .putLong(Keys.LAST_AUTHENTICATED_AT, identity.lastAuthenticatedAtEpochMillis)
             .putString(Keys.PROVISIONING_STATE, identity.provisioningState.name)
-            .apply()
+        if (identity.elderDisplayName != null) {
+            editor.putString(Keys.ELDER_DISPLAY_NAME, identity.elderDisplayName)
+        }
+        editor.apply()
     }
 
     fun writePartial(
@@ -89,6 +94,7 @@ class SecureHubIdentityStore @Inject constructor(
         provisionedAtEpochMillis: Long? = null,
         lastAuthenticatedAtEpochMillis: Long? = null,
         provisioningState: ProvisioningState? = null,
+        elderDisplayName: String? = null,
     ) {
         val editor = prefs.edit()
         deviceId?.let { editor.putString(Keys.DEVICE_ID, it) }
@@ -98,6 +104,7 @@ class SecureHubIdentityStore @Inject constructor(
         provisionedAtEpochMillis?.let { editor.putLong(Keys.PROVISIONED_AT, it) }
         lastAuthenticatedAtEpochMillis?.let { editor.putLong(Keys.LAST_AUTHENTICATED_AT, it) }
         provisioningState?.let { editor.putString(Keys.PROVISIONING_STATE, it.name) }
+        elderDisplayName?.let { editor.putString(Keys.ELDER_DISPLAY_NAME, it) }
         editor.apply()
     }
 
@@ -138,6 +145,7 @@ class SecureHubIdentityStore @Inject constructor(
         const val PROVISIONING_STATE = "provisioning_state"
         const val CAREGIVER_PHONE = "caregiver_phone"
         const val CAREGIVER_PASSWORD = "caregiver_password"
+        const val ELDER_DISPLAY_NAME = "elder_display_name"
     }
 
     companion object {

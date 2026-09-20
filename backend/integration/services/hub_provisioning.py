@@ -23,7 +23,7 @@ from domains.device.models import Device, DeviceAssignment, DeviceModel
 from domains.device.services.assignments import assign_device, return_device
 from domains.device.services.devices import create_device, get_device, touch_device_presence
 from domains.identity_access.enums import MembershipStatus
-from domains.identity_access.models import Membership
+from domains.identity_access.models import Elder, Membership
 from domains.synchronization.enums import ReplicaType
 from common.observability.logging import log_structured
 from domains.synchronization.services.replicas import get_or_create_replica_state, reset_replica
@@ -55,6 +55,13 @@ def _active_elder_id(device_id: uuid.UUID) -> uuid.UUID | None:
         .first()
     )
     return assignment.elder_id if assignment else None
+
+
+def _elder_display_name(elder_id: uuid.UUID | None) -> str | None:
+    if not elder_id:
+        return None
+    elder = Elder.objects.filter(id=elder_id).only("full_name").first()
+    return elder.full_name if elder and elder.full_name else None
 
 
 def _device_model_by_code(device_model_code: str) -> DeviceModel:
@@ -168,12 +175,14 @@ def register_hub_device(*, serial_number: str, device_model_code: str) -> dict[s
     device.operational_status = DeviceOperationalStatus.INVENTORY
     device.save(update_fields=["operational_status", "updated_at"])
 
+    active_elder = _active_elder_id(device.id)
     return {
         "device_id": str(device.id),
         "replica_identifier": str(replica_identifier),
         "provisioning_state": blob["provisioning_state"],
         "provisioned_at": blob["provisioned_at"],
-        "elder_id": str(_active_elder_id(device.id)) if _active_elder_id(device.id) else None,
+        "elder_id": str(active_elder) if active_elder else None,
+        "elder_display_name": _elder_display_name(active_elder),
     }
 
 
@@ -220,6 +229,7 @@ def authenticate_hub_device(
         "provisioned_at": blob["provisioned_at"],
         "authenticated_at": blob["authenticated_at"],
         "elder_id": str(elder_id) if elder_id else None,
+        "elder_display_name": _elder_display_name(elder_id),
         "access": str(refresh.access_token),
         "refresh": str(refresh),
     }
@@ -237,6 +247,7 @@ def get_hub_provisioning_status(*, device_id: uuid.UUID) -> dict[str, Any]:
             "provisioned_at": None,
             "authenticated_at": None,
             "elder_id": None,
+            "elder_display_name": None,
             "revoked": False,
         }
 
@@ -248,6 +259,7 @@ def get_hub_provisioning_status(*, device_id: uuid.UUID) -> dict[str, Any]:
         "provisioned_at": blob.get("provisioned_at"),
         "authenticated_at": blob.get("authenticated_at"),
         "elder_id": str(elder_id) if elder_id else None,
+        "elder_display_name": _elder_display_name(elder_id),
         "revoked": bool(blob.get("revoked")),
     }
 

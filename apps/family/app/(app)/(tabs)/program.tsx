@@ -2,10 +2,17 @@ import { Pressable, StyleSheet, View } from "react-native";
 import { useRouter } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
 import { queryKeys } from "../../../src/api/queryKeys";
-import { listCareActivities, listPrescriptions } from "../../../src/api/endpoints/care";
+import { listCareActivities, listCompletions, listPrescriptions } from "../../../src/api/endpoints/care";
 import { listOccurrences } from "../../../src/api/endpoints/scheduling";
 import { endOfLocalDay, startOfLocalDay } from "../../../src/i18n/dates";
-import { t, formatClock, formatPersianDate, careActivityStatusLabel } from "../../../src/i18n";
+import {
+  t,
+  formatClock,
+  formatPersianDate,
+  careActivityStatusLabel,
+  completionStateLabel,
+  occurrenceStatusLabel,
+} from "../../../src/i18n";
 import { colors, radius, spacing } from "../../../src/theme/tokens";
 import {
   AppText,
@@ -23,7 +30,7 @@ import { usePermissions } from "../../../src/permissions/usePermission";
 import { PERMISSIONS } from "../../../src/permissions/codes";
 import { visualKindFor } from "../../../src/services/program/activityKind";
 import { shouldShowOnTodayProgram } from "../../../src/services/program/todayProgram";
-import type { CareActivity, Occurrence, Prescription } from "../../../src/api/types";
+import type { CareActivity, CareCompletion, Occurrence, Prescription } from "../../../src/api/types";
 
 export default function ProgramScreen() {
   const router = useRouter();
@@ -39,14 +46,22 @@ export default function ProgramScreen() {
       ]);
       const start = startOfLocalDay().toISOString();
       const end = endOfLocalDay().toISOString();
-      const items: { activity: CareActivity; occurrence: Occurrence; prescription?: Prescription }[] = [];
+      const items: {
+        activity: CareActivity;
+        occurrence: Occurrence;
+        prescription?: Prescription;
+        completion?: CareCompletion;
+      }[] = [];
       await Promise.all(
         activities.map(async (activity) => {
-          const occ = await listOccurrences(activity.schedule_definition_id, {
-            type: "between",
-            start,
-            end,
-          }).catch(() => [] as Occurrence[]);
+          const [occ, history] = await Promise.all([
+            listOccurrences(activity.schedule_definition_id, {
+              type: "between",
+              start,
+              end,
+            }).catch(() => [] as Occurrence[]),
+            listCompletions(activity.id).catch(() => [] as CareCompletion[]),
+          ]);
           const list = Array.isArray(occ) ? occ : occ ? [occ] : [];
           for (const occurrence of list) {
             if (!shouldShowOnTodayProgram(activity, occurrence)) {
@@ -56,6 +71,7 @@ export default function ProgramScreen() {
               activity,
               occurrence,
               prescription: prescriptions.find((p) => p.care_activity_id === activity.id),
+              completion: history.find((c) => c.occurrence_id === occurrence.id),
             });
           }
         }),
@@ -139,11 +155,15 @@ export default function ProgramScreen() {
                     <AppText variant="body" color={colors.textSecondary}>
                       {item.prescription?.elder_friendly_description || item.activity.display_subtitle}
                     </AppText>
-                    {item.activity.status !== "ACTIVE" ? (
-                      <AppText variant="caption" color={colors.textMuted}>
-                        {careActivityStatusLabel(item.activity.status)}
-                      </AppText>
-                    ) : null}
+                    <AppText variant="caption" color={colors.textMuted}>
+                      {item.completion
+                        ? completionStateLabel(item.completion.completion_state)
+                        : item.occurrence.status === "DUE"
+                          ? t.waitingForConfirmation
+                          : item.activity.status !== "ACTIVE"
+                            ? careActivityStatusLabel(item.activity.status)
+                            : occurrenceStatusLabel(item.occurrence.status)}
+                    </AppText>
                   </View>
                   <AppText variant="time">{formatClock(item.occurrence.scheduled_for)}</AppText>
                 </View>

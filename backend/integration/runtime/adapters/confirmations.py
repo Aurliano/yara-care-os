@@ -36,6 +36,15 @@ def submit_hub_confirmation(
         actor_user_id=actor_user_id or ctx.actor_id,
     )
     integration_logging.log_orchestration_step(ctx, "hub_confirmation_submitted")
+    try:
+        from integration.runtime.dispatcher import process_pending_events
+        process_pending_events(ctx, limit=10)
+    except Exception as exc:  # noqa: BLE001 — immediate dispatch failure must not fail evidence submission
+        integration_logging.log_orchestration_step(
+            ctx,
+            "hub_confirmation_immediate_dispatch_failed",
+            error=str(exc),
+        )
     return {"workflow_execution_id": str(execution.id), "status": execution.status}
 
 

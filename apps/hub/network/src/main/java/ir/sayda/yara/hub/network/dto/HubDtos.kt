@@ -147,6 +147,7 @@ data class HubProvisionRegisterResponseDto(
     @SerialName("provisioning_state") val provisioningState: String,
     @SerialName("provisioned_at") val provisionedAt: String,
     @SerialName("elder_id") val elderId: String? = null,
+    @SerialName("elder_display_name") val elderDisplayName: String? = null,
 )
 
 @Serializable
@@ -164,6 +165,7 @@ data class HubProvisionAuthenticateResponseDto(
     @SerialName("provisioned_at") val provisionedAt: String,
     @SerialName("authenticated_at") val authenticatedAt: String? = null,
     @SerialName("elder_id") val elderId: String? = null,
+    @SerialName("elder_display_name") val elderDisplayName: String? = null,
     val access: String,
     val refresh: String,
 )
@@ -176,6 +178,7 @@ data class HubProvisionStatusResponseDto(
     @SerialName("provisioned_at") val provisionedAt: String? = null,
     @SerialName("authenticated_at") val authenticatedAt: String? = null,
     @SerialName("elder_id") val elderId: String? = null,
+    @SerialName("elder_display_name") val elderDisplayName: String? = null,
     val revoked: Boolean = false,
 )
 

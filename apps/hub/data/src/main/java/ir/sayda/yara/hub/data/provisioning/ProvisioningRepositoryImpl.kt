@@ -62,6 +62,7 @@ class ProvisioningRepositoryImpl @Inject constructor(
                     backendUrl = backendUrl,
                     provisionedAtEpochMillis = provisionedAt,
                     provisioningState = ProvisioningState.REGISTERED,
+                    elderDisplayName = response.elderDisplayName,
                 )
                 stateMachine.transitionTo(ProvisioningState.REGISTERED)
                 HubNetworkLogger.provisioningCompleted(response.deviceId, correlationId)
@@ -83,6 +84,10 @@ class ProvisioningRepositoryImpl @Inject constructor(
         password: String,
     ): AppResult<HubIdentity> {
         val correlationId = correlationIdProvider.next()
+        val previousState = stateMachine.currentState()
+        val stored = identityStore.readProvisioning()
+        val wasAlreadyReady = previousState == ProvisioningState.READY || stored?.provisioningState == ProvisioningState.READY
+
         return try {
             withTimeout(PROVISIONING_CALL_TIMEOUT_MS) {
                 stateMachine.transitionTo(ProvisioningState.AUTHENTICATING)
@@ -105,6 +110,7 @@ class ProvisioningRepositoryImpl @Inject constructor(
                     provisionedAtEpochMillis = parseIsoEpoch(response.provisionedAt),
                     lastAuthenticatedAtEpochMillis = response.authenticatedAt?.let(::parseIsoEpoch) ?: now,
                     provisioningState = ProvisioningState.READY,
+                    elderDisplayName = response.elderDisplayName,
                 )
                 authRepository.saveIdentity(identity)
                 stateMachine.transitionTo(ProvisioningState.READY)
@@ -121,6 +127,13 @@ class ProvisioningRepositoryImpl @Inject constructor(
                 val typedError = DeviceNotFoundException("Device not found on server", exception)
                 HubNetworkLogger.authenticationFailed("Device not found on server — clearing stale identity", correlationId)
                 AppResult.Error(typedError)
+            } else if (wasAlreadyReady && ir.sayda.yara.hub.data.identity.NetworkExceptionClassifier.isPureTransportException(exception)) {
+                // Task 2.4 Condition 1: Pure transport failure on an already-provisioned device.
+                // Preserve READY state. Do NOT demote to ERROR.
+                stateMachine.transitionTo(ProvisioningState.READY)
+                val message = mapException(exception)
+                HubNetworkLogger.backendUnavailable(message, correlationId)
+                AppResult.Error(exception)
             } else {
                 val message = mapException(exception)
                 stateMachine.transitionTo(ProvisioningState.ERROR, message)
@@ -147,6 +160,7 @@ class ProvisioningRepositoryImpl @Inject constructor(
                 provisionedAtEpochMillis = status.provisionedAt?.let(::parseIsoEpoch),
                 lastAuthenticatedAtEpochMillis = status.authenticatedAt?.let(::parseIsoEpoch),
                 provisioningState = restoredState,
+                elderDisplayName = status.elderDisplayName,
             )
             stateMachine.transitionTo(restoredState)
             AppResult.Success(toStatus(restoredState))

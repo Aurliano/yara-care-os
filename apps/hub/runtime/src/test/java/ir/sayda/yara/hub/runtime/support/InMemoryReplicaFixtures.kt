@@ -40,10 +40,11 @@ class InMemorySchedulingRepository : SchedulingReplicaRepository {
             }
         }
 
-    override fun observeTodayReminders(endOfDayEpochMillis: Long): Flow<List<Occurrence>> =
+    override fun observeTodayReminders(startOfDayEpochMillis: Long, endOfDayEpochMillis: Long): Flow<List<Occurrence>> =
         occurrences.asStateFlow().map { list ->
             list.filter {
-                it.scheduledForEpochMillis <= endOfDayEpochMillis &&
+                it.scheduledForEpochMillis >= startOfDayEpochMillis &&
+                    it.scheduledForEpochMillis <= endOfDayEpochMillis &&
                     (it.status == OccurrenceStatus.DUE.name || it.status == OccurrenceStatus.SCHEDULED.name)
             }.sortedBy { it.scheduledForEpochMillis }
         }
@@ -105,15 +106,18 @@ class InMemorySchedulingRepository : SchedulingReplicaRepository {
         }
 
     override fun observeNextReminderOccurrence(
+        startOfDayEpochMillis: Long,
         nowEpochMillis: Long,
         endOfDayEpochMillis: Long,
     ): Flow<Occurrence?> =
         occurrences.asStateFlow().map { list ->
             list.filter { occurrence ->
                 (occurrence.status == OccurrenceStatus.DUE.name &&
+                    occurrence.scheduledForEpochMillis >= startOfDayEpochMillis &&
                     occurrence.scheduledForEpochMillis <= endOfDayEpochMillis) ||
                     (occurrence.status == OccurrenceStatus.SCHEDULED.name &&
-                        occurrence.scheduledForEpochMillis > nowEpochMillis)
+                        occurrence.scheduledForEpochMillis > nowEpochMillis &&
+                        occurrence.scheduledForEpochMillis <= endOfDayEpochMillis)
             }.minByOrNull { it.scheduledForEpochMillis }
         }
 

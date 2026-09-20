@@ -52,13 +52,21 @@ export function weekdayName(iso: string | Date): string {
 }
 
 export function startOfLocalDay(date = new Date()): Date {
-  const copy = new Date(date);
-  copy.setHours(0, 0, 0, 0);
-  return copy;
+  const ymd = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Tehran",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(date);
+  return new Date(`${ymd}T00:00:00.000+03:30`);
 }
 
 export function endOfLocalDay(date = new Date()): Date {
-  const copy = new Date(date);
-  copy.setHours(23, 59, 59, 999);
-  return copy;
+  const ymd = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Tehran",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(date);
+  return new Date(`${ymd}T23:59:59.999+03:30`);
 }

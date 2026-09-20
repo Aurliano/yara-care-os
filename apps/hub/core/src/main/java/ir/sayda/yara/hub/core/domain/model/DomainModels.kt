@@ -189,6 +189,7 @@ data class HubIdentity(
     val provisionedAtEpochMillis: Long,
     val lastAuthenticatedAtEpochMillis: Long,
     val provisioningState: ProvisioningState,
+    val elderDisplayName: String? = null,
 )
 
 data class HomeRuntimeSnapshot(

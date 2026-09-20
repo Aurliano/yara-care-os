@@ -10,6 +10,7 @@ from django.utils import timezone
 
 from domains.care.services.activities import get_care_activity_for_schedule
 from domains.communication.enums import CommunicationChannel
+from domains.communication.exceptions import ActiveSessionExistsError, CommunicationError
 from domains.communication.services.contacts import get_priority_contacts
 from domains.communication.services.sessions import initiate_session
 from domains.device.enums import AssignmentStatus, CommandType
@@ -20,6 +21,7 @@ from domains.notification.services.alerts import record_caregiver_alert
 from domains.scheduling.services.occurrences import get_occurrence
 from domains.workflow.enums import ActionType
 from integration.context import IntegrationContext
+from integration.observability import logging as integration_logging
 from integration.runtime.action_handlers.registry import REGISTRY, ActionHandler
 
 
@@ -28,7 +30,10 @@ class ShowReminderHandler:
 
     def handle(self, ctx: IntegrationContext, *, payload: dict[str, Any]) -> None:
         dispatch_context = payload.get("dispatch_context") or {}
-        elder_id = uuid.UUID(dispatch_context["elder_id"])
+        raw_elder_id = dispatch_context.get("elder_id")
+        if not raw_elder_id:
+            return
+        elder_id = uuid.UUID(str(raw_elder_id))
         execution_id = uuid.UUID(payload["workflow_execution_id"])
         assignments = get_assignments(elder_id=elder_id)
         hub_assignment = next((a for a in assignments if a.status == AssignmentStatus.ASSIGNED), None)
@@ -73,19 +78,31 @@ class InitiateCallHandler:
 
     def handle(self, ctx: IntegrationContext, *, payload: dict[str, Any]) -> None:
         dispatch_context = payload.get("dispatch_context") or {}
-        elder_id = uuid.UUID(dispatch_context["elder_id"])
+        raw_elder_id = dispatch_context.get("elder_id")
+        if not raw_elder_id:
+            return
+        elder_id = uuid.UUID(str(raw_elder_id))
         execution_id = uuid.UUID(payload["workflow_execution_id"])
         contacts = get_priority_contacts(elder_id=elder_id)
         if not contacts:
             return
         recipient = contacts[0]
-        initiate_session(
-            elder_id=elder_id,
-            channel=CommunicationChannel.VOICE,
-            initiator_user_id=ctx.actor_id,
-            recipient_contact_id=recipient.id,
-            external_execution_reference=execution_id,
-        )
+        try:
+            initiate_session(
+                elder_id=elder_id,
+                channel=CommunicationChannel.VOICE,
+                initiator_user_id=ctx.actor_id,
+                recipient_contact_id=recipient.id,
+                external_execution_reference=execution_id,
+            )
+        except CommunicationError as exc:
+            integration_logging.log_orchestration_step(
+                ctx,
+                "call_initiation_skipped_or_failed",
+                elder_id=str(elder_id),
+                execution_id=str(execution_id),
+                reason=str(exc),
+            )
 
 
 def register_default_handlers() -> None:

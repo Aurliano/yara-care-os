@@ -127,8 +127,9 @@ fun HomeRoute(
         }
     }
     val now = Date(nowEpochMillis)
-    val timeFormatter = SimpleDateFormat("HH:mm", Locale.ENGLISH)
-    val reminderTimeFormatter = SimpleDateFormat("HH:mm", Locale("fa", "IR"))
+    val appTimeZone = ir.sayda.yara.hub.core.scheduling.resolveSchedulingTimeZone()
+    val timeFormatter = SimpleDateFormat("HH:mm", Locale.ENGLISH).apply { timeZone = appTimeZone }
+    val reminderTimeFormatter = SimpleDateFormat("HH:mm", Locale("fa", "IR")).apply { timeZone = appTimeZone }
     val connection = snapshot.toConnectionPresentation()
     val nextReminder = snapshot.toNextReminderPresentation(reminderTimeFormatter)
 

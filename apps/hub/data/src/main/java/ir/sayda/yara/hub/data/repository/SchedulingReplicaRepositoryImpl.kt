@@ -27,8 +27,8 @@ class SchedulingReplicaRepositoryImpl @Inject constructor(
     override fun observeOccurrencesDueBefore(epochMillis: Long): Flow<List<Occurrence>> =
         occurrenceDao.observeDueBefore(epochMillis).map { list -> list.map { it.toDomain() } }
 
-    override fun observeTodayReminders(endOfDayEpochMillis: Long): Flow<List<Occurrence>> =
-        occurrenceDao.observeTodayReminders(endOfDayEpochMillis).map { list -> list.map { it.toDomain() } }
+    override fun observeTodayReminders(startOfDayEpochMillis: Long, endOfDayEpochMillis: Long): Flow<List<Occurrence>> =
+        occurrenceDao.observeTodayReminders(startOfDayEpochMillis, endOfDayEpochMillis).map { list -> list.map { it.toDomain() } }
 
     override suspend fun getOccurrence(occurrenceId: String): Occurrence? =
         occurrenceDao.getById(occurrenceId)?.toDomain()
@@ -77,9 +77,10 @@ class SchedulingReplicaRepositoryImpl @Inject constructor(
         occurrenceDao.observeNextScheduledAfter(afterEpochMillis).map { entity -> entity?.toDomain() }
 
     override fun observeNextReminderOccurrence(
+        startOfDayEpochMillis: Long,
         nowEpochMillis: Long,
         endOfDayEpochMillis: Long,
     ): Flow<Occurrence?> =
-        occurrenceDao.observeNextReminderOccurrence(nowEpochMillis, endOfDayEpochMillis)
+        occurrenceDao.observeNextReminderOccurrence(startOfDayEpochMillis, nowEpochMillis, endOfDayEpochMillis)
             .map { entity -> entity?.toDomain() }
 }

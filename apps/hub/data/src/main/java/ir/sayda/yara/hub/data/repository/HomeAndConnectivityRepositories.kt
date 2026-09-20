@@ -63,6 +63,7 @@ class HomeRepositoryImpl @Inject constructor(
         }
 
     private fun combineHomeSnapshot(identity: HubIdentity?): Flow<HomeRuntimeSnapshot> {
+        val startOfDay = startOfTodayEpochMillis()
         val endOfDay = endOfTodayEpochMillis()
         val contactsFlow = identity?.elderId?.let { elderId ->
             combine(
@@ -77,7 +78,7 @@ class HomeRepositoryImpl @Inject constructor(
             clockFlow(),
             combine(
                 workflowReplicaRepository.observeActiveExecutions(),
-                schedulingReplicaRepository.observeTodayReminders(endOfDay),
+                schedulingReplicaRepository.observeTodayReminders(startOfDay, endOfDay),
                 schedulingReplicaRepository.observeNextScheduledOccurrence(System.currentTimeMillis()),
             ) { executions, todayOccurrences, nextScheduled ->
                 Triple(executions, todayOccurrences, nextScheduled)
@@ -219,9 +220,7 @@ class HomeRepositoryImpl @Inject constructor(
             .map { it.occurrenceId }
             .toSet()
         val visibleNextOccurrence = nextOccurrence?.takeUnless { hiddenOccurrenceIds.contains(it.id) }
-        val displayName = careActivities.firstOrNull { it.elderId == identity?.elderId }?.displayTitle
-            ?: identity?.elderId
-            ?: "سالمند"
+        val displayName = identity?.elderDisplayName?.takeIf { it.isNotBlank() } ?: "سالمند"
         val nextActivity = visibleNextOccurrence?.let { activityBySchedule[it.scheduleDefinitionId] }
         return HomeRuntimeSnapshot(
             elderDisplayName = displayName,
@@ -266,8 +265,17 @@ class HomeRepositoryImpl @Inject constructor(
         )
     }
 
+    private fun startOfTodayEpochMillis(): Long {
+        val calendar = Calendar.getInstance(ir.sayda.yara.hub.core.scheduling.resolveSchedulingTimeZone())
+        calendar.set(Calendar.HOUR_OF_DAY, 0)
+        calendar.set(Calendar.MINUTE, 0)
+        calendar.set(Calendar.SECOND, 0)
+        calendar.set(Calendar.MILLISECOND, 0)
+        return calendar.timeInMillis
+    }
+
     private fun endOfTodayEpochMillis(): Long {
-        val calendar = Calendar.getInstance()
+        val calendar = Calendar.getInstance(ir.sayda.yara.hub.core.scheduling.resolveSchedulingTimeZone())
         calendar.set(Calendar.HOUR_OF_DAY, 23)
         calendar.set(Calendar.MINUTE, 59)
         calendar.set(Calendar.SECOND, 59)

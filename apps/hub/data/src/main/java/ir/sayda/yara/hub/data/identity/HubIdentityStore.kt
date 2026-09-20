@@ -26,6 +26,7 @@ interface HubIdentityStore {
         val provisionedAtEpochMillis: Long,
         val lastAuthenticatedAtEpochMillis: Long,
         val provisioningState: ProvisioningState,
+        val elderDisplayName: String? = null,
     )
 
     data class StoredHubIdentity(
@@ -39,6 +40,7 @@ interface HubIdentityStore {
         val provisionedAtEpochMillis: Long,
         val lastAuthenticatedAtEpochMillis: Long,
         val provisioningState: ProvisioningState,
+        val elderDisplayName: String? = null,
     ) {
         fun toHubIdentity(): HubIdentity = HubIdentity(
             deviceId = deviceId,
@@ -51,6 +53,7 @@ interface HubIdentityStore {
             provisionedAtEpochMillis = provisionedAtEpochMillis,
             lastAuthenticatedAtEpochMillis = lastAuthenticatedAtEpochMillis,
             provisioningState = provisioningState,
+            elderDisplayName = elderDisplayName,
         )
     }
 }

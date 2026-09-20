@@ -7,6 +7,7 @@ import ir.sayda.yara.hub.network.api.AuthApi
 import ir.sayda.yara.hub.network.dto.TokenRefreshRequestDto
 import ir.sayda.yara.hub.network.identity.CorrelationIdProvider
 import ir.sayda.yara.hub.network.logging.HubNetworkLogger
+import retrofit2.HttpException
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.sync.Mutex
@@ -20,19 +21,38 @@ class HubTokenRefreshCoordinator @Inject constructor(
 ) {
     private val mutex = Mutex()
 
-    suspend fun refreshIfNeeded(failedAccessToken: String? = null): Boolean = refresh(failedAccessToken = failedAccessToken, force = false)
+    sealed interface RefreshResult {
+        object Success : RefreshResult
+        object NotNeeded : RefreshResult
+        data class PureTransportFailure(val exception: Throwable) : RefreshResult
+        data class AuthenticationFailure(val exception: Throwable) : RefreshResult
+        data class UnknownFailure(val exception: Throwable) : RefreshResult
+    }
 
-    suspend fun refresh(failedAccessToken: String? = null, force: Boolean = true): Boolean {
+    suspend fun refreshIfNeeded(failedAccessToken: String? = null): Boolean =
+        refresh(failedAccessToken = failedAccessToken, force = false)
+
+    suspend fun refresh(failedAccessToken: String? = null, force: Boolean = true): Boolean =
+        when (refreshDetailed(failedAccessToken, force)) {
+            is RefreshResult.Success, is RefreshResult.NotNeeded -> true
+            else -> false
+        }
+
+    suspend fun refreshIfNeededDetailed(failedAccessToken: String? = null): RefreshResult =
+        refreshDetailed(failedAccessToken = failedAccessToken, force = false)
+
+    suspend fun refreshDetailed(failedAccessToken: String? = null, force: Boolean = true): RefreshResult {
         return mutex.withLock {
-            val current = identityStore.readIdentity() ?: return false
+            val current = identityStore.readIdentity()
+                ?: return RefreshResult.UnknownFailure(IllegalStateException("No hub identity configured"))
             if (failedAccessToken != null && failedAccessToken != current.accessToken) {
                 // Another thread already refreshed the token
-                return true
+                return RefreshResult.Success
             }
             if (!force && !isExpired(current.tokenExpiresAtEpochMillis)) {
-                return true
+                return RefreshResult.NotNeeded
             }
-            performRefresh(current)
+            performRefreshDetailed(current)
         }
     }
 
@@ -43,8 +63,8 @@ class HubTokenRefreshCoordinator @Inject constructor(
         return identityStore.peekAccessToken()
     }
 
-    private suspend fun performRefresh(current: HubIdentity): Boolean {
-        return runCatching {
+    private suspend fun performRefreshDetailed(current: HubIdentity): RefreshResult {
+        return try {
             val correlationId = correlationIdProvider.next()
             val response = authApi.refreshToken(TokenRefreshRequestDto(refresh = current.refreshToken))
             val refreshed = current.copy(
@@ -57,8 +77,16 @@ class HubTokenRefreshCoordinator @Inject constructor(
             )
             identityStore.writeIdentity(refreshed)
             HubNetworkLogger.authenticationRefresh(current.deviceId, correlationId)
-            true
-        }.getOrDefault(false)
+            RefreshResult.Success
+        } catch (e: Exception) {
+            if (NetworkExceptionClassifier.isPureTransportException(e)) {
+                RefreshResult.PureTransportFailure(e)
+            } else if (e is HttpException && (e.code() == 401 || e.code() == 403 || e.code() == 404)) {
+                RefreshResult.AuthenticationFailure(e)
+            } else {
+                RefreshResult.UnknownFailure(e)
+            }
+        }
     }
 
     private fun isExpired(expiresAtEpochMillis: Long): Boolean =

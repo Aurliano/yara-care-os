@@ -6,6 +6,7 @@ import uuid
 from typing import Any
 
 from domains.care.enums import WorkflowExecutionResultType
+from domains.care.exceptions import InvalidCareActivityStateError, InvalidExecutionResultError
 from domains.care.services.activities import get_care_activity
 from domains.care.services.interpretation import interpret_execution_result
 from domains.care.services.occurrence_due import handle_occurrence_due_event
@@ -23,7 +24,10 @@ from integration.runtime.adapters.synchronization import submit_care_delta_for_r
 
 def handle_occurrence_due(ctx: IntegrationContext, payload: dict[str, Any]) -> None:
     event_id = uuid.UUID(payload["event_id"])
-    handle_occurrence_due_event(event_id=event_id)
+    try:
+        handle_occurrence_due_event(event_id=event_id)
+    except InvalidCareActivityStateError:
+        return
     increment("integration.event.occurrence_due")
 
 
@@ -43,19 +47,25 @@ def handle_escalation_triggered(ctx: IntegrationContext, payload: dict[str, Any]
 
 def handle_execution_confirmed(ctx: IntegrationContext, payload: dict[str, Any]) -> None:
     execution_id = uuid.UUID(payload["workflow_execution_id"])
-    interpret_execution_result(
-        workflow_execution_id=execution_id,
-        result_type=WorkflowExecutionResultType.EXECUTION_CONFIRMED,
-    )
+    try:
+        interpret_execution_result(
+            workflow_execution_id=execution_id,
+            result_type=WorkflowExecutionResultType.EXECUTION_CONFIRMED,
+        )
+    except InvalidExecutionResultError:
+        return
     increment("integration.event.execution_confirmed")
 
 
 def handle_execution_missed(ctx: IntegrationContext, payload: dict[str, Any]) -> None:
     execution_id = uuid.UUID(payload["workflow_execution_id"])
-    interpret_execution_result(
-        workflow_execution_id=execution_id,
-        result_type=WorkflowExecutionResultType.EXECUTION_MISSED,
-    )
+    try:
+        interpret_execution_result(
+            workflow_execution_id=execution_id,
+            result_type=WorkflowExecutionResultType.EXECUTION_MISSED,
+        )
+    except InvalidExecutionResultError:
+        return
     increment("integration.event.execution_missed")
 
 

@@ -11,9 +11,21 @@ import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.test.runTest
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.ResponseBody.Companion.toResponseBody
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import retrofit2.HttpException
+import retrofit2.Response
+import java.net.ConnectException
+
+import io.mockk.every
+import io.mockk.mockkObject
+import io.mockk.unmockkObject
+import ir.sayda.yara.hub.network.logging.HubNetworkLogger
+import org.junit.After
+import org.junit.Before
 
 class HubTokenRefreshCoordinatorTest {
 
@@ -30,6 +42,17 @@ class HubTokenRefreshCoordinatorTest {
         authApi = fakeAuthApi,
         correlationIdProvider = fakeCorrelationIdProvider,
     )
+
+    @Before
+    fun setUp() {
+        mockkObject(HubNetworkLogger)
+        every { HubNetworkLogger.authenticationRefresh(any(), any()) } returns Unit
+    }
+
+    @After
+    fun tearDown() {
+        unmockkObject(HubNetworkLogger)
+    }
 
     @Test
     fun `refreshIfNeeded does not refresh if not expired`() = runTest {
@@ -75,6 +98,84 @@ class HubTokenRefreshCoordinatorTest {
         assertEquals("new-access-1", identityStore.readIdentity()?.accessToken)
     }
 
+    @Test
+    fun `pure transport failure produces PureTransportFailure and preserves expired token in store`() = runTest {
+        val expiredTime = System.currentTimeMillis() - 10_000L
+        val identity = HubIdentity(
+            deviceId = "dev", elderId = "elder", replicaId = "replica-1",
+            accessToken = "expired-token", refreshToken = "refresh-123",
+            tokenExpiresAtEpochMillis = expiredTime,
+            backendUrl = "http://localhost",
+            provisionedAtEpochMillis = 0L,
+            lastAuthenticatedAtEpochMillis = 0L,
+            provisioningState = ProvisioningState.READY,
+        )
+        identityStore.writeIdentity(identity)
+
+        fakeAuthApi.throwException = ConnectException("Failed to connect to /10.254.230.230:8000")
+
+        val result = coordinator.refreshIfNeededDetailed()
+        assertTrue(result is HubTokenRefreshCoordinator.RefreshResult.PureTransportFailure)
+
+        // Store must NOT be overwritten with fake timestamps; token remains expired
+        val inStore = identityStore.readIdentity()
+        assertEquals(expiredTime, inStore?.tokenExpiresAtEpochMillis)
+        assertEquals("expired-token", inStore?.accessToken)
+    }
+
+    @Test
+    fun `HTTP 401 error produces AuthenticationFailure`() = runTest {
+        val identity = HubIdentity(
+            deviceId = "dev", elderId = "elder", replicaId = "replica-1",
+            accessToken = "expired-token", refreshToken = "bad-refresh",
+            tokenExpiresAtEpochMillis = System.currentTimeMillis() - 10_000L,
+            backendUrl = "http://localhost",
+            provisionedAtEpochMillis = 0L,
+            lastAuthenticatedAtEpochMillis = 0L,
+            provisioningState = ProvisioningState.READY,
+        )
+        identityStore.writeIdentity(identity)
+
+        val errorBody = """{"detail": "Token is invalid or expired"}""".toResponseBody("application/json".toMediaType())
+        fakeAuthApi.throwException = HttpException(Response.error<Unit>(401, errorBody))
+
+        val result = coordinator.refreshIfNeededDetailed()
+        assertTrue(result is HubTokenRefreshCoordinator.RefreshResult.AuthenticationFailure)
+    }
+
+    @Test
+    fun `reconnect lifecycle - offline fails with transport error, restored connection succeeds`() = runTest {
+        // Step 1: Token is expired while offline
+        val expiredTime = System.currentTimeMillis() - 10_000L
+        val identity = HubIdentity(
+            deviceId = "dev", elderId = "elder", replicaId = "replica-1",
+            accessToken = "old-access", refreshToken = "valid-refresh",
+            tokenExpiresAtEpochMillis = expiredTime,
+            backendUrl = "http://localhost",
+            provisionedAtEpochMillis = 0L,
+            lastAuthenticatedAtEpochMillis = 0L,
+            provisioningState = ProvisioningState.READY,
+        )
+        identityStore.writeIdentity(identity)
+
+        fakeAuthApi.throwException = ConnectException("Network unreachable")
+
+        // Offline attempt
+        val offlineResult = coordinator.refreshIfNeededDetailed()
+        assertTrue(offlineResult is HubTokenRefreshCoordinator.RefreshResult.PureTransportFailure)
+        assertEquals("old-access", identityStore.readIdentity()?.accessToken)
+
+        // Step 2: Connection restored (clear exception)
+        fakeAuthApi.throwException = null
+
+        val onlineResult = coordinator.refreshIfNeededDetailed()
+        assertEquals(HubTokenRefreshCoordinator.RefreshResult.Success, onlineResult)
+
+        // Token must now be legitimately refreshed from server
+        assertEquals("new-access-1", identityStore.readIdentity()?.accessToken)
+        assertTrue((identityStore.readIdentity()?.tokenExpiresAtEpochMillis ?: 0L) > System.currentTimeMillis())
+    }
+
     /**
      * In-memory [HubIdentityStore] replacement.
      */
@@ -107,14 +208,16 @@ class HubTokenRefreshCoordinatorTest {
 
     class FakeAuthApi : AuthApi {
         var refreshCount = 0
+        var throwException: Exception? = null
 
         override suspend fun obtainToken(body: ir.sayda.yara.hub.network.dto.TokenRequestDto): TokenResponseDto {
             throw NotImplementedError()
         }
 
         override suspend fun refreshToken(body: TokenRefreshRequestDto): TokenResponseDto {
+            throwException?.let { throw it }
             refreshCount++
-            delay(100)
+            delay(10)
             return TokenResponseDto(
                 access = "new-access-$refreshCount",
                 refresh = "new-refresh-$refreshCount"
@@ -122,4 +225,3 @@ class HubTokenRefreshCoordinatorTest {
         }
     }
 }
-

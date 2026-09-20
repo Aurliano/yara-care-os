@@ -1,12 +1,11 @@
 package ir.sayda.yara.hub.runtime.scheduling
 
+import ir.sayda.yara.hub.core.scheduling.formatCanonicalUtcIso
+import ir.sayda.yara.hub.core.scheduling.resolveSchedulingTimeZone
 import ir.sayda.yara.hub.runtime.json.HubJsonReader
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonPrimitive
-import java.text.SimpleDateFormat
 import java.util.Calendar
-import java.util.Date
-import java.util.Locale
 import java.util.TimeZone
 
 data class RecurrenceSlot(
@@ -15,10 +14,6 @@ data class RecurrenceSlot(
 )
 
 object RecurrenceEvaluator {
-
-    private val ISO_FORMATTER = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX", Locale.US).apply {
-        timeZone = TimeZone.getTimeZone("UTC")
-    }
 
     fun validateRecurrenceDefinition(recurrenceDefinitionJson: String) {
         val json = HubJsonReader.parseObject(recurrenceDefinitionJson)
@@ -47,7 +42,7 @@ object RecurrenceEvaluator {
     ): List<RecurrenceSlot> {
         val json = HubJsonReader.parseObject(recurrenceDefinitionJson)
         validateRecurrenceDefinition(recurrenceDefinitionJson)
-        val zone = TimeZone.getTimeZone(timezoneName)
+        val zone = resolveSchedulingTimeZone(timezoneName, startAtEpochMillis)
         val effectiveStart = maxOf(startAtEpochMillis, rangeStartEpochMillis)
         val effectiveEnd = minOf(rangeEndEpochMillis, endAtEpochMillis ?: rangeEndEpochMillis)
         if (effectiveStart > effectiveEnd) return emptyList()
@@ -136,7 +131,7 @@ object RecurrenceEvaluator {
         val seconds = epochMillis - (epochMillis % 1000)
         return RecurrenceSlot(
             originalTimeEpochMillis = seconds,
-            originalTimeIsoUtc = ISO_FORMATTER.format(Date(seconds)),
+            originalTimeIsoUtc = formatCanonicalUtcIso(seconds),
         )
     }
 
