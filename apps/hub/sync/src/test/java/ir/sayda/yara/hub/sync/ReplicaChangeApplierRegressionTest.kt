@@ -299,4 +299,39 @@ class ReplicaChangeApplierRegressionTest {
         }
         coVerify(exactly = 0) { careRepo.upsertCareActivity(any()) }
     }
+
+    @Test
+    fun applyContactDelta_upsertsContactAndMarksCommunicationDomain() = runTest {
+        coEvery { commRepo.getContact("contact-1") } returns null
+
+        val payload = """
+        {
+            "id": "contact-1",
+            "elder_id": "elder-1",
+            "display_name": "پسر",
+            "phone": "+989121111111",
+            "communication_identities_json": "[]",
+            "preferred_channel": "VOICE",
+            "photo_reference": null,
+            "is_priority": true,
+            "status": "ACTIVE",
+            "updated_at_epoch_millis": 1000
+        }
+        """.trimIndent()
+
+        val operation = createOperation(
+            aggregateReference = "contact-1",
+            aggregateVersion = "1000",
+            payloadType = "communication.contact.delta",
+            payloadJson = payload,
+        )
+
+        val summary = applier.apply(listOf(operation))
+
+        assertEquals(1, summary.appliedCount)
+        assertEquals(0, summary.skippedCount)
+        assertEquals(0, summary.conflictCount)
+        assertTrue(summary.affectedReplicaDomains.contains(ReplicaDomain.COMMUNICATION))
+        coVerify(exactly = 1) { commRepo.upsertContact(match { it.id == "contact-1" && it.displayName == "پسر" }) }
+    }
 }

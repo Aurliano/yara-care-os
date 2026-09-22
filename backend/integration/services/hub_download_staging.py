@@ -155,6 +155,20 @@ def _seed_replica_versions_from_snapshot(*, replica, payload: dict[str, Any]) ->
             aggregate_version=str(session.aggregate_version),
         )
 
+    for item in payload.get("contacts") or []:
+        contact_id = _parse_uuid(item.get("id") or item.get("contact_id"))
+        if contact_id is None:
+            continue
+        from domains.communication.models import Contact
+        contact = Contact.objects.filter(pk=contact_id).first()
+        if contact is None:
+            continue
+        _record_replica_version(
+            replica=replica,
+            aggregate_reference=contact.id,
+            aggregate_version=str(_epoch_millis(contact.updated_at)),
+        )
+
 
 def _stage_delta_from_builder(
     *,
@@ -246,6 +260,23 @@ def _stage_incremental_deltas(
                 session_id=session_id,
             ),
             id_suffix=f"communication:{comm_session.id}",
+        )
+        staged += 1
+
+    from domains.communication.models import Contact
+    from domains.communication.services.sync_export import build_contact_sync_delta
+    for contact in Contact.objects.filter(elder_id=elder_id):
+        incoming_version = str(_epoch_millis(contact.updated_at))
+        if not _incoming_is_newer(
+            replica=replica,
+            aggregate_reference=contact.id,
+            incoming_version=incoming_version,
+        ):
+            continue
+        _stage_delta_from_builder(
+            session=session,
+            builder=lambda contact_id=contact.id: build_contact_sync_delta(contact_id=contact_id),
+            id_suffix=f"contact:{contact.id}",
         )
         staged += 1
 

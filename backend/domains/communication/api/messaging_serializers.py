@@ -134,16 +134,32 @@ class MessageSerializer(serializers.ModelSerializer):
                 "is_hub": True,
             }
         display_name = "خانواده"
-        if obj.sender_user_id:
+        contact_id = None
+        if obj.sender_contact_id:
+            contact_id = str(obj.sender_contact_id)
+            if obj.sender_contact:
+                display_name = obj.sender_contact.display_name
+        elif obj.sender_user_id:
             try:
+                from domains.communication.models import Contact
                 from domains.identity_access.models import User
                 user = User.objects.filter(id=obj.sender_user_id).first()
-                if user and user.full_name:
-                    display_name = user.full_name
+                if user:
+                    contact = (
+                        Contact.objects.filter(elder_id=obj.elder_id, status="ACTIVE", phone=user.phone).first()
+                        if user.phone
+                        else None
+                    )
+                    if contact and contact.display_name:
+                        contact_id = str(contact.id)
+                        display_name = contact.display_name
+                    elif user.full_name:
+                        display_name = user.full_name
             except Exception:
                 pass
         return {
-            "id": str(obj.sender_user_id) if obj.sender_user_id else None,
+            "id": str(obj.sender_user_id) if obj.sender_user_id else contact_id,
+            "contact_id": contact_id,
             "display_name": display_name,
             "is_hub": False,
         }

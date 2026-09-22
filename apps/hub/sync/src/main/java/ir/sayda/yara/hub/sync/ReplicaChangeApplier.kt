@@ -137,6 +137,27 @@ class ReplicaChangeApplier @Inject constructor(
                         }
                     }
                 }
+                "communication.contact.delta" -> when (applyContactDelta(operation)) {
+                    ApplyOutcome.APPLIED -> {
+                        applied++
+                        domains += ReplicaDomain.COMMUNICATION
+                        runCatching {
+                            android.util.Log.i("YaraSync", "replica.operation.applied aggregate=${operation.aggregateReference} type=${operation.payloadType}")
+                        }
+                    }
+                    ApplyOutcome.SKIPPED -> {
+                        skipped++
+                        runCatching {
+                            android.util.Log.i("YaraSync", "replica.operation.skipped aggregate=${operation.aggregateReference} reason=version_guard")
+                        }
+                    }
+                    ApplyOutcome.CONFLICT -> {
+                        conflicts++
+                        runCatching {
+                            android.util.Log.w("YaraSync", "replica.operation.conflict aggregate=${operation.aggregateReference} version=${operation.aggregateVersion}")
+                        }
+                    }
+                }
                 else -> {
                     skipped++
                     runCatching {
@@ -211,6 +232,18 @@ class ReplicaChangeApplier @Inject constructor(
         val session = syncPayloadParser.parseCommunicationSession(operation.payloadJson, operation.aggregateVersion)
         return applyWithVersionGuard(operation, null) {
             communicationReplicaRepository.upsertSession(session)
+        }
+    }
+
+    private suspend fun applyContactDelta(operation: SyncOperation): ApplyOutcome {
+        val contact = syncPayloadParser.parseContact(operation.payloadJson, operation.aggregateVersion)
+            ?: return ApplyOutcome.SKIPPED
+        val current = communicationReplicaRepository.getContact(contact.id)
+        return applyWithVersionGuard(
+            operation = operation,
+            localVersion = current?.updatedAtEpochMillis?.toString(),
+        ) {
+            communicationReplicaRepository.upsertContact(contact)
         }
     }
 

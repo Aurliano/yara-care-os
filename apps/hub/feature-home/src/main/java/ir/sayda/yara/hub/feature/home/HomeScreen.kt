@@ -22,6 +22,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.automirrored.rounded.Send
 import androidx.compose.material.icons.rounded.AccessTime
 import androidx.compose.material.icons.rounded.Call
 import androidx.compose.material.icons.rounded.Chat
@@ -69,7 +70,9 @@ import ir.sayda.yara.hub.ui.components.FamilyTextMessageCard
 import ir.sayda.yara.hub.ui.components.HomeEmptyStateCard
 import ir.sayda.yara.hub.ui.components.HomeLoadingSkeleton
 import ir.sayda.yara.hub.ui.components.HubActionCard
+import ir.sayda.yara.hub.ui.components.HubContactItemCard
 import ir.sayda.yara.hub.ui.components.HubFooterBadges
+import ir.sayda.yara.hub.ui.components.HubOutgoingMessageCard
 import ir.sayda.yara.hub.ui.components.HubTopBar
 import ir.sayda.yara.hub.ui.components.NextReminderHighlightCard
 import ir.sayda.yara.hub.ui.components.RecordVoiceMessageCard
@@ -269,6 +272,9 @@ fun HomeRoute(
                                     val incomingMessages = uiState.messages.filter {
                                         it.direction == MessageDirection.FAMILY_TO_HUB
                                     }
+                                    val unreadMessages = incomingMessages.filter {
+                                        it.status != ir.sayda.yara.hub.core.domain.model.MessageStatus.READ
+                                    }
                                     HubActionCard(
                                         title = "پیام",
                                         subtitle = "مشاهده پیام‌ها و\nعکس‌های عزیزانتان",
@@ -281,8 +287,8 @@ fun HomeRoute(
                                         buttonColor = CardMessageAccent,
                                         onButtonClick = { showMessagesSheet = true },
                                         badgeContent = {
-                                            if (incomingMessages.isNotEmpty()) {
-                                                MessageCountBadge(count = incomingMessages.size)
+                                            if (unreadMessages.isNotEmpty()) {
+                                                MessageCountBadge(count = unreadMessages.size)
                                             } else {
                                                 CardStatusPill(
                                                     icon = Icons.Rounded.Chat,
@@ -345,6 +351,9 @@ fun HomeRoute(
                                     val incomingMessages = uiState.messages.filter {
                                         it.direction == MessageDirection.FAMILY_TO_HUB
                                     }
+                                    val unreadMessages = incomingMessages.filter {
+                                        it.status != ir.sayda.yara.hub.core.domain.model.MessageStatus.READ
+                                    }
                                     HubActionCard(
                                         title = "پیام",
                                         subtitle = "مشاهده پیام‌ها و عکس‌های عزیزانتان",
@@ -357,8 +366,8 @@ fun HomeRoute(
                                         buttonColor = CardMessageAccent,
                                         onButtonClick = { showMessagesSheet = true },
                                         badgeContent = {
-                                            if (incomingMessages.isNotEmpty()) {
-                                                MessageCountBadge(count = incomingMessages.size)
+                                            if (unreadMessages.isNotEmpty()) {
+                                                MessageCountBadge(count = unreadMessages.size)
                                             } else {
                                                 CardStatusPill(
                                                     icon = Icons.Rounded.Chat,
@@ -442,7 +451,13 @@ fun HomeRoute(
                 onStopAndSend = { viewModel.stopAndSendVoice() },
                 onCancelRecording = { viewModel.cancelRecordingVoice() },
                 onTogglePlayVoice = { viewModel.togglePlayVoiceMessage(it) },
-                onDismiss = { showMessagesSheet = false },
+                onSendTextMessage = { viewModel.sendTextMessage(it) },
+                onMarkIncomingRead = { viewModel.markIncomingMessagesAsRead() },
+                onSelectContact = { viewModel.selectContact(it) },
+                onDismiss = {
+                    showMessagesSheet = false
+                    viewModel.selectContact(null)
+                },
             )
         }
     }
@@ -875,13 +890,20 @@ private fun FamilyMessagesDialog(
     onStopAndSend: () -> Unit,
     onCancelRecording: () -> Unit,
     onTogglePlayVoice: (ir.sayda.yara.hub.core.domain.model.Message) -> Unit,
+    onSendTextMessage: (String) -> Unit,
+    onMarkIncomingRead: () -> Unit,
+    onSelectContact: (String?) -> Unit,
     onDismiss: () -> Unit,
 ) {
+    val selectedContactId = uiState.selectedContactId
+    val selectedContact = remember(selectedContactId, uiState.contacts) {
+        uiState.contacts.firstOrNull { it.id == selectedContactId }
+    }
+
     Dialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false),
     ) {
-        BackHandler(onBack = onDismiss)
         Surface(
             shape = RoundedCornerShape(32.dp),
             color = TabletBg,
@@ -891,148 +913,426 @@ private fun FamilyMessagesDialog(
                 .fillMaxWidth(0.92f)
                 .fillMaxHeight(0.90f),
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 32.dp, vertical = 24.dp),
-            ) {
-                // Dialog Header
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
+            if (selectedContact == null) {
+                // LEVEL 1: CONTACT LIST
+                BackHandler(onBack = onDismiss)
+
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 32.dp, vertical = 24.dp),
                 ) {
+                    // Header
                     Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        ) {
+                            Surface(
+                                shape = CircleShape,
+                                color = CardMessageIconBg,
+                                modifier = Modifier.size(44.dp),
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Icon(
+                                        imageVector = Icons.Rounded.Chat,
+                                        contentDescription = null,
+                                        tint = Color.White,
+                                        modifier = Modifier.size(24.dp),
+                                    )
+                                }
+                            }
+                            Column {
+                                Text(
+                                    text = "پیام‌ها و ارتباط با خانواده",
+                                    style = MaterialTheme.typography.headlineLarge,
+                                    color = TextSlatePrimary,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 24.sp,
+                                )
+                                Text(
+                                    text = "انتخاب مخاطب برای گفتگو",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = TextSlateSecondary,
+                                    fontSize = 14.sp,
+                                )
+                            }
+                        }
+
+                        // Back Button (Exits dialog to Home)
                         Surface(
-                            shape = CircleShape,
-                            color = CardMessageIconBg,
-                            modifier = Modifier.size(44.dp),
+                            onClick = onDismiss,
+                            shape = RoundedCornerShape(20.dp),
+                            color = CardMessageAccent,
+                            modifier = Modifier.height(44.dp),
                         ) {
-                            Box(contentAlignment = Alignment.Center) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 18.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            ) {
                                 Icon(
-                                    imageVector = Icons.Rounded.Chat,
-                                    contentDescription = null,
+                                    imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
+                                    contentDescription = "بازگشت",
                                     tint = Color.White,
-                                    modifier = Modifier.size(24.dp),
+                                    modifier = Modifier.size(20.dp),
+                                )
+                                Text(
+                                    text = "بازگشت",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = Color.White,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 16.sp,
                                 )
                             }
                         }
-                        Text(
-                            text = "پیام‌ها و ارتباط با خانواده",
-                            style = MaterialTheme.typography.headlineLarge,
-                            color = TextSlatePrimary,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 26.sp,
-                        )
                     }
 
-                    // Back Button
-                    Surface(
-                        onClick = onDismiss,
-                        shape = RoundedCornerShape(20.dp),
-                        color = CardMessageAccent,
-                        modifier = Modifier.height(44.dp),
+                    Spacer(modifier = Modifier.height(20.dp))
+
+                    if (uiState.contacts.isEmpty()) {
+                        HomeEmptyStateCard(message = "مخاطبی برای ارسال یا دریافت پیام ثبت نشده است")
+                    } else {
+                        LazyColumn(
+                            modifier = Modifier.fillMaxSize(),
+                            verticalArrangement = Arrangement.spacedBy(14.dp),
+                            contentPadding = PaddingValues(bottom = 24.dp),
+                        ) {
+                            items(uiState.contacts, key = { it.id }) { contact ->
+                                val contactUnread = uiState.messages.count {
+                                    it.direction == MessageDirection.FAMILY_TO_HUB &&
+                                        it.status != ir.sayda.yara.hub.core.domain.model.MessageStatus.READ &&
+                                        (it.senderDisplayName == contact.displayName || uiState.contacts.size == 1)
+                                }
+                                HubContactItemCard(
+                                    displayName = contact.displayName,
+                                    relationship = if (contact.isPriority) "مخاطب اصلی" else null,
+                                    unreadCount = contactUnread,
+                                    onClick = { onSelectContact(contact.id) },
+                                )
+                            }
+                        }
+                    }
+                }
+            } else {
+                // LEVEL 2: CONVERSATION WITH SELECTED CONTACT
+                BackHandler(onBack = { onSelectContact(null) })
+
+                val conversationMessages = remember(uiState.messages, selectedContact, uiState.contacts.size) {
+                    if (uiState.contacts.size <= 1) {
+                        uiState.messages
+                    } else {
+                        uiState.messages.filter { msg ->
+                            msg.direction == MessageDirection.HUB_TO_FAMILY ||
+                                msg.senderDisplayName == selectedContact.displayName
+                        }
+                    }
+                }
+
+                val unreadIncomingMessages = remember(conversationMessages) {
+                    conversationMessages.filter {
+                        it.direction == MessageDirection.FAMILY_TO_HUB &&
+                            it.status != ir.sayda.yara.hub.core.domain.model.MessageStatus.READ
+                    }
+                }
+
+                LaunchedEffect(selectedContact.id) {
+                    onMarkIncomingRead()
+                }
+                LaunchedEffect(unreadIncomingMessages.size) {
+                    if (unreadIncomingMessages.isNotEmpty()) {
+                        onMarkIncomingRead()
+                    }
+                }
+
+                var customTextMessage by remember { mutableStateOf("") }
+
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 32.dp, vertical = 24.dp),
+                ) {
+                    // Conversation Header
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Row(
-                            modifier = Modifier.padding(horizontal = 18.dp),
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
                         ) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
-                                contentDescription = "بازگشت",
-                                tint = Color.White,
-                                modifier = Modifier.size(20.dp),
-                            )
-                            Text(
-                                text = "بازگشت",
-                                style = MaterialTheme.typography.titleMedium,
-                                color = Color.White,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 16.sp,
-                            )
+                            Surface(
+                                shape = CircleShape,
+                                color = CardMessageIconBg,
+                                modifier = Modifier.size(44.dp),
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Icon(
+                                        imageVector = Icons.Rounded.Person,
+                                        contentDescription = null,
+                                        tint = Color.White,
+                                        modifier = Modifier.size(24.dp),
+                                    )
+                                }
+                            }
+                            Column {
+                                Text(
+                                    text = "گفتگو با ${selectedContact.displayName}",
+                                    style = MaterialTheme.typography.headlineLarge,
+                                    color = TextSlatePrimary,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 24.sp,
+                                )
+                                Text(
+                                    text = if (selectedContact.isPriority) "مخاطب اصلی" else "پیام متنی و صوتی",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = TextSlateSecondary,
+                                    fontSize = 14.sp,
+                                )
+                            }
                         }
-                    }
-                }
 
-                Spacer(modifier = Modifier.height(20.dp))
-
-                val incomingMessages = uiState.messages.filter {
-                    it.direction == MessageDirection.FAMILY_TO_HUB
-                }
-
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
-                    contentPadding = PaddingValues(bottom = 24.dp),
-                ) {
-                    // Record Voice Card
-                    item {
-                        RecordVoiceMessageCard(
-                            isRecording = uiState.isRecordingVoice,
-                            recordingSeconds = uiState.recordingDurationSeconds,
-                            onStartRecording = onStartRecording,
-                            onStopAndSend = onStopAndSend,
-                            onCancelRecording = onCancelRecording,
-                        )
-                    }
-
-                    item {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(top = 12.dp, bottom = 4.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically,
+                        // Back Button (Returns to Contact List)
+                        Surface(
+                            onClick = { onSelectContact(null) },
+                            shape = RoundedCornerShape(20.dp),
+                            color = CardMessageAccent,
+                            modifier = Modifier.height(44.dp),
                         ) {
-                            Text(
-                                text = "صندوق پیام‌های دریافتی",
-                                style = MaterialTheme.typography.titleMedium,
-                                color = TextSlateSecondary,
-                                fontWeight = FontWeight.SemiBold,
-                            )
-                            if (incomingMessages.isNotEmpty()) {
-                                MessageCountBadge(count = incomingMessages.size)
+                            Row(
+                                modifier = Modifier.padding(horizontal = 18.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            ) {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
+                                    contentDescription = "بازگشت به مخاطبین",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(20.dp),
+                                )
+                                Text(
+                                    text = "بازگشت به مخاطبین",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = Color.White,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 15.sp,
+                                )
                             }
                         }
                     }
 
-                    if (incomingMessages.isEmpty()) {
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        verticalArrangement = Arrangement.spacedBy(16.dp),
+                        contentPadding = PaddingValues(bottom = 24.dp),
+                    ) {
+                        // 1. Record Voice Card
                         item {
-                            HomeEmptyStateCard(message = "هنوز پیام جدیدی از خانواده دریافت نشده است")
+                            RecordVoiceMessageCard(
+                                isRecording = uiState.isRecordingVoice,
+                                recordingSeconds = uiState.recordingDurationSeconds,
+                                onStartRecording = onStartRecording,
+                                onStopAndSend = onStopAndSend,
+                                onCancelRecording = onCancelRecording,
+                            )
                         }
-                    } else {
-                        items(incomingMessages.sortedByDescending { it.createdAtEpochMillis }, key = { it.id }) { msg ->
-                            if (msg.messageType == MessageType.VOICE) {
-                                val durSecs = msg.durationSeconds ?: 0
-                                val durationText = "${durSecs / 60}:${(durSecs % 60).toString().padStart(2, '0')}"
-                                ActiveVoiceMessageCard(
-                                    senderName = msg.senderDisplayName ?: "خانواده",
-                                    isPlaying = uiState.isPlayingAudio && uiState.playingMessageId == msg.id,
-                                    durationText = durationText,
-                                    onPlayPauseClick = { onTogglePlayVoice(msg) },
+
+                        // 2. Quick Text & Send Card (Large touch targets for elder)
+                        item {
+                            Surface(
+                                shape = RoundedCornerShape(24.dp),
+                                color = Color.White,
+                                shadowElevation = 2.dp,
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
+                                Column(
+                                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp),
+                                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                                ) {
+                                    Text(
+                                        text = "ارسال پیام متنی سریع به ${selectedContact.displayName}",
+                                        style = MaterialTheme.typography.labelLarge,
+                                        color = TextSlateSecondary,
+                                        fontWeight = FontWeight.SemiBold,
+                                    )
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                    ) {
+                                        listOf("سلام", "خوبم ممنون", "تماس بگیرید").forEach { phrase ->
+                                            Surface(
+                                                onClick = { onSendTextMessage(phrase) },
+                                                shape = RoundedCornerShape(16.dp),
+                                                color = CardMessageAccent.copy(alpha = 0.10f),
+                                                border = BorderStroke(1.dp, CardMessageAccent.copy(alpha = 0.25f)),
+                                                modifier = Modifier.height(44.dp),
+                                            ) {
+                                                Box(
+                                                    modifier = Modifier.padding(horizontal = 16.dp),
+                                                    contentAlignment = Alignment.Center,
+                                                ) {
+                                                    Text(
+                                                        text = phrase,
+                                                        style = MaterialTheme.typography.labelLarge,
+                                                        color = CardMessageAccent,
+                                                        fontWeight = FontWeight.Bold,
+                                                        fontSize = 15.sp,
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                    ) {
+                                        androidx.compose.material3.OutlinedTextField(
+                                            value = customTextMessage,
+                                            onValueChange = { customTextMessage = it },
+                                            placeholder = {
+                                                Text(
+                                                    "نوشتن پیام دلخواه...",
+                                                    style = MaterialTheme.typography.bodyMedium,
+                                                    color = TextSlateSecondary,
+                                                )
+                                            },
+                                            singleLine = true,
+                                            shape = RoundedCornerShape(16.dp),
+                                            modifier = Modifier
+                                                .weight(1f)
+                                                .height(52.dp),
+                                        )
+                                        Surface(
+                                            onClick = {
+                                                if (customTextMessage.isNotBlank()) {
+                                                    onSendTextMessage(customTextMessage)
+                                                    customTextMessage = ""
+                                                }
+                                            },
+                                            shape = RoundedCornerShape(16.dp),
+                                            color = if (customTextMessage.isNotBlank()) CardMessageAccent else CardMessageAccent.copy(alpha = 0.4f),
+                                            modifier = Modifier.height(52.dp),
+                                        ) {
+                                            Row(
+                                                modifier = Modifier.padding(horizontal = 18.dp),
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.AutoMirrored.Rounded.Send,
+                                                    contentDescription = "ارسال",
+                                                    tint = Color.White,
+                                                    modifier = Modifier.size(18.dp),
+                                                )
+                                                Text(
+                                                    text = "ارسال",
+                                                    style = MaterialTheme.typography.titleMedium,
+                                                    color = Color.White,
+                                                    fontWeight = FontWeight.Bold,
+                                                    fontSize = 15.sp,
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        // 3. Conversation Header
+                        item {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 8.dp, bottom = 4.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Text(
+                                    text = "تاریخچه گفتگو و پیام‌ها",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = TextSlateSecondary,
+                                    fontWeight = FontWeight.SemiBold,
                                 )
-                            } else if (msg.messageType == MessageType.TEXT) {
-                                FamilyTextMessageCard(
-                                    senderName = msg.senderDisplayName ?: "خانواده",
-                                    text = msg.body.orEmpty(),
-                                    time = timeFormatter.format(Date(msg.createdAtEpochMillis)),
-                                )
-                            } else if (msg.messageType == MessageType.IMAGE || msg.messageType == MessageType.VIDEO) {
-                                FamilyMediaMessageCard(
-                                    senderName = msg.senderDisplayName ?: "خانواده",
-                                    title = if (msg.messageType == MessageType.IMAGE) {
-                                        "عکس از ${msg.senderDisplayName ?: "خانواده"}"
+                                if (unreadIncomingMessages.isNotEmpty()) {
+                                    MessageCountBadge(count = unreadIncomingMessages.size)
+                                }
+                            }
+                        }
+
+                        if (conversationMessages.isEmpty()) {
+                            item {
+                                HomeEmptyStateCard(message = "هنوز پیامی با ${selectedContact.displayName} مبادله نشده است")
+                            }
+                        } else {
+                            items(conversationMessages.sortedByDescending { it.createdAtEpochMillis }, key = { it.id }) { msg ->
+                                if (msg.direction == MessageDirection.HUB_TO_FAMILY) {
+                                    val statusText = when (msg.status) {
+                                        ir.sayda.yara.hub.core.domain.model.MessageStatus.PENDING -> "در حال ارسال..."
+                                        ir.sayda.yara.hub.core.domain.model.MessageStatus.SENT -> "ارسال شد ✓"
+                                        ir.sayda.yara.hub.core.domain.model.MessageStatus.DELIVERED -> "تحویل شد ✓"
+                                        ir.sayda.yara.hub.core.domain.model.MessageStatus.READ -> "خوانده شد ✓✓"
+                                        ir.sayda.yara.hub.core.domain.model.MessageStatus.FAILED -> "خطا در ارسال"
+                                    }
+                                    if (msg.messageType == MessageType.VOICE) {
+                                        val durSecs = msg.durationSeconds ?: 0
+                                        val durationText = "${durSecs / 60}:${(durSecs % 60).toString().padStart(2, '0')}"
+                                        HubOutgoingMessageCard(
+                                            text = null,
+                                            time = timeFormatter.format(Date(msg.createdAtEpochMillis)),
+                                            statusText = statusText,
+                                            isVoice = true,
+                                            durationText = durationText,
+                                            isPlaying = uiState.isPlayingAudio && uiState.playingMessageId == msg.id,
+                                            onPlayPauseClick = { onTogglePlayVoice(msg) },
+                                        )
                                     } else {
-                                        "ویدیو از ${msg.senderDisplayName ?: "خانواده"}"
-                                    },
-                                    text = msg.body,
-                                    localFileUri = msg.localFileUri,
-                                    time = timeFormatter.format(Date(msg.createdAtEpochMillis)),
-                                )
+                                        HubOutgoingMessageCard(
+                                            text = msg.body,
+                                            time = timeFormatter.format(Date(msg.createdAtEpochMillis)),
+                                            statusText = statusText,
+                                            isVoice = false,
+                                        )
+                                    }
+                                } else {
+                                    if (msg.messageType == MessageType.VOICE) {
+                                        val durSecs = msg.durationSeconds ?: 0
+                                        val durationText = "${durSecs / 60}:${(durSecs % 60).toString().padStart(2, '0')}"
+                                        ActiveVoiceMessageCard(
+                                            senderName = msg.senderDisplayName ?: selectedContact.displayName,
+                                            isPlaying = uiState.isPlayingAudio && uiState.playingMessageId == msg.id,
+                                            durationText = durationText,
+                                            onPlayPauseClick = { onTogglePlayVoice(msg) },
+                                        )
+                                    } else if (msg.messageType == MessageType.TEXT) {
+                                        FamilyTextMessageCard(
+                                            senderName = msg.senderDisplayName ?: selectedContact.displayName,
+                                            text = msg.body.orEmpty(),
+                                            time = timeFormatter.format(Date(msg.createdAtEpochMillis)),
+                                        )
+                                    } else if (msg.messageType == MessageType.IMAGE || msg.messageType == MessageType.VIDEO) {
+                                        FamilyMediaMessageCard(
+                                            senderName = msg.senderDisplayName ?: selectedContact.displayName,
+                                            title = if (msg.messageType == MessageType.IMAGE) {
+                                                "عکس از ${msg.senderDisplayName ?: selectedContact.displayName}"
+                                            } else {
+                                                "ویدیو از ${msg.senderDisplayName ?: selectedContact.displayName}"
+                                            },
+                                            text = msg.body,
+                                            localFileUri = msg.localFileUri,
+                                            time = timeFormatter.format(Date(msg.createdAtEpochMillis)),
+                                        )
+                                    }
+                                }
                             }
                         }
                     }

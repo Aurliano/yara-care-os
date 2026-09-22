@@ -49,6 +49,9 @@ class CommunicationReplicaRepositoryImpl @Inject constructor(
     override fun observeSessions(): Flow<List<CommunicationSession>> =
         sessionDao.observeAll().map { list -> list.map { it.toDomain() } }
 
+    override suspend fun getContact(contactId: String): Contact? =
+        contactDao.getById(contactId)?.toDomain()
+
     override suspend fun upsertContact(contact: Contact) {
         contactDao.upsert(contact.toEntity())
     }

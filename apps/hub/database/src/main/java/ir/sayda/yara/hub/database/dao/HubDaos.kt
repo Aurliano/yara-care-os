@@ -266,6 +266,9 @@ interface ContactDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(entity: ContactEntity)
 
+    @Query("SELECT * FROM contact WHERE id = :id LIMIT 1")
+    suspend fun getById(id: String): ContactEntity?
+
     @Query("DELETE FROM contact")
     suspend fun deleteAll()
 }
@@ -519,6 +522,9 @@ interface MessageDao {
         deliveredAt: Long? = null,
         readAt: Long? = null,
     )
+
+    @Query("DELETE FROM message WHERE id = :id")
+    suspend fun deleteById(id: String)
 
     @Query("DELETE FROM message")
     suspend fun deleteAll()

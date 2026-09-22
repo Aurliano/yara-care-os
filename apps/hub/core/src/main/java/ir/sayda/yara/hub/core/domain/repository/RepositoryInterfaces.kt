@@ -126,6 +126,7 @@ interface CommunicationReplicaRepository : ReplicaRepository<Contact> {
     fun observePriorityContacts(elderId: String): Flow<List<Contact>>
     fun observeContacts(elderId: String): Flow<List<Contact>>
     fun observeSessions(): Flow<List<CommunicationSession>>
+    suspend fun getContact(contactId: String): Contact? = null
     suspend fun upsertContact(contact: Contact)
     suspend fun upsertSession(session: CommunicationSession)
 }

@@ -93,6 +93,9 @@ class MessagingRepositoryImpl @Inject constructor(
                 deliveredAt = now,
                 readAt = now,
             )
+            runCatching {
+                android.util.Log.d("MSG_FORENSIC", "operation=markRead id=$id localStatus=READ")
+            }
             runCatching { communicationApi.markRead(id) }
             AppResult.Success(Unit)
         } catch (e: Exception) {
@@ -219,13 +222,35 @@ class MessagingRepositoryImpl @Inject constructor(
 
     private var lastSyncEpochMillis: Long? = null
 
+    private fun parseIsoToEpochMillis(value: String?): Long? {
+        if (value.isNullOrBlank()) return null
+        return runCatching {
+            val clean = value.trim()
+            clean.toLongOrNull() ?: run {
+                val dotIdx = clean.indexOf('.')
+                val zIdx = clean.indexOf('Z')
+                val baseStr = if (dotIdx != -1) clean.substring(0, dotIdx) else if (zIdx != -1) clean.substring(0, zIdx) else clean
+                val sdf = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", java.util.Locale.US).apply {
+                    timeZone = java.util.TimeZone.getTimeZone("UTC")
+                }
+                val baseMillis = sdf.parse(baseStr)?.time ?: return null
+                val millisFraction = if (dotIdx != -1) {
+                    val fractionEnd = if (zIdx != -1) zIdx else clean.length
+                    val fractionStr = clean.substring(dotIdx + 1, fractionEnd).padEnd(3, '0').take(3)
+                    fractionStr.toLongOrNull() ?: 0L
+                } else 0L
+                baseMillis + millisFraction
+            }
+        }.getOrNull()
+    }
+
     override suspend fun syncElderMessages(elderId: String): AppResult<Int> = withContext(ioDispatcher) {
         try {
             val sinceParam = lastSyncEpochMillis?.let { (it - 10_000L).coerceAtLeast(0L) }
             val remoteMessages = communicationApi.getMessages(elderId = elderId, since = sinceParam, limit = 50)
             if (remoteMessages.isNotEmpty()) {
                 val maxCreated = remoteMessages.mapNotNull {
-                    runCatching { java.time.Instant.parse(it.createdAt).toEpochMilli() }.getOrNull()
+                    parseIsoToEpochMillis(it.createdAt)
                 }.maxOrNull()
                 if (maxCreated != null && (lastSyncEpochMillis == null || maxCreated > lastSyncEpochMillis!!)) {
                     lastSyncEpochMillis = maxCreated
@@ -234,7 +259,13 @@ class MessagingRepositoryImpl @Inject constructor(
             var count = 0
             for (dto in remoteMessages) {
                 val existing = messageDao.getById(dto.id)
+                    ?: (if (!dto.idempotencyKey.isNullOrBlank()) messageDao.getByIdempotencyKey(dto.idempotencyKey) else null)
                 var localFileUri = existing?.localFileUri
+
+                // If existing record had a temporary client-generated ID, clean it up so the remote ID takes over
+                if (existing != null && existing.id != dto.id) {
+                    messageDao.deleteById(existing.id)
+                }
 
                 val attachment = dto.attachment
                 // If message has an attachment and no local file yet, download it
@@ -273,12 +304,8 @@ class MessagingRepositoryImpl @Inject constructor(
 
                 var status = runCatching { MessageStatus.valueOf(dto.status.uppercase()) }
                     .getOrDefault(MessageStatus.SENT)
-                var deliveredAtEpoch = dto.deliveredAt?.let {
-                    runCatching { java.time.Instant.parse(it).toEpochMilli() }.getOrNull()
-                }
-                var readAtEpoch = dto.readAt?.let {
-                    runCatching { java.time.Instant.parse(it).toEpochMilli() }.getOrNull()
-                }
+                var deliveredAtEpoch = parseIsoToEpochMillis(dto.deliveredAt)
+                var readAtEpoch = parseIsoToEpochMillis(dto.readAt)
 
                 if (existing != null) {
                     val currentStatus = runCatching { MessageStatus.valueOf(existing.status) }.getOrDefault(MessageStatus.SENT)
@@ -295,8 +322,15 @@ class MessagingRepositoryImpl @Inject constructor(
                         status = currentStatus
                         deliveredAtEpoch = existing.deliveredAtEpochMillis ?: deliveredAtEpoch
                         readAtEpoch = existing.readAtEpochMillis ?: readAtEpoch
+                    } else if (currentPriority == newPriority) {
+                        deliveredAtEpoch = existing.deliveredAtEpochMillis ?: deliveredAtEpoch
+                        readAtEpoch = existing.readAtEpochMillis ?: readAtEpoch
                     }
                 }
+
+                val createdAtEpochMillis = existing?.createdAtEpochMillis
+                    ?: parseIsoToEpochMillis(dto.createdAt)
+                    ?: System.currentTimeMillis()
 
                 val message = Message(
                     id = dto.id,
@@ -310,21 +344,41 @@ class MessagingRepositoryImpl @Inject constructor(
                     fileSize = attachment?.fileSize,
                     status = status,
                     idempotencyKey = dto.idempotencyKey,
-                    createdAtEpochMillis = runCatching {
-                        java.time.Instant.parse(dto.createdAt).toEpochMilli()
-                    }.getOrDefault(System.currentTimeMillis()),
+                    createdAtEpochMillis = createdAtEpochMillis,
                     deliveredAtEpochMillis = deliveredAtEpoch,
                     readAtEpochMillis = readAtEpoch,
                     senderDisplayName = dto.sender?.displayName ?: dto.senderDisplayName ?: "خانواده",
                 )
 
                 val entityToUpsert = message.toEntity()
+                val willDaoUpsert = (existing != entityToUpsert)
                 if (existing != entityToUpsert) {
                     messageDao.upsert(entityToUpsert)
                 }
 
-                // If this is an incoming family message and not delivered yet, mark delivered
-                if (direction == MessageDirection.FAMILY_TO_HUB && status == MessageStatus.SENT) {
+                val willMarkDelivered = (direction == MessageDirection.FAMILY_TO_HUB && status == MessageStatus.SENT)
+                runCatching {
+                    android.util.Log.d(
+                        "MSG_FORENSIC",
+                        "id=${dto.id} direction=$direction remote=${dto.status} localBefore=${existing?.status ?: "NONE"} resolved=${status.name} markDelivered=$willMarkDelivered daoUpsert=$willDaoUpsert idempotencyKey=${dto.idempotencyKey}"
+                    )
+                }
+                if (direction == MessageDirection.FAMILY_TO_HUB) {
+                    runCatching {
+                        android.util.Log.d(
+                            "MSG_SYNC",
+                            "id=${dto.id} idempotencyKey=${dto.idempotencyKey} remote=${dto.status} localBefore=${existing?.status ?: "NONE"} resolved=${status.name} markDelivered=$willMarkDelivered daoUpdate=$willMarkDelivered daoUpsert=$willDaoUpsert"
+                        )
+                    }
+                }
+
+                // If this is an incoming family message and still undelivered after
+                // local-priority resolution, mark delivered on the backend and update
+                // the local record.  We check the *resolved* status (not the raw DTO
+                // status) so that messages already DELIVERED or READ locally never
+                // trigger a redundant updateStatus write, which would cause Room to
+                // emit a new list and unnecessarily recompose the UI (M-RENDER).
+                if (willMarkDelivered) {
                     runCatching {
                         communicationApi.markDelivered(dto.id)
                         messageDao.updateStatus(

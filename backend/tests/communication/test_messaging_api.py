@@ -319,3 +319,45 @@ def test_list_messages_invalid_since_format(auth_client, test_setup):
     res = auth_client.get(url)
     assert res.status_code == status.HTTP_400_BAD_REQUEST
 
+
+@pytest.mark.django_db
+def test_message_sender_uses_contact_elder_facing_display_name(auth_client, test_setup):
+    user = test_setup["user"]
+    elder = test_setup["elder"]
+    auth_client.force_authenticate(user=user)
+
+    # 1. Without Contact, fallback to User full_name
+    msg = Message.objects.create(
+        elder_id=elder.id,
+        sender_user_id=user.id,
+        direction=MessageDirection.FAMILY_TO_HUB,
+        message_type=MessageType.TEXT,
+        body="سلام",
+        status=MessageStatus.SENT,
+    )
+    url = f"/api/v1/elders/{elder.id}/messages/"
+    res = auth_client.get(url)
+    assert res.status_code == status.HTTP_200_OK
+    assert res.data[0]["sender"]["display_name"] == "Caregiver Ali"
+
+    # 2. Create elder-scoped Contact with elder-facing display_name (e.g. "پسر")
+    from domains.communication.models import Contact
+    contact = Contact.objects.create(
+        elder=elder,
+        display_name="پسر",
+        phone=user.phone,
+        communication_identities=[str(user.id)],
+    )
+
+    res2 = auth_client.get(url)
+    assert res2.status_code == status.HTTP_200_OK
+    assert res2.data[0]["sender"]["display_name"] == "پسر"
+
+    # 3. Update Contact display name to "علی (پسرم)" and verify authoritative resolution
+    contact.display_name = "علی (پسرم)"
+    contact.save()
+
+    res3 = auth_client.get(url)
+    assert res3.status_code == status.HTTP_200_OK
+    assert res3.data[0]["sender"]["display_name"] == "علی (پسرم)"
+

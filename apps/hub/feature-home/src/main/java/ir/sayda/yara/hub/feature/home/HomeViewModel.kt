@@ -5,10 +5,12 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import ir.sayda.yara.hub.core.domain.model.Contact
 import ir.sayda.yara.hub.core.domain.model.HomeRuntimeSnapshot
 import ir.sayda.yara.hub.core.domain.model.Message
 import ir.sayda.yara.hub.core.domain.model.MessageType
 import ir.sayda.yara.hub.core.domain.model.ProvisioningState
+import ir.sayda.yara.hub.core.domain.repository.CommunicationReplicaRepository
 import ir.sayda.yara.hub.core.domain.repository.MessagingRepository
 import ir.sayda.yara.hub.core.domain.repository.ProvisioningRepository
 import ir.sayda.yara.hub.core.domain.usecase.ObserveHomeSnapshotUseCase
@@ -42,6 +44,8 @@ data class HomeUiState(
     val password: String = "",
     val isSubmittingLogin: Boolean = false,
     val loginError: String? = null,
+    val contacts: List<Contact> = emptyList(),
+    val selectedContactId: String? = null,
     val messages: List<Message> = emptyList(),
     val isPlayingAudio: Boolean = false,
     val playingMessageId: String? = null,
@@ -58,6 +62,8 @@ private data class HomeBaseState(
 )
 
 private data class HomeMessageState(
+    val contacts: List<Contact>,
+    val selectedContactId: String?,
     val messages: List<Message>,
     val isPlayingAudio: Boolean,
     val playingMessageId: String?,
@@ -69,6 +75,7 @@ private data class HomeMessageState(
 class HomeViewModel @Inject constructor(
     observeHomeSnapshotUseCase: ObserveHomeSnapshotUseCase,
     observeHubIdentityUseCase: ObserveHubIdentityUseCase,
+    private val communicationReplicaRepository: CommunicationReplicaRepository,
     private val messagingRepository: MessagingRepository,
     private val audioRecorder: AudioRecorder,
     private val audioPlayer: AudioPlayer,
@@ -115,6 +122,22 @@ class HomeViewModel @Inject constructor(
         }
     }
 
+    private val selectedContactId = MutableStateFlow<String?>(null)
+
+    fun selectContact(contactId: String?) {
+        selectedContactId.value = contactId
+    }
+
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    private val contactsFlow = observeHubIdentityUseCase().flatMapLatest { identity ->
+        val elderId = identity?.elderId
+        if (elderId != null) {
+            communicationReplicaRepository.observeContacts(elderId)
+        } else {
+            flowOf(emptyList())
+        }
+    }
+
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     private val messagesFlow = observeHubIdentityUseCase().flatMapLatest { identity ->
         val elderId = identity?.elderId
@@ -136,13 +159,13 @@ class HomeViewModel @Inject constructor(
             HomeBaseState(snapshot, phoneVal, passVal, isSub, err)
         },
         combine(
+            combine(contactsFlow, selectedContactId) { contacts, selId -> Pair(contacts, selId) },
             messagesFlow,
             isPlayingAudio,
             playingMessageId,
-            isRecordingVoice,
-            recordingDurationSeconds,
-        ) { msgs, isPlaying, playingId, isRec, recSecs ->
-            HomeMessageState(msgs, isPlaying, playingId, isRec, recSecs)
+            combine(isRecordingVoice, recordingDurationSeconds) { rec, secs -> Pair(rec, secs) },
+        ) { (contacts, selId), msgs, isPlaying, playingId, (isRec, recSecs) ->
+            HomeMessageState(contacts, selId, msgs, isPlaying, playingId, isRec, recSecs)
         },
     ) { base, msgState ->
         HomeUiState(
@@ -154,6 +177,8 @@ class HomeViewModel @Inject constructor(
             loginError = base.error ?: base.snapshot.lastProvisioningError?.takeIf {
                 base.snapshot.provisioningState == ProvisioningState.ERROR
             },
+            contacts = msgState.contacts,
+            selectedContactId = msgState.selectedContactId,
             messages = msgState.messages,
             isPlayingAudio = msgState.isPlayingAudio,
             playingMessageId = msgState.playingMessageId,
@@ -290,6 +315,35 @@ class HomeViewModel @Inject constructor(
                         fileSize = recorded.fileSize,
                     )
                 }
+            }
+        }
+    }
+
+    fun sendTextMessage(text: String) {
+        val trimmed = text.trim()
+        if (trimmed.isBlank()) return
+        val elderId = currentElderId ?: return
+        viewModelScope.launch {
+            messagingRepository.enqueueOutgoingMessage(
+                elderId = elderId,
+                messageType = MessageType.TEXT,
+                body = trimmed,
+                localFileUri = null,
+                durationSeconds = null,
+                fileSize = null,
+            )
+        }
+    }
+
+    fun markIncomingMessagesAsRead() {
+        val unreadList = uiState.value.messages.filter {
+            it.direction == ir.sayda.yara.hub.core.domain.model.MessageDirection.FAMILY_TO_HUB &&
+                it.status != ir.sayda.yara.hub.core.domain.model.MessageStatus.READ
+        }
+        if (unreadList.isEmpty()) return
+        viewModelScope.launch {
+            for (msg in unreadList) {
+                messagingRepository.markMessageRead(msg.id)
             }
         }
     }

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Share, StyleSheet, View } from "react-native";
 import { useRouter } from "expo-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -13,10 +14,11 @@ import {
   LoadingSkeleton,
   Screen,
   StatusBadge,
+  TextField,
   TopAppBar,
 } from "../../src/components";
 import { listInvitations, listMembers, revokeInvitation, revokeMember, suspendMember } from "../../src/api/endpoints/identity";
-import { listContacts } from "../../src/api/endpoints/communication";
+import { listContacts, updateContact } from "../../src/api/endpoints/communication";
 import { queryKeys } from "../../src/api/queryKeys";
 import { useElderStore } from "../../src/stores/elderStore";
 import { usePermissions } from "../../src/permissions/usePermission";
@@ -60,6 +62,18 @@ export default function FamilyScreen() {
   const revoke = useMutation({
     mutationFn: (id: string) => revokeMember(elderId as string, id),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.members(elderId as string) }),
+  });
+
+  const [editingContactId, setEditingContactId] = useState<string | null>(null);
+  const [editDisplayName, setEditDisplayName] = useState("");
+
+  const updateContactMut = useMutation({
+    mutationFn: ({ id, displayName }: { id: string; displayName: string }) =>
+      updateContact(id, { display_name: displayName }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.contacts(elderId as string) });
+      setEditingContactId(null);
+    },
   });
 
   async function shareInvitation(invite: Invitation) {
@@ -137,12 +151,56 @@ export default function FamilyScreen() {
       {contacts.data?.length ? (
         contacts.data.map((contact) => (
           <Card key={contact.id}>
-            <AppText variant="label" align="center">
-              {contact.display_name}
-            </AppText>
-            <AppText variant="caption" color={colors.textSecondary} align="center">
-              {contact.phone || t.trustedContacts}
-            </AppText>
+            {editingContactId === contact.id ? (
+              <View style={styles.actions}>
+                <AppText variant="label">نام نمایشی مخاطب در تبلت سالمند</AppText>
+                <TextField
+                  label="نام در تبلت (مثلاً: پسر، دختر، علی)"
+                  value={editDisplayName}
+                  onChangeText={setEditDisplayName}
+                />
+                <View style={{ flexDirection: "row", gap: spacing.sm, marginTop: spacing.xs }}>
+                  <View style={{ flex: 1 }}>
+                    <Button
+                      label="ذخیره"
+                      variant="primary"
+                      onPress={() => updateContactMut.mutate({ id: contact.id, displayName: editDisplayName })}
+                    />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Button
+                      label="انصراف"
+                      variant="secondary"
+                      onPress={() => setEditingContactId(null)}
+                    />
+                  </View>
+                </View>
+              </View>
+            ) : (
+              <>
+                <View style={styles.row}>
+                  <Avatar name={contact.display_name} size={48} />
+                  <View style={{ flex: 1 }}>
+                    <AppText variant="label">{contact.display_name}</AppText>
+                    <AppText variant="caption" color={colors.textSecondary}>
+                      {contact.phone || t.trustedContacts}
+                    </AppText>
+                  </View>
+                </View>
+                {can(PERMISSIONS.MANAGE_CONTACTS) || can(PERMISSIONS.MANAGE_MEMBERS) ? (
+                  <View style={{ marginTop: spacing.sm }}>
+                    <Button
+                      label="ویرایش نام در تبلت"
+                      variant="secondary"
+                      onPress={() => {
+                        setEditingContactId(contact.id);
+                        setEditDisplayName(contact.display_name);
+                      }}
+                    />
+                  </View>
+                ) : null}
+              </>
+            )}
           </Card>
         ))
       ) : (

@@ -277,3 +277,22 @@ def test_duration_not_stored(licensed_elder, comm_user):
     )
     assert not hasattr(session, "duration")
     assert "duration" not in [f.name for f in CommunicationSession._meta.get_fields()]
+
+
+@pytest.mark.django_db
+def test_build_contact_sync_delta(licensed_elder):
+    from domains.communication.services.sync_export import build_contact_sync_delta
+
+    contact = create_contact(
+        elder_id=licensed_elder.id,
+        display_name="پسر",
+        phone="+989121111111",
+        preferred_channel=CommunicationChannel.VOICE,
+    )
+    delta = build_contact_sync_delta(contact_id=contact.id)
+    assert delta["aggregate_reference"] == contact.id
+    assert delta["payload_type"] == "communication.contact.delta"
+    assert delta["payload"]["display_name"] == "پسر"
+    assert delta["payload"]["phone"] == "+989121111111"
+    assert delta["payload"]["elder_id"] == str(licensed_elder.id)
+    assert delta["payload_hash"] is not None

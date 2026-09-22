@@ -131,6 +131,11 @@ class SyncPayloadParser @Inject constructor() {
         )
     }
 
+    fun parseContact(payloadJson: String, aggregateVersion: String): Contact? {
+        val payload = json.parseToJsonElement(payloadJson).jsonObject
+        return parseContact(payload)
+    }
+
     fun parseDeviceCommand(payloadJson: String, aggregateVersion: String): DeviceCommand {
         val payload = json.parseToJsonElement(payloadJson).jsonObject
         val now = System.currentTimeMillis()

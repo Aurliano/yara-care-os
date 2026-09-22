@@ -859,6 +859,201 @@ fun FamilyTextMessageCard(
 }
 
 @Composable
+fun HubContactItemCard(
+    name: String,
+    unreadCount: Int = 0,
+    lastMessageText: String? = null,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(24.dp),
+        color = Color.White,
+        border = BorderStroke(1.5.dp, if (unreadCount > 0) Color(0xFFC084FC) else Color(0xFFE2E8F0)),
+        shadowElevation = 2.dp,
+        modifier = modifier
+            .fillMaxWidth()
+            .heightIn(min = 96.dp),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp, vertical = 18.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(18.dp),
+                modifier = Modifier.weight(1f),
+            ) {
+                Surface(
+                    shape = CircleShape,
+                    color = if (unreadCount > 0) Color(0xFFF3E8FF) else Color(0xFFEFF6FF),
+                    border = BorderStroke(1.dp, if (unreadCount > 0) Color(0xFFD8B4FE) else Color(0xFFBFDBFE)),
+                    modifier = Modifier.size(58.dp),
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Text(
+                            text = name.firstOrNull()?.toString() ?: "خ",
+                            style = MaterialTheme.typography.headlineSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = if (unreadCount > 0) Color(0xFF7E22CE) else Color(0xFF1D4ED8),
+                        )
+                    }
+                }
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(
+                        text = name,
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = TextSlatePrimary,
+                        fontSize = 20.sp,
+                    )
+                    Text(
+                        text = lastMessageText ?: "ارتباط و گفتگو با خانواده",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = TextSlateSecondary,
+                        fontSize = 14.sp,
+                        maxLines = 1,
+                    )
+                }
+            }
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                if (unreadCount > 0) {
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = Color(0xFFF3E8FF),
+                        border = BorderStroke(1.dp, Color(0xFFD8B4FE)),
+                    ) {
+                        Text(
+                            text = "$unreadCount پیام جدید",
+                            color = Color(0xFF7E22CE),
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                        )
+                    }
+                }
+                Surface(
+                    shape = CircleShape,
+                    color = Color(0xFFF8FAFC),
+                    border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+                    modifier = Modifier.size(40.dp),
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = Icons.Rounded.ChevronLeft,
+                            contentDescription = "ورود به گفتگو",
+                            tint = Color(0xFF64748B),
+                            modifier = Modifier.size(22.dp),
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun HubOutgoingMessageCard(
+    text: String?,
+    time: String,
+    statusText: String,
+    isVoice: Boolean = false,
+    durationText: String? = null,
+    isPlaying: Boolean = false,
+    onPlayPauseClick: (() -> Unit)? = null,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        shape = RoundedCornerShape(24.dp),
+        color = Color(0xFFF1F5F9),
+        border = BorderStroke(1.dp, Color(0xFFCBD5E1)),
+        shadowElevation = 1.dp,
+        modifier = modifier
+            .fillMaxWidth()
+            .heightIn(min = 90.dp),
+    ) {
+        Column(
+            modifier = Modifier.padding(horizontal = 24.dp, vertical = 18.dp),
+            horizontalAlignment = Alignment.Start,
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Text(
+                        text = if (isVoice) "پیام صوتی ارسالی شما" else "پیام ارسالی شما",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = Color(0xFF0D9488),
+                        fontWeight = FontWeight.Bold,
+                    )
+                    Text(
+                        text = "• $statusText",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = TextTertiary,
+                    )
+                }
+                Text(
+                    text = time,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = TextTertiary,
+                )
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+            if (isVoice) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    Text(
+                        text = durationText ?: "صدای ضبط شده",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = TextPrimary,
+                    )
+                    if (onPlayPauseClick != null) {
+                        Surface(
+                            onClick = onPlayPauseClick,
+                            shape = CircleShape,
+                            color = Color(0xFF0D9488),
+                            modifier = Modifier.size(48.dp),
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    imageVector = if (isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
+                                    contentDescription = if (isPlaying) "توقف" else "پخش",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(28.dp),
+                                )
+                            }
+                        }
+                    }
+                }
+            } else {
+                Text(
+                    text = text.orEmpty(),
+                    style = MaterialTheme.typography.titleLarge,
+                    color = TextPrimary,
+                    lineHeight = 32.sp,
+                )
+            }
+        }
+    }
+}
+
+@Composable
 fun FamilyMediaMessageCard(
     senderName: String,
     title: String,
@@ -1620,3 +1815,114 @@ private fun FooterBadgeItem(
         }
     }
 }
+
+@Composable
+fun HubContactItemCard(
+    displayName: String,
+    relationship: String?,
+    unreadCount: Int,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(24.dp),
+        color = Color.White,
+        border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+        shadowElevation = 2.dp,
+        modifier = modifier
+            .fillMaxWidth()
+            .heightIn(min = 84.dp),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp, vertical = 16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                // Calm Elder-accessible Avatar circle with initial
+                Surface(
+                    shape = CircleShape,
+                    color = CardCallAccent.copy(alpha = 0.12f),
+                    border = BorderStroke(1.5.dp, CardCallAccent.copy(alpha = 0.3f)),
+                    modifier = Modifier.size(56.dp),
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Text(
+                            text = displayName.take(1),
+                            style = MaterialTheme.typography.titleLarge,
+                            color = CardCallAccent,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 24.sp,
+                        )
+                    }
+                }
+
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    Text(
+                        text = displayName,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = TextSlatePrimary,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 20.sp,
+                    )
+                    if (!relationship.isNullOrBlank()) {
+                        Text(
+                            text = relationship,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = CardCallAccent,
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 13.sp,
+                        )
+                    }
+                }
+            }
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                if (unreadCount > 0) {
+                    Surface(
+                        shape = CircleShape,
+                        color = BadgeRed,
+                        modifier = Modifier.size(26.dp),
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Text(
+                                text = "$unreadCount",
+                                color = Color.White,
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 13.sp,
+                            )
+                        }
+                    }
+                }
+
+                Surface(
+                    shape = CircleShape,
+                    color = CardMessageAccent.copy(alpha = 0.10f),
+                    modifier = Modifier.size(40.dp),
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = Icons.Rounded.Chat,
+                            contentDescription = "گفتگو",
+                            tint = CardMessageAccent,
+                            modifier = Modifier.size(20.dp),
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+

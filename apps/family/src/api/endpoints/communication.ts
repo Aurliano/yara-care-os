@@ -20,6 +20,18 @@ export function archiveContact(contactId: string): Promise<Contact> {
   return apiRequest(`/contacts/${contactId}/archive/`, { method: "POST" });
 }
 
+export function updateContact(
+  contactId: string,
+  body: {
+    display_name?: string;
+    phone?: string;
+    photo_reference?: string | null;
+    preferred_channel?: "VOICE" | "VIDEO" | "MESSAGE";
+  },
+): Promise<Contact> {
+  return apiRequest(`/contacts/${contactId}/`, { method: "PATCH", body });
+}
+
 export type CallStartResult = {
   sessionId: string;
   joinToken: string;
