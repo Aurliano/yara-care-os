@@ -410,7 +410,7 @@ def _build_elder_snapshot_payload(*, elder_id: uuid.UUID, device_id: uuid.UUID |
                 "phone": contact.phone,
                 "communication_identities_json": json.dumps(contact.communication_identities),
                 "preferred_channel": contact.preferred_channel,
-                "photo_reference": contact.photo_reference,
+                "photo_reference": str(contact.photo_reference) if contact.photo_reference else None,
                 "is_priority": contact.is_priority,
                 "status": contact.status,
                 "updated_at_epoch_millis": _epoch_millis(contact.updated_at),

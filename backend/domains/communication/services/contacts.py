@@ -73,6 +73,9 @@ def create_contact(
     return contact
 
 
+_UNSET = object()
+
+
 @transaction.atomic
 def update_contact(
     contact_id: uuid.UUID,
@@ -81,7 +84,7 @@ def update_contact(
     phone: str | None = None,
     communication_identities: list[dict[str, Any]] | None = None,
     preferred_channel: str | None = None,
-    photo_reference: uuid.UUID | None = None,
+    photo_reference: Any = _UNSET,
 ) -> Contact:
     contact = Contact.objects.select_for_update().get(pk=contact_id)
     if contact.status == ContactStatus.ARCHIVED:
@@ -100,7 +103,7 @@ def update_contact(
     if preferred_channel is not None:
         contact.preferred_channel = preferred_channel
         update_fields.append("preferred_channel")
-    if photo_reference is not None:
+    if photo_reference is not _UNSET:
         contact.photo_reference = photo_reference
         update_fields.append("photo_reference")
 
@@ -108,7 +111,7 @@ def update_contact(
         update_fields.append("updated_at")
         contact.save(update_fields=update_fields)
 
-    emit_contact_updated(contact_id=contact.id, discriminator="fields-updated")
+    emit_contact_updated(contact_id=contact.id, discriminator=f"fields-updated:{contact.updated_at.isoformat()}")
     return contact
 
 

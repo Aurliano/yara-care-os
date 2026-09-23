@@ -174,6 +174,40 @@ def test_media_upload_and_voice_message(auth_client, test_setup):
 
 
 @pytest.mark.django_db
+def test_image_media_upload_for_profile_photo_and_missing_media_type_validation(auth_client, test_setup):
+    """Verifies that image upload requires media_type and succeeds with valid JPEG."""
+    user = test_setup["user"]
+    auth_client.force_authenticate(user=user)
+
+    upload_url = "/api/v1/media/upload/"
+    fake_img = io.BytesIO(b"\xff\xd8\xff\xe0\x00\x10JFIF" + b"\x00" * 32)
+    fake_img.name = "contact_avatar.jpg"
+
+    # 1. Missing media_type returns 400 Bad Request
+    res_no_type = auth_client.post(
+        upload_url,
+        {"file": fake_img},
+        format="multipart",
+    )
+    assert res_no_type.status_code == status.HTTP_400_BAD_REQUEST
+    assert "media_type" in res_no_type.data
+
+    # 2. Including media_type=IMAGE returns 201 Created and creates attachment
+    fake_img.seek(0)
+    res_ok = auth_client.post(
+        upload_url,
+        {
+            "file": fake_img,
+            "media_type": MessageType.IMAGE,
+        },
+        format="multipart",
+    )
+    assert res_ok.status_code == status.HTTP_201_CREATED
+    assert res_ok.data["mime_type"] == "image/jpeg"
+    assert res_ok.data["id"] is not None
+
+
+@pytest.mark.django_db
 def test_message_lifecycle_delivered_and_read(auth_client, test_setup):
     user = test_setup["user"]
     elder = test_setup["elder"]

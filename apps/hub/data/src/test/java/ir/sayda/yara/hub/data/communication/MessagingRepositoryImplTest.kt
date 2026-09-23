@@ -6,6 +6,7 @@ import ir.sayda.yara.hub.core.domain.model.MessageType
 import ir.sayda.yara.hub.core.result.AppResult
 import ir.sayda.yara.hub.core.domain.repository.OutboxRepository
 import ir.sayda.yara.hub.data.media.HubMediaStorage
+import ir.sayda.yara.hub.database.dao.ContactDao
 import ir.sayda.yara.hub.database.dao.MessageDao
 import ir.sayda.yara.hub.database.entity.MessageEntity
 import ir.sayda.yara.hub.network.api.CommunicationApi
@@ -26,6 +27,7 @@ import io.mockk.mockk
 class MessagingRepositoryImplTest {
 
     private lateinit var messageDao: MessageDao
+    private lateinit var contactDao: ContactDao
     private lateinit var communicationApi: CommunicationApi
     private lateinit var outboxRepository: OutboxRepository
     private lateinit var mediaStorage: HubMediaStorage
@@ -36,12 +38,14 @@ class MessagingRepositoryImplTest {
     @Before
     fun setup() {
         messageDao = mockk(relaxed = true)
+        contactDao = mockk(relaxed = true)
         communicationApi = mockk(relaxed = true)
         outboxRepository = mockk(relaxed = true)
         mediaStorage = mockk(relaxed = true)
 
         repository = MessagingRepositoryImpl(
             messageDao = messageDao,
+            contactDao = contactDao,
             communicationApi = communicationApi,
             outboxRepository = outboxRepository,
             mediaStorage = mediaStorage,

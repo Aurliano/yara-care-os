@@ -47,13 +47,18 @@ import androidx.compose.material.icons.rounded.Security
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.Spa
 import androidx.compose.material.icons.rounded.Stop
+import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Videocam
 import androidx.compose.material.icons.rounded.Wifi
+import androidx.compose.material.icons.rounded.ZoomIn
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.runtime.Composable
@@ -72,10 +77,14 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.material.icons.rounded.Image
+import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
@@ -819,15 +828,16 @@ fun FamilyTextMessageCard(
     modifier: Modifier = Modifier,
 ) {
     Surface(
-        shape = RoundedCornerShape(24.dp),
-        color = Color.White,
+        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp, bottomEnd = 24.dp, bottomStart = 8.dp),
+        color = Color(0xFFF8FAFC),
+        border = BorderStroke(1.5.dp, Color(0xFFCBD5E1)),
         shadowElevation = 2.dp,
         modifier = modifier
             .fillMaxWidth()
-            .heightIn(min = 100.dp),
+            .heightIn(min = 90.dp),
     ) {
         Column(
-            modifier = Modifier.padding(horizontal = 24.dp, vertical = 20.dp),
+            modifier = Modifier.padding(horizontal = 24.dp, vertical = 18.dp),
             horizontalAlignment = Alignment.Start,
         ) {
             Row(
@@ -840,14 +850,16 @@ fun FamilyTextMessageCard(
                     style = MaterialTheme.typography.labelLarge,
                     color = SoftBlue,
                     fontWeight = FontWeight.Bold,
+                    fontSize = 16.sp,
                 )
                 Text(
                     text = time,
                     style = MaterialTheme.typography.bodySmall,
                     color = TextTertiary,
+                    fontSize = 13.sp,
                 )
             }
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(10.dp))
             Text(
                 text = text,
                 style = MaterialTheme.typography.titleLarge,
@@ -968,14 +980,16 @@ fun HubOutgoingMessageCard(
     isVoice: Boolean = false,
     durationText: String? = null,
     isPlaying: Boolean = false,
+    isFailed: Boolean = false,
     onPlayPauseClick: (() -> Unit)? = null,
+    onRetryClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     Surface(
-        shape = RoundedCornerShape(24.dp),
-        color = Color(0xFFF1F5F9),
-        border = BorderStroke(1.dp, Color(0xFFCBD5E1)),
-        shadowElevation = 1.dp,
+        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp, bottomStart = 24.dp, bottomEnd = 8.dp),
+        color = if (isFailed) Color(0xFFFEF2F2) else Color(0xFFEFF6FF),
+        border = BorderStroke(1.5.dp, if (isFailed) SoftRed.copy(alpha = 0.5f) else Color(0xFFBFDBFE)),
+        shadowElevation = 2.dp,
         modifier = modifier
             .fillMaxWidth()
             .heightIn(min = 90.dp),
@@ -994,16 +1008,18 @@ fun HubOutgoingMessageCard(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     Text(
-                        text = if (isVoice) "پیام صوتی ارسالی شما" else "پیام ارسالی شما",
+                        text = if (isVoice) "🎙️ صدای ضبط شده" else statusText,
                         style = MaterialTheme.typography.labelLarge,
-                        color = Color(0xFF0D9488),
+                        color = if (isFailed) SoftRed else Color(0xFF0D9488),
                         fontWeight = FontWeight.Bold,
                     )
-                    Text(
-                        text = "• $statusText",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = TextTertiary,
-                    )
+                    if (isVoice) {
+                        Text(
+                            text = "• $statusText",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = if (isFailed) SoftRed else TextTertiary,
+                        )
+                    }
                 }
                 Text(
                     text = time,
@@ -1023,31 +1039,101 @@ fun HubOutgoingMessageCard(
                         style = MaterialTheme.typography.titleMedium,
                         color = TextPrimary,
                     )
-                    if (onPlayPauseClick != null) {
-                        Surface(
-                            onClick = onPlayPauseClick,
-                            shape = CircleShape,
-                            color = Color(0xFF0D9488),
-                            modifier = Modifier.size(48.dp),
-                        ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Icon(
-                                    imageVector = if (isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
-                                    contentDescription = if (isPlaying) "توقف" else "پخش",
-                                    tint = Color.White,
-                                    modifier = Modifier.size(28.dp),
-                                )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        if (isFailed && onRetryClick != null) {
+                            Surface(
+                                onClick = onRetryClick,
+                                shape = RoundedCornerShape(14.dp),
+                                color = SoftRed.copy(alpha = 0.12f),
+                                border = BorderStroke(1.dp, SoftRed.copy(alpha = 0.4f)),
+                                modifier = Modifier.height(44.dp),
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 14.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Rounded.Refresh,
+                                        contentDescription = "تلاش مجدد",
+                                        tint = SoftRed,
+                                        modifier = Modifier.size(18.dp),
+                                    )
+                                    Text(
+                                        text = "تلاش مجدد",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = SoftRed,
+                                        fontWeight = FontWeight.Bold,
+                                    )
+                                }
+                            }
+                        }
+
+                        if (onPlayPauseClick != null) {
+                            Surface(
+                                onClick = onPlayPauseClick,
+                                shape = CircleShape,
+                                color = Color(0xFF0D9488),
+                                modifier = Modifier.size(48.dp),
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Icon(
+                                        imageVector = if (isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
+                                        contentDescription = if (isPlaying) "توقف" else "پخش",
+                                        tint = Color.White,
+                                        modifier = Modifier.size(28.dp),
+                                    )
+                                }
                             }
                         }
                     }
                 }
             } else {
-                Text(
-                    text = text.orEmpty(),
-                    style = MaterialTheme.typography.titleLarge,
-                    color = TextPrimary,
-                    lineHeight = 32.sp,
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = text.orEmpty(),
+                        style = MaterialTheme.typography.titleLarge,
+                        color = TextPrimary,
+                        lineHeight = 32.sp,
+                        modifier = Modifier.weight(1f, fill = false),
+                    )
+                    if (isFailed && onRetryClick != null) {
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Surface(
+                            onClick = onRetryClick,
+                            shape = RoundedCornerShape(14.dp),
+                            color = SoftRed.copy(alpha = 0.12f),
+                            border = BorderStroke(1.dp, SoftRed.copy(alpha = 0.4f)),
+                            modifier = Modifier.height(44.dp),
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 14.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Rounded.Refresh,
+                                    contentDescription = "تلاش مجدد",
+                                    tint = SoftRed,
+                                    modifier = Modifier.size(18.dp),
+                                )
+                                Text(
+                                    text = "تلاش مجدد",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = SoftRed,
+                                    fontWeight = FontWeight.Bold,
+                                )
+                            }
+                        }
+                    }
+                }
             }
         }
     }
@@ -1060,19 +1146,36 @@ fun FamilyMediaMessageCard(
     text: String?,
     localFileUri: String?,
     time: String,
+    isVideo: Boolean = false,
     modifier: Modifier = Modifier,
+    onClick: (() -> Unit)? = null,
 ) {
-    val bitmap = remember(localFileUri) {
+    val bitmap = remember(localFileUri, isVideo) {
         localFileUri?.let { path ->
             val f = java.io.File(path)
             if (f.exists()) {
-                BitmapFactory.decodeFile(f.absolutePath)?.asImageBitmap()
+                if (isVideo) {
+                    try {
+                        val retriever = android.media.MediaMetadataRetriever()
+                        retriever.setDataSource(f.absolutePath)
+                        val frame = retriever.getFrameAtTime(1000000) ?: retriever.frameAtTime
+                        retriever.release()
+                        frame?.asImageBitmap()
+                    } catch (_: Exception) {
+                        null
+                    }
+                } else {
+                    BitmapFactory.decodeFile(f.absolutePath)?.asImageBitmap()
+                }
             } else null
         }
     }
     Surface(
-        shape = RoundedCornerShape(24.dp),
-        color = Color.White,
+        onClick = { onClick?.invoke() },
+        enabled = onClick != null,
+        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp, bottomEnd = 24.dp, bottomStart = 8.dp),
+        color = Color(0xFFF8FAFC),
+        border = BorderStroke(1.5.dp, Color(0xFFCBD5E1)),
         shadowElevation = 2.dp,
         modifier = modifier
             .fillMaxWidth()
@@ -1088,37 +1191,362 @@ fun FamilyMediaMessageCard(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    text = title.ifBlank { "پیام تصویری از $senderName" },
+                    text = title.ifBlank { if (isVideo) "پیام ویدیویی از $senderName" else "پیام تصویری از $senderName" },
                     style = MaterialTheme.typography.labelLarge,
                     color = SoftBlue,
                     fontWeight = FontWeight.Bold,
+                    fontSize = 16.sp,
                 )
                 Text(
                     text = time,
                     style = MaterialTheme.typography.bodySmall,
                     color = TextTertiary,
+                    fontSize = 13.sp,
                 )
             }
             if (bitmap != null) {
                 Spacer(modifier = Modifier.height(12.dp))
-                Image(
-                    bitmap = bitmap,
-                    contentDescription = text ?: title,
+                Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .heightIn(max = 280.dp)
                         .clip(RoundedCornerShape(16.dp)),
-                    contentScale = ContentScale.Crop,
-                )
+                ) {
+                    Image(
+                        bitmap = bitmap,
+                        contentDescription = text ?: title,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop,
+                    )
+                    if (isVideo) {
+                        Surface(
+                            shape = CircleShape,
+                            color = Color(0xFF00685F).copy(alpha = 0.90f),
+                            border = BorderStroke(2.dp, Color.White),
+                            modifier = Modifier
+                                .size(56.dp)
+                                .align(Alignment.Center),
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    imageVector = Icons.Rounded.PlayArrow,
+                                    contentDescription = "پخش ویدیو",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(34.dp),
+                                )
+                            }
+                        }
+                    }
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = Color.Black.copy(alpha = 0.65f),
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .padding(10.dp),
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        ) {
+                            Icon(
+                                imageVector = if (isVideo) Icons.Rounded.PlayArrow else Icons.Rounded.ZoomIn,
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier.size(18.dp),
+                            )
+                            Text(
+                                text = if (isVideo) "پخش تمام‌صفحه" else "نمایش بزرگ‌تر",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = Color.White,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 12.sp,
+                            )
+                        }
+                    }
+                }
+            } else if (isVideo && localFileUri != null && java.io.File(localFileUri).exists()) {
+                Spacer(modifier = Modifier.height(12.dp))
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(170.dp)
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(Color(0xFF0F172A)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Surface(
+                        shape = CircleShape,
+                        color = Color(0xFF00685F).copy(alpha = 0.90f),
+                        border = BorderStroke(2.dp, Color.White),
+                        modifier = Modifier.size(56.dp),
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = Icons.Rounded.PlayArrow,
+                                contentDescription = "پخش ویدیو",
+                                tint = Color.White,
+                                modifier = Modifier.size(34.dp),
+                            )
+                        }
+                    }
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = Color.Black.copy(alpha = 0.65f),
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .padding(10.dp),
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.PlayArrow,
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier.size(16.dp),
+                            )
+                            Text(
+                                text = "پخش ویدیو",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = Color.White,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 12.sp,
+                            )
+                        }
+                    }
+                }
+            } else {
+                Spacer(modifier = Modifier.height(10.dp))
+                Surface(
+                    shape = RoundedCornerShape(16.dp),
+                    color = Color(0xFFF1F5F9),
+                    border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(110.dp),
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center,
+                    ) {
+                        Icon(
+                            imageVector = if (isVideo) Icons.Rounded.Videocam else Icons.Rounded.Image,
+                            contentDescription = null,
+                            tint = Color(0xFF94A3B8),
+                            modifier = Modifier.size(32.dp),
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(
+                            text = if (localFileUri != null) {
+                                if (isVideo) "در حال آماده‌سازی ویدیو..." else "در حال بارگذاری تصویر..."
+                            } else {
+                                if (isVideo) "ویدیو در دستگاه موجود نیست" else "تصویر در دستگاه موجود نیست"
+                            },
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = TextSecondary,
+                            fontSize = 14.sp,
+                        )
+                    }
+                }
             }
             if (!text.isNullOrBlank()) {
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(10.dp))
                 Text(
                     text = text,
                     style = MaterialTheme.typography.titleLarge,
                     color = TextPrimary,
                     lineHeight = 32.sp,
+                    fontSize = 19.sp,
                 )
+            }
+        }
+    }
+}
+
+data class HubMediaViewerTarget(
+    val title: String,
+    val localFileUri: String?,
+    val caption: String?,
+    val isVideo: Boolean = false,
+)
+
+@Composable
+fun FullScreenMediaViewerDialog(
+    target: HubMediaViewerTarget,
+    onDismiss: () -> Unit,
+) {
+    FullScreenMediaViewerDialog(
+        title = target.title,
+        localFileUri = target.localFileUri,
+        caption = target.caption,
+        isVideo = target.isVideo,
+        onDismiss = onDismiss,
+    )
+}
+
+@Composable
+fun FullScreenMediaViewerDialog(
+    title: String,
+    localFileUri: String?,
+    caption: String?,
+    isVideo: Boolean = false,
+    onDismiss: () -> Unit,
+) {
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false),
+    ) {
+        val bitmap = remember(localFileUri, isVideo) {
+            if (!isVideo && !localFileUri.isNullOrBlank()) {
+                val f = java.io.File(localFileUri)
+                if (f.exists()) {
+                    BitmapFactory.decodeFile(f.absolutePath)?.asImageBitmap()
+                } else null
+            } else null
+        }
+
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color(0xFF0B111A)),
+        ) {
+            // Main media presentation
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(top = 80.dp, bottom = if (!caption.isNullOrBlank()) 90.dp else 24.dp, start = 16.dp, end = 16.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                if (isVideo) {
+                    if (!localFileUri.isNullOrBlank() && java.io.File(localFileUri).exists()) {
+                        AndroidView(
+                            factory = { ctx ->
+                                android.widget.VideoView(ctx).apply {
+                                    val controller = android.widget.MediaController(ctx)
+                                    controller.setAnchorView(this)
+                                    setMediaController(controller)
+                                    setVideoPath(localFileUri)
+                                    start()
+                                }
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(420.dp)
+                                .clip(RoundedCornerShape(16.dp)),
+                        )
+                    } else {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(12.dp),
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.PlayArrow,
+                                contentDescription = null,
+                                tint = Color(0xFF64748B),
+                                modifier = Modifier.size(64.dp),
+                            )
+                            Text(
+                                text = "فایل ویدیو بر روی دستگاه در دسترس نیست",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = Color(0xFF94A3B8),
+                                fontSize = 18.sp,
+                            )
+                        }
+                    }
+                } else {
+                    if (bitmap != null) {
+                        Image(
+                            bitmap = bitmap,
+                            contentDescription = caption ?: title,
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Fit,
+                        )
+                    } else {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(12.dp),
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.Image,
+                                contentDescription = null,
+                                tint = Color(0xFF64748B),
+                                modifier = Modifier.size(64.dp),
+                            )
+                            Text(
+                                text = "تصویر بر روی دستگاه در دسترس نیست",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = Color(0xFF94A3B8),
+                                fontSize = 18.sp,
+                            )
+                        }
+                    }
+                }
+            }
+
+            // Top Bar with large comfortable Close Button (56dp)
+            Surface(
+                color = Color.Black.copy(alpha = 0.65f),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .align(Alignment.TopCenter),
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 24.dp, vertical = 16.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = title,
+                        style = MaterialTheme.typography.titleLarge,
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 20.sp,
+                    )
+                    Surface(
+                        onClick = onDismiss,
+                        shape = RoundedCornerShape(20.dp),
+                        color = Color.White.copy(alpha = 0.25f),
+                        modifier = Modifier.size(56.dp),
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = Icons.Rounded.Close,
+                                contentDescription = "بستن",
+                                tint = Color.White,
+                                modifier = Modifier.size(28.dp),
+                            )
+                        }
+                    }
+                }
+            }
+
+            // Bottom Caption
+            if (!caption.isNullOrBlank()) {
+                Surface(
+                    color = Color.Black.copy(alpha = 0.75f),
+                    shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .align(Alignment.BottomCenter),
+                ) {
+                    Text(
+                        text = caption,
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = Color.White,
+                        fontSize = 18.sp,
+                        lineHeight = 28.sp,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(horizontal = 32.dp, vertical = 18.dp),
+                    )
+                }
             }
         }
     }
@@ -1472,6 +1900,7 @@ fun HubTopBar(
     isOnline: Boolean,
     connectionState: ConnectionVisualState,
     onLogoTap: () -> Unit = {},
+    greetingText: String = "سلام، $elderName",
     modifier: Modifier = Modifier,
 ) {
     var tapCount by remember { mutableIntStateOf(0) }
@@ -1517,7 +1946,7 @@ fun HubTopBar(
 
             // Greeting text
             Text(
-                text = "سلام، $elderName",
+                text = greetingText,
                 style = MaterialTheme.typography.titleLarge,
                 color = TextSlatePrimary,
                 fontWeight = FontWeight.Bold,
@@ -1602,7 +2031,7 @@ fun HubTopBar(
 @Composable
 fun HubActionCard(
     title: String,
-    subtitle: String,
+    subtitle: String = "",
     icon: ImageVector,
     iconBgColor: Color,
     bgStartColor: Color,
@@ -1614,6 +2043,7 @@ fun HubActionCard(
     modifier: Modifier = Modifier,
     buttonIcon: ImageVector? = null,
     onCardClick: () -> Unit = onButtonClick,
+    customBodyContent: (@Composable () -> Unit)? = null,
     badgeContent: @Composable () -> Unit,
 ) {
     Surface(
@@ -1668,19 +2098,30 @@ fun HubActionCard(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // Subtitle
-                Text(
-                    text = subtitle,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = TextSlateSecondary,
-                    textAlign = TextAlign.Center,
-                    minLines = 2,
-                    maxLines = 2,
-                    lineHeight = 22.sp,
-                    fontSize = 15.sp,
-                )
+                // Dynamic Body Content or Fallback Subtitle
+                if (customBodyContent != null) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(min = 58.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        customBodyContent()
+                    }
+                } else {
+                    Text(
+                        text = subtitle,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = TextSlateSecondary,
+                        textAlign = TextAlign.Center,
+                        minLines = 2,
+                        maxLines = 2,
+                        lineHeight = 22.sp,
+                        fontSize = 15.sp,
+                    )
+                }
 
-                Spacer(modifier = Modifier.height(20.dp))
+                Spacer(modifier = Modifier.height(18.dp))
 
                 // Status Badge Pill
                 Box(
@@ -1817,22 +2258,92 @@ private fun FooterBadgeItem(
 }
 
 @Composable
+fun ContactAvatar(
+    displayName: String,
+    photoReference: String? = null,
+    size: Dp = 56.dp,
+    unread: Boolean = false,
+    isPriority: Boolean = false,
+    modifier: Modifier = Modifier,
+) {
+    val context = LocalContext.current
+    val bitmap = remember(photoReference) {
+        if (!photoReference.isNullOrBlank()) {
+            val directFile = java.io.File(photoReference)
+            if (directFile.exists()) {
+                BitmapFactory.decodeFile(directFile.absolutePath)?.asImageBitmap()
+            } else {
+                val dir = java.io.File(context.filesDir, "yara_media/received")
+                val file = dir.listFiles()?.firstOrNull { it.name.startsWith(photoReference) }
+                if (file != null && file.exists()) {
+                    BitmapFactory.decodeFile(file.absolutePath)?.asImageBitmap()
+                } else null
+            }
+        } else null
+    }
+
+    val initial = displayName.trim().firstOrNull()?.toString() ?: "خ"
+    val bgColor = when {
+        unread -> Color(0xFFF3E8FF)
+        isPriority -> Color(0xFFECFDF5)
+        else -> Color(0xFFEFF6FF)
+    }
+    val borderColor = when {
+        unread -> Color(0xFFD8B4FE)
+        isPriority -> Color(0xFFA7F3D0)
+        else -> Color(0xFFBFDBFE)
+    }
+    val textColor = when {
+        unread -> Color(0xFF7E22CE)
+        isPriority -> Color(0xFF047857)
+        else -> Color(0xFF1D4ED8)
+    }
+
+    Surface(
+        shape = CircleShape,
+        color = bgColor,
+        border = BorderStroke(1.5.dp, borderColor),
+        modifier = modifier.size(size),
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            if (bitmap != null) {
+                Image(
+                    bitmap = bitmap,
+                    contentDescription = displayName,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop,
+                )
+            } else {
+                Text(
+                    text = initial,
+                    style = MaterialTheme.typography.titleLarge,
+                    color = textColor,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = (size.value * 0.44f).sp,
+                )
+            }
+        }
+    }
+}
+
+@Composable
 fun HubContactItemCard(
     displayName: String,
     relationship: String?,
     unreadCount: Int,
     onClick: () -> Unit,
+    photoReference: String? = null,
     modifier: Modifier = Modifier,
 ) {
     Surface(
         onClick = onClick,
         shape = RoundedCornerShape(24.dp),
         color = Color.White,
-        border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+        border = BorderStroke(1.5.dp, if (unreadCount > 0) Color(0xFFC084FC) else Color(0xFFE2E8F0)),
         shadowElevation = 2.dp,
         modifier = modifier
             .fillMaxWidth()
-            .heightIn(min = 84.dp),
+            .heightIn(min = 88.dp),
     ) {
         Row(
             modifier = Modifier
@@ -1844,24 +2355,15 @@ fun HubContactItemCard(
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(16.dp),
+                modifier = Modifier.weight(1f),
             ) {
-                // Calm Elder-accessible Avatar circle with initial
-                Surface(
-                    shape = CircleShape,
-                    color = CardCallAccent.copy(alpha = 0.12f),
-                    border = BorderStroke(1.5.dp, CardCallAccent.copy(alpha = 0.3f)),
-                    modifier = Modifier.size(56.dp),
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Text(
-                            text = displayName.take(1),
-                            style = MaterialTheme.typography.titleLarge,
-                            color = CardCallAccent,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 24.sp,
-                        )
-                    }
-                }
+                ContactAvatar(
+                    displayName = displayName,
+                    photoReference = photoReference,
+                    size = 56.dp,
+                    unread = unreadCount > 0,
+                    isPriority = !relationship.isNullOrBlank(),
+                )
 
                 Column(
                     verticalArrangement = Arrangement.spacedBy(4.dp),
@@ -1893,7 +2395,7 @@ fun HubContactItemCard(
                     Surface(
                         shape = CircleShape,
                         color = BadgeRed,
-                        modifier = Modifier.size(26.dp),
+                        modifier = Modifier.size(28.dp),
                     ) {
                         Box(contentAlignment = Alignment.Center) {
                             Text(
@@ -1901,7 +2403,7 @@ fun HubContactItemCard(
                                 color = Color.White,
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.Bold,
-                                fontSize = 13.sp,
+                                fontSize = 14.sp,
                             )
                         }
                     }
@@ -1909,16 +2411,173 @@ fun HubContactItemCard(
 
                 Surface(
                     shape = CircleShape,
-                    color = CardMessageAccent.copy(alpha = 0.10f),
-                    modifier = Modifier.size(40.dp),
+                    color = CardMessageAccent.copy(alpha = 0.12f),
+                    modifier = Modifier.size(44.dp),
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Icon(
                             imageVector = Icons.Rounded.Chat,
                             contentDescription = "گفتگو",
                             tint = CardMessageAccent,
+                            modifier = Modifier.size(22.dp),
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun ContactSuggestionCard(
+    displayName: String,
+    relationship: String?,
+    photoReference: String?,
+    isPriority: Boolean,
+    actionButtonText: String,
+    actionButtonIcon: androidx.compose.ui.graphics.vector.ImageVector,
+    actionButtonColor: Color,
+    onActionClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    unreadCount: Int = 0,
+    secondaryButtonText: String? = null,
+    secondaryButtonIcon: androidx.compose.ui.graphics.vector.ImageVector? = null,
+    onSecondaryClick: (() -> Unit)? = null,
+) {
+    Surface(
+        onClick = onActionClick,
+        shape = RoundedCornerShape(28.dp),
+        color = Color.White,
+        border = BorderStroke(1.5.dp, if (unreadCount > 0) Color(0xFFC084FC) else Color(0xFFE2E8F0)),
+        shadowElevation = 3.dp,
+        modifier = modifier
+            .fillMaxWidth()
+            .heightIn(min = 230.dp),
+    ) {
+        Column(
+            modifier = Modifier.padding(18.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                // Large circular photo (Instagram style with optional colored ring for priority/unread)
+                Box(contentAlignment = Alignment.TopEnd) {
+                    ContactAvatar(
+                        displayName = displayName,
+                        photoReference = photoReference,
+                        size = 80.dp,
+                        unread = unreadCount > 0,
+                        isPriority = isPriority,
+                    )
+                    if (unreadCount > 0) {
+                        Surface(
+                            shape = CircleShape,
+                            color = BadgeRed,
+                            modifier = Modifier.size(24.dp),
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Text(
+                                    text = "$unreadCount",
+                                    color = Color.White,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 12.sp,
+                                )
+                            }
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                Text(
+                    text = displayName,
+                    style = MaterialTheme.typography.titleLarge,
+                    color = TextSlatePrimary,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 20.sp,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+
+                Spacer(modifier = Modifier.height(3.dp))
+
+                Text(
+                    text = relationship ?: if (isPriority) "مخاطب اصلی" else "خانواده",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = TextSlateSecondary,
+                    fontSize = 14.sp,
+                    maxLines = 1,
+                )
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                // Primary Action Button (Call or Message)
+                Surface(
+                    onClick = onActionClick,
+                    shape = RoundedCornerShape(18.dp),
+                    color = actionButtonColor,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp),
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxSize(),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Icon(
+                            imageVector = actionButtonIcon,
+                            contentDescription = null,
+                            tint = Color.White,
                             modifier = Modifier.size(20.dp),
                         )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = actionButtonText,
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 15.sp,
+                        )
+                    }
+                }
+
+                if (secondaryButtonText != null && onSecondaryClick != null) {
+                    Surface(
+                        onClick = onSecondaryClick,
+                        shape = RoundedCornerShape(18.dp),
+                        color = Color(0xFFF1F5F9),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(42.dp),
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxSize(),
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            if (secondaryButtonIcon != null) {
+                                Icon(
+                                    imageVector = secondaryButtonIcon,
+                                    contentDescription = null,
+                                    tint = TextSlatePrimary,
+                                    modifier = Modifier.size(18.dp),
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                            }
+                            Text(
+                                text = secondaryButtonText,
+                                color = TextSlatePrimary,
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 13.sp,
+                            )
+                        }
                     }
                 }
             }

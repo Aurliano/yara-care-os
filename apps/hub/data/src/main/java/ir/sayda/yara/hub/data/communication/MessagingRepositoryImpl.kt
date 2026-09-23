@@ -10,6 +10,7 @@ import ir.sayda.yara.hub.core.domain.repository.OutboxRepository
 import ir.sayda.yara.hub.core.result.AppResult
 import ir.sayda.yara.hub.core.sync.OutboxOperationType
 import ir.sayda.yara.hub.data.media.HubMediaStorage
+import ir.sayda.yara.hub.database.dao.ContactDao
 import ir.sayda.yara.hub.database.dao.MessageDao
 import ir.sayda.yara.hub.database.mapper.toDomain
 import ir.sayda.yara.hub.database.mapper.toEntity
@@ -36,6 +37,7 @@ import javax.inject.Singleton
 @Singleton
 class MessagingRepositoryImpl @Inject constructor(
     private val messageDao: MessageDao,
+    private val contactDao: ContactDao,
     private val communicationApi: CommunicationApi,
     private val outboxRepository: OutboxRepository,
     private val mediaStorage: HubMediaStorage,
@@ -390,6 +392,28 @@ class MessagingRepositoryImpl @Inject constructor(
                 }
                 count++
             }
+
+            // Sync contact photos if missing locally
+            runCatching {
+                val contacts = contactDao.getByElder(elderId)
+                for (contact in contacts) {
+                    val photoRef = contact.photoReference
+                    if (!photoRef.isNullOrBlank()) {
+                        val existing = mediaStorage.getLocalMediaFile(photoRef)
+                        if (existing == null || !existing.exists()) {
+                            runCatching {
+                                val responseBody = communicationApi.downloadMedia(photoRef)
+                                mediaStorage.saveIncomingMedia(
+                                    attachmentId = photoRef,
+                                    extension = "jpg",
+                                    inputStream = responseBody.byteStream(),
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
             AppResult.Success(count)
         } catch (e: Exception) {
             AppResult.Error(e)

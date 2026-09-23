@@ -44,7 +44,10 @@ function deduplicateAndSort(messages: Message[]): Message[] {
   );
 }
 
-export function useMessages(elderId: string | null | undefined) {
+export function useMessages(
+  elderId: string | null | undefined,
+  options?: { autoMarkRead?: boolean },
+) {
   const queryClient = useQueryClient();
   const deliveredAcks = useRef<Set<string>>(new Set());
   const readAcks = useRef<Set<string>>(new Set());
@@ -102,7 +105,12 @@ export function useMessages(elderId: string | null | undefined) {
               deliveredAcks.current.delete(msg.id);
             });
         }
-        if (msg.status !== "READ" && !msg.read && !readAcks.current.has(msg.id)) {
+        if (
+          options?.autoMarkRead !== false &&
+          msg.status !== "READ" &&
+          !msg.read &&
+          !readAcks.current.has(msg.id)
+        ) {
           readAcks.current.add(msg.id);
           markMessageRead(msg.id)
             .then((updated) => {
@@ -120,7 +128,7 @@ export function useMessages(elderId: string | null | undefined) {
         }
       }
     }
-  }, [messages, messagesQueryKey, queryClient]);
+  }, [messages, messagesQueryKey, options?.autoMarkRead, queryClient]);
 
   const markAsRead = useCallback(
     async (messageId: string) => {

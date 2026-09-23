@@ -335,6 +335,20 @@ class HomeViewModel @Inject constructor(
         }
     }
 
+    fun retryMessage(message: Message) {
+        val elderId = currentElderId ?: return
+        viewModelScope.launch {
+            messagingRepository.enqueueOutgoingMessage(
+                elderId = elderId,
+                messageType = message.messageType,
+                body = message.body,
+                localFileUri = message.localFileUri,
+                durationSeconds = message.durationSeconds,
+                fileSize = message.fileSize,
+            )
+        }
+    }
+
     fun markIncomingMessagesAsRead() {
         val unreadList = uiState.value.messages.filter {
             it.direction == ir.sayda.yara.hub.core.domain.model.MessageDirection.FAMILY_TO_HUB &&

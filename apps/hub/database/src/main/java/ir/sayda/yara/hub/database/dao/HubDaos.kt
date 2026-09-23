@@ -269,6 +269,9 @@ interface ContactDao {
     @Query("SELECT * FROM contact WHERE id = :id LIMIT 1")
     suspend fun getById(id: String): ContactEntity?
 
+    @Query("SELECT * FROM contact WHERE elder_id = :elderId AND status = 'ACTIVE'")
+    suspend fun getByElder(elderId: String): List<ContactEntity>
+
     @Query("DELETE FROM contact")
     suspend fun deleteAll()
 }

@@ -121,13 +121,15 @@ def handle_medication_missed(ctx: IntegrationContext, payload: dict[str, Any]) -
         source_type="MEDICATION_MISSED",
         source_reference=str(payload["care_completion_id"]),
     )
-    InitiateCallHandler().handle(
-        ctx,
-        payload={
-            "workflow_execution_id": payload["workflow_execution_id"],
-            "dispatch_context": {"elder_id": payload["elder_id"]},
-        },
-    )
+    # Automated call initiation on medication missed is disabled to prevent phantom/ghost
+    # calls ringing the elder Hub with no human caller on the other end.
+    # InitiateCallHandler().handle(
+    #     ctx,
+    #     payload={
+    #         "workflow_execution_id": payload["workflow_execution_id"],
+    #         "dispatch_context": {"elder_id": payload["elder_id"]},
+    #     },
+    # )
     if ctx.replica_id is None:
         increment("integration.event.medication_missed")
         return

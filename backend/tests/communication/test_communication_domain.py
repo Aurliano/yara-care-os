@@ -21,6 +21,7 @@ from domains.communication.services.contacts import (
     get_priority_contacts,
     remove_priority_contact,
     set_priority_contact,
+    update_contact,
 )
 from domains.communication.services.sessions import (
     accept_session,
@@ -296,3 +297,27 @@ def test_build_contact_sync_delta(licensed_elder):
     assert delta["payload"]["phone"] == "+989121111111"
     assert delta["payload"]["elder_id"] == str(licensed_elder.id)
     assert delta["payload_hash"] is not None
+
+
+@pytest.mark.django_db
+def test_contact_photo_reference_update_and_clear(licensed_elder):
+    contact = create_contact(
+        elder_id=licensed_elder.id,
+        display_name="Son",
+        phone="+989122222222",
+        preferred_channel=CommunicationChannel.VOICE,
+    )
+    assert contact.photo_reference is None
+
+    photo_ref = uuid.uuid4()
+    updated = update_contact(contact.id, photo_reference=photo_ref)
+    assert updated.photo_reference == photo_ref
+
+    # Clear photo_reference explicitly to None
+    cleared = update_contact(contact.id, photo_reference=None)
+    assert cleared.photo_reference is None
+
+    # Update only display_name without touching photo_reference
+    updated2 = update_contact(contact.id, display_name="Son Updated")
+    assert updated2.display_name == "Son Updated"
+    assert updated2.photo_reference is None

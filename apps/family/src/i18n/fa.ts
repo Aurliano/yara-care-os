@@ -291,6 +291,22 @@ export const fa = {
   messagePermissionDenied: "شما دسترسی لازم برای ارسال پیام به این سالمند را ندارید.",
   messageVoiceRecordFailed: "ضبط صدا با خطا مواجه شد.",
   messageVoicePermissionRequired: "برای ضبط صدا، دسترسی به میکروفون الزامی است.",
+  attachPreviewTitle: "پیش‌نمایش رسانه",
+  cancelAttachment: "انصراف",
+  sendAttachment: "ارسال رسانه",
+  uploadingMedia: "در حال بارگذاری و ارسال...",
+  captionPlaceholder: "توضیح دلخواه برای این فایل...",
+  mediaGalleryPermissionRequired: "برای انتخاب تصویر یا ویدیو، دسترسی به گالری لازم است.",
+  photoPickerError: "خطا در باز کردن گالری. لطفاً دسترسی برنامه را بررسی کنید.",
+  selectPhoto: "انتخاب تصویر",
+  changePhoto: "تغییر تصویر",
+  removePhoto: "حذف تصویر",
+  saving: "در حال ذخیره...",
+  editContactTitle: "ویرایش مخاطب در تبلت سالمند",
+  contactSaved: "اطلاعات مخاطب با موفقیت ذخیره شد.",
+  close: "بستن",
+  attachPhotoFailed: "انتخاب تصویر با خطا مواجه شد.",
+  attachVideoFailed: "انتخاب ویدیو با خطا مواجه شد.",
 } as const;
 
 export type MessageKey = keyof typeof fa;

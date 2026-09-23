@@ -85,6 +85,13 @@ fun ReminderRoute(
         }
     }
 
+    LaunchedEffect(presentation) {
+        val reminder = presentation
+        if (reminder != null && reminder.localConfirmationRecorded) {
+            onFinished()
+        }
+    }
+
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
         Scaffold(
             modifier = modifier.fillMaxSize(),

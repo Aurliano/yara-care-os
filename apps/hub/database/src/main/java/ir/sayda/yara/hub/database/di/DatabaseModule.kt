@@ -34,4 +34,9 @@ object DatabaseModule {
     @Singleton
     fun provideMessageDao(database: HubDatabase): ir.sayda.yara.hub.database.dao.MessageDao =
         database.messageDao()
+
+    @Provides
+    @Singleton
+    fun provideContactDao(database: HubDatabase): ir.sayda.yara.hub.database.dao.ContactDao =
+        database.contactDao()
 }
