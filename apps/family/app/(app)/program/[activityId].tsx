@@ -87,6 +87,13 @@ export default function ActivityDetailScreen() {
     (item) => item.status === "SCHEDULED" || item.status === "DUE",
   );
   const nextCompletion = (completions.data ?? []).find((item) => item.occurrence_id === next?.id);
+  const recentCompletion = (completions.data ?? [])[0];
+  const conflictNotice =
+    activity.status === "PAUSED" && recentCompletion?.completion_state === "MEDICATION_TAKEN"
+      ? t.conflictConfirmedBeforePause
+      : activity.status === "ENDED" && recentCompletion?.completion_state === "MEDICATION_TAKEN"
+        ? t.conflictConfirmedBeforeEnd
+        : null;
   const actionError =
     skip.error != null
       ? skip.error instanceof ApiError && skip.error.status === 409
@@ -108,6 +115,14 @@ export default function ActivityDetailScreen() {
           {careActivityStatusLabel(activity.status)}
         </AppText>
       </Card>
+
+      {conflictNotice ? (
+        <Card accent="info">
+          <AppText variant="caption" color={colors.textSecondary}>
+            {conflictNotice}
+          </AppText>
+        </Card>
+      ) : null}
 
       {next ? (
         <Card>

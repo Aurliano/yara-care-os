@@ -16,6 +16,7 @@ from domains.scheduling.recurrence.engine import validate_recurrence_definition
 from domains.scheduling.services.events import (
     emit_schedule_cancelled,
     emit_schedule_created,
+    emit_schedule_exception_added,
     emit_schedule_paused,
     emit_schedule_resumed,
     emit_schedule_updated,
@@ -128,6 +129,30 @@ def cancel_schedule(schedule_definition_id: uuid.UUID) -> ScheduleDefinition:
 
 
 @transaction.atomic
+def end_schedule(schedule_definition_id: uuid.UUID) -> ScheduleDefinition:
+    schedule = get_schedule(schedule_definition_id)
+    if schedule.status == ScheduleStatus.ENDED:
+        return schedule
+    schedule.status = ScheduleStatus.ENDED
+    schedule.save(update_fields=["status", "updated_at"])
+
+    # Suppress / cancel future scheduled occurrences (past occurrences remain intact)
+    now = timezone.now()
+    future_scheduled = Occurrence.objects.filter(
+        schedule_definition=schedule,
+        scheduled_for__gte=now,
+        status=OccurrenceStatus.SCHEDULED,
+    )
+    for occ in future_scheduled:
+        occ.status = OccurrenceStatus.CANCELLED
+        occ._from_schedule_exception = True
+        occ.save(update_fields=["status"])
+
+    emit_schedule_updated(schedule_id=schedule.id, status=schedule.status)
+    return schedule
+
+
+@transaction.atomic
 def add_schedule_exception(
     schedule_definition_id: uuid.UUID,
     *,
@@ -147,6 +172,17 @@ def add_schedule_exception(
         original_time=original_time,
     )
     if exception_type == ScheduleExceptionType.RESCHEDULE:
+        from domains.workflow.enums import ExecutionStatus
+        from domains.workflow.models import WorkflowExecution
+
+        if WorkflowExecution.objects.filter(
+            occurrence_id=occurrence_id,
+            status__in=[ExecutionStatus.CONFIRMED, ExecutionStatus.MISSED],
+        ).exists():
+            raise InvalidScheduleStateError(
+                "Cannot reschedule an occurrence that already has a completed execution."
+            )
+
         assert_reschedule_does_not_collide(
             schedule_definition_id=schedule.id,
             replacement_time=replacement_time,
@@ -167,6 +203,13 @@ def add_schedule_exception(
 
     if schedule.status == ScheduleStatus.ACTIVE:
         generate_occurrences_for_schedule(schedule, range_start=timezone.now())
+
+    emit_schedule_exception_added(
+        schedule_id=schedule.id,
+        original_time=original_time,
+        exception_type=exception_type,
+        replacement_time=replacement_time,
+    )
     return exception
 
 
@@ -200,4 +243,19 @@ def _apply_exception_to_existing_occurrence(
         if occurrence.status == OccurrenceStatus.DUE and exception.replacement_time > timezone.now():
             occurrence.status = OccurrenceStatus.SCHEDULED
 
+    occurrence._from_schedule_exception = True
     occurrence.save(update_fields=["scheduled_for", "status"])
+
+    try:
+        from domains.workflow.enums import ExecutionStatus
+        from domains.workflow.models import WorkflowExecution
+        from domains.workflow.services.executions import cancel_execution
+
+        active_executions = WorkflowExecution.objects.filter(
+            occurrence_id=occurrence.id,
+            status__in=[ExecutionStatus.ACTIVE, ExecutionStatus.PENDING],
+        )
+        for execution in active_executions:
+            cancel_execution(execution_id=execution.id)
+    except Exception:
+        pass

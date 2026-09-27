@@ -92,6 +92,35 @@ def interpret_execution_result(
 
     existing = CareCompletion.objects.filter(workflow_execution_id=workflow_execution_id).first()
     if existing is not None:
+        if (
+            existing.completion_state == CompletionState.CARE_ACTIVITY_CANCELLED
+            and result_type == WorkflowExecutionResultType.EXECUTION_CONFIRMED
+        ):
+            execution = get_execution(workflow_execution_id)
+            occurrence = execution.occurrence
+            try:
+                activity = get_care_activity_for_schedule(occurrence.schedule_definition_id)
+            except CareActivityNotFoundError as exc:
+                raise InvalidExecutionResultError(
+                    "No care activity is linked to the execution occurrence schedule."
+                ) from exc
+            is_prescription = activity.activity_type == CareActivityType.MEDICATION and Prescription.objects.filter(
+                pk=activity.id
+            ).exists()
+            completion_state = _resolve_completion_state(
+                activity=activity,
+                result_type=result_type,
+                is_prescription=is_prescription,
+            )
+            existing.completion_state = completion_state
+            existing.interpreted_at = occurred_at or timezone.now()
+            existing.save(update_fields=["completion_state", "interpreted_at"])
+            _emit_completion_event(
+                activity=activity,
+                completion=existing,
+                completion_state=completion_state,
+            )
+            return existing
         return existing
 
     execution = get_execution(workflow_execution_id)

@@ -175,3 +175,26 @@ def emit_occurrence_cancelled(
             "scheduled_for": scheduled_for.isoformat(),
         },
     )
+
+
+def emit_schedule_exception_added(
+    *,
+    schedule_id: uuid.UUID,
+    original_time: datetime,
+    exception_type: str,
+    replacement_time: datetime | None = None,
+) -> None:
+    occurred_at = timezone.now()
+    publish_scheduling_fact(
+        event_type="ScheduleExceptionAdded",
+        subject_id=schedule_id,
+        occurred_at=occurred_at,
+        discriminator=f"{original_time.isoformat()}:{exception_type}:{occurred_at.isoformat()}",
+        payload={
+            "schedule_definition_id": str(schedule_id),
+            "original_time": original_time.isoformat(),
+            "exception_type": exception_type,
+            "replacement_time": replacement_time.isoformat() if replacement_time else None,
+        },
+    )
+

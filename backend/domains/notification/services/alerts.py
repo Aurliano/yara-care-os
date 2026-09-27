@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import uuid
 from datetime import datetime
 
@@ -14,11 +15,26 @@ from domains.notification.exceptions import AlertNotFoundError, ElderNotFoundErr
 from domains.notification.models import CaregiverAlert
 
 
+logger = logging.getLogger("yara.notification.alerts")
+
+
 def _ensure_elder_exists(elder_id: uuid.UUID) -> Elder:
     try:
         return Elder.objects.get(pk=elder_id)
     except Elder.DoesNotExist as exc:
         raise ElderNotFoundError("Elder not found.") from exc
+
+
+def _trigger_push_safely(alert: CaregiverAlert) -> None:
+    def _run() -> None:
+        try:
+            from domains.notification.services.push import dispatch_alert_push
+
+            dispatch_alert_push(alert)
+        except Exception:
+            logger.exception("Failed to dispatch push notification for alert %s", alert.id)
+
+    transaction.on_commit(_run)
 
 
 @transaction.atomic
@@ -42,21 +58,32 @@ def record_caregiver_alert(
     if existing is not None:
         return existing
     occurred_at = occurred_at or timezone.now()
+    created = False
     try:
-        return CaregiverAlert.objects.create(
-            elder_id=elder_id,
-            title=title,
-            body=body,
-            severity=severity,
-            occurred_at=occurred_at,
-            source_type=source_type,
-            source_reference=source_reference,
-        )
+        with transaction.atomic():
+            alert = CaregiverAlert.objects.create(
+                elder_id=elder_id,
+                title=title,
+                body=body,
+                severity=severity,
+                occurred_at=occurred_at,
+                source_type=source_type,
+                source_reference=source_reference,
+            )
+            created = True
     except IntegrityError:
         return CaregiverAlert.objects.get(
             source_type=source_type,
             source_reference=source_reference,
         )
+
+    if created:
+        from common.observability.metrics import increment
+
+        increment("caregiver_alert.created")
+        _trigger_push_safely(alert)
+
+    return alert
 
 
 def list_elder_alerts(*, elder_id: uuid.UUID) -> list[CaregiverAlert]:

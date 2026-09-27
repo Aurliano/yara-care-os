@@ -5,26 +5,39 @@ from __future__ import annotations
 import uuid
 from datetime import timedelta
 
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from django.utils import timezone
 
 from domains.workflow.definition_schema import get_postpone_policy, validate_workflow_definition
-from domains.workflow.enums import ExecutionStatus
+from domains.workflow.enums import EvidenceSourceType, ExecutionStatus
 from domains.workflow.exceptions import InvalidExecutionStateError, PostponeNotAllowedError
-from domains.workflow.models import WorkflowExecution
+from domains.workflow.models import ConfirmationEvidence, WorkflowExecution
 from domains.workflow.services.executions import _ensure_not_terminal
 from domains.workflow.services.events import emit_execution_postponed
 from domains.workflow.versioning import bump_workflow_execution_version
 
 
 @transaction.atomic
-def postpone_execution(*, execution_id: uuid.UUID) -> WorkflowExecution:
+def postpone_execution(
+    *,
+    execution_id: uuid.UUID,
+    postpone_request_id: str | None = None,
+) -> WorkflowExecution:
     execution = WorkflowExecution.objects.select_for_update().select_related("workflow_definition").get(
         pk=execution_id
     )
     _ensure_not_terminal(execution)
     if execution.status != ExecutionStatus.ACTIVE:
         raise InvalidExecutionStateError("Only active executions can be postponed.")
+
+    if postpone_request_id:
+        existing = ConfirmationEvidence.objects.filter(
+            workflow_execution=execution,
+            evidence_type="POSTPONE",
+            source_reference=str(postpone_request_id),
+        ).first()
+        if existing is not None:
+            return execution
 
     definition = validate_workflow_definition(execution.workflow_definition.definition)
     policy = get_postpone_policy(definition)
@@ -45,5 +58,18 @@ def postpone_execution(*, execution_id: uuid.UUID) -> WorkflowExecution:
     update_fields = ["postpone_count", "active_until", "updated_at"]
     bump_workflow_execution_version(execution, update_fields)
     execution.save(update_fields=update_fields)
+
+    if postpone_request_id:
+        try:
+            ConfirmationEvidence.objects.create(
+                workflow_execution=execution,
+                evidence_type="POSTPONE",
+                source_type=EvidenceSourceType.DIRECT_INTERACTION,
+                source_reference=str(postpone_request_id),
+                payload={"postpone_count": execution.postpone_count},
+            )
+        except IntegrityError:
+            pass
+
     emit_execution_postponed(execution_id=execution.id, postpone_count=execution.postpone_count)
     return execution

@@ -142,14 +142,65 @@ def handle_medication_missed(ctx: IntegrationContext, payload: dict[str, Any]) -
     increment("integration.event.medication_missed")
 
 
+def handle_occurrence_skipped(ctx: IntegrationContext, payload: dict[str, Any]) -> None:
+    occurrence_id = uuid.UUID(payload["occurrence_id"])
+    from domains.workflow.enums import ExecutionStatus
+    from domains.workflow.models import WorkflowExecution
+    from domains.workflow.services.executions import cancel_execution
+
+    active_executions = WorkflowExecution.objects.filter(
+        occurrence_id=occurrence_id,
+        status__in=[ExecutionStatus.ACTIVE, ExecutionStatus.PENDING],
+    )
+    for execution in active_executions:
+        cancel_execution(execution_id=execution.id)
+    increment("integration.event.occurrence_skipped")
+
+
+def handle_occurrence_cancelled(ctx: IntegrationContext, payload: dict[str, Any]) -> None:
+    occurrence_id = uuid.UUID(payload["occurrence_id"])
+    from domains.workflow.enums import ExecutionStatus
+    from domains.workflow.models import WorkflowExecution
+    from domains.workflow.services.executions import cancel_execution
+
+    active_executions = WorkflowExecution.objects.filter(
+        occurrence_id=occurrence_id,
+        status__in=[ExecutionStatus.ACTIVE, ExecutionStatus.PENDING],
+    )
+    for execution in active_executions:
+        cancel_execution(execution_id=execution.id)
+    increment("integration.event.occurrence_cancelled")
+
+
+def handle_execution_cancelled(ctx: IntegrationContext, payload: dict[str, Any]) -> None:
+    execution_id = uuid.UUID(payload["workflow_execution_id"])
+    try:
+        interpret_execution_result(
+            workflow_execution_id=execution_id,
+            result_type=WorkflowExecutionResultType.EXECUTION_CANCELLED,
+        )
+    except InvalidExecutionResultError:
+        return
+    increment("integration.event.execution_cancelled")
+
+
+def handle_schedule_exception_added(ctx: IntegrationContext, payload: dict[str, Any]) -> None:
+    increment("integration.event.schedule_exception_added")
+
+
 EVENT_HANDLERS = {
     "OccurrenceDue": handle_occurrence_due,
     "ExecutionStarted": handle_execution_started,
     "EscalationTriggered": handle_escalation_triggered,
     "ExecutionConfirmed": handle_execution_confirmed,
     "ExecutionMissed": handle_execution_missed,
+    "ExecutionCancelled": handle_execution_cancelled,
     "DeviceCommandCompleted": handle_device_command_completed,
     "CommunicationSessionEnded": handle_communication_session_ended,
     "MedicationTaken": handle_medication_taken,
     "MedicationMissed": handle_medication_missed,
+    "OccurrenceSkipped": handle_occurrence_skipped,
+    "OccurrenceCancelled": handle_occurrence_cancelled,
+    "ScheduleExceptionAdded": handle_schedule_exception_added,
 }
+

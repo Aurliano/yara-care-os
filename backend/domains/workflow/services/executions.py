@@ -186,9 +186,11 @@ def _activate_pending_execution(
 @transaction.atomic
 def cancel_execution(*, execution_id: uuid.UUID) -> WorkflowExecution:
     execution = WorkflowExecution.objects.select_for_update().get(pk=execution_id)
+    if execution.status == ExecutionStatus.CANCELLED:
+        return execution
     _ensure_not_terminal(execution)
-    if execution.status != ExecutionStatus.ACTIVE:
-        raise InvalidExecutionStateError("Only active executions can be cancelled.")
+    if execution.status not in {ExecutionStatus.ACTIVE, ExecutionStatus.PENDING}:
+        raise InvalidExecutionStateError("Only active or pending executions can be cancelled.")
 
     now = timezone.now()
     execution.status = ExecutionStatus.CANCELLED

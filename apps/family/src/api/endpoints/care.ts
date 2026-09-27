@@ -36,6 +36,7 @@ export function createPrescription(
     recurrence_definition: Record<string, unknown>;
     timezone_name: string;
     start_at: string;
+    end_at?: string | null;
     display_title: string;
     display_subtitle?: string;
     medication_reference: string;
@@ -43,8 +44,13 @@ export function createPrescription(
     elder_friendly_description: string;
     personalized_description?: string;
   },
+  options?: { idempotencyKey?: string },
 ): Promise<Prescription> {
-  return apiRequest(`/elders/${elderId}/prescriptions/`, { method: "POST", body });
+  const headers: Record<string, string> = {};
+  if (options?.idempotencyKey) {
+    headers["Idempotency-Key"] = options.idempotencyKey;
+  }
+  return apiRequest(`/elders/${elderId}/prescriptions/`, { method: "POST", body, headers });
 }
 
 export function createCareActivity(
@@ -55,9 +61,16 @@ export function createCareActivity(
     recurrence_definition: Record<string, unknown>;
     timezone_name: string;
     start_at: string;
+    end_at?: string | null;
     display_title: string;
     display_subtitle?: string;
   },
+  options?: { idempotencyKey?: string },
 ): Promise<CareActivity> {
-  return apiRequest(`/elders/${elderId}/care-activities/`, { method: "POST", body });
+  const headers: Record<string, string> = {};
+  if (options?.idempotencyKey) {
+    headers["Idempotency-Key"] = options.idempotencyKey;
+  }
+  return apiRequest(`/elders/${elderId}/care-activities/`, { method: "POST", body, headers });
 }
+

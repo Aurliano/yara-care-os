@@ -6,6 +6,7 @@ import type { ApiErrorBody, TokenPair } from "./types";
 type RequestOptions = {
   method?: string;
   body?: unknown;
+  headers?: Record<string, string>;
   auth?: boolean;
   query?: Record<string, string | number | undefined>;
   skipRefresh?: boolean;
@@ -81,6 +82,10 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
     if (access) {
       headers.Authorization = `Bearer ${access}`;
     }
+  }
+
+  if (options.headers) {
+    Object.assign(headers, options.headers);
   }
 
   const response = await fetch(buildUrl(path, options.query), {

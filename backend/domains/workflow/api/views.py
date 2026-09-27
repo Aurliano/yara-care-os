@@ -126,8 +126,12 @@ class PostponeExecutionView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request: Request, execution_id: uuid.UUID) -> Response:
+        postpone_request_id = request.data.get("postpone_request_id")
         try:
-            execution = postpone_execution(execution_id=execution_id)
+            execution = postpone_execution(
+                execution_id=execution_id,
+                postpone_request_id=str(postpone_request_id) if postpone_request_id else None,
+            )
         except WorkflowError as exc:
             return _workflow_error_response(exc)
         return Response(WorkflowExecutionSerializer(execution).data)

@@ -31,11 +31,23 @@ def get_active_prescriptions(*, elder_id: uuid.UUID) -> list[Prescription]:
     return list(
         Prescription.objects.filter(
             care_activity__elder_id=elder_id,
-            care_activity__status=CareActivityStatus.ACTIVE,
+            care_activity__status__in=[CareActivityStatus.ACTIVE, CareActivityStatus.PAUSED],
             care_activity__activity_type=CareActivityType.MEDICATION,
         )
         .select_related("care_activity")
         .order_by("care_activity__display_title")
+    )
+
+
+def get_history_prescriptions(*, elder_id: uuid.UUID) -> list[Prescription]:
+    return list(
+        Prescription.objects.filter(
+            care_activity__elder_id=elder_id,
+            care_activity__status__in=[CareActivityStatus.ENDED, CareActivityStatus.CANCELLED],
+            care_activity__activity_type=CareActivityType.MEDICATION,
+        )
+        .select_related("care_activity")
+        .order_by("-care_activity__updated_at")
     )
 
 

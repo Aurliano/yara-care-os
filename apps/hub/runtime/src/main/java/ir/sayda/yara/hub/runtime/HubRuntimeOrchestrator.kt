@@ -97,6 +97,7 @@ class HubRuntimeOrchestrator @Inject constructor(
         hubWorkflowBootstrap.ensureWorkflowDefinitionsForCareActivities()
         val schedulingResult = schedulingReplicaRuntime.hydrateAndEvaluate(now)
         val workflowResult = workflowReplicaRuntime.processDueOccurrences(now)
+        val timeoutsProcessed = workflowReplicaRuntime.processTimeouts(now)
         val remindersDispatched = workflowReplicaRuntime.dispatchActiveReminders()
 
         return AppResult.Success(
@@ -105,6 +106,7 @@ class HubRuntimeOrchestrator @Inject constructor(
                 "occurrences_generated" to schedulingResult.occurrencesGenerated,
                 "occurrences_marked_due" to schedulingResult.occurrencesMarkedDue,
                 "executions_started" to workflowResult.executionsStarted,
+                "timeouts_processed" to timeoutsProcessed,
                 "reminders_dispatched" to remindersDispatched,
             ),
         )

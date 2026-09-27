@@ -150,6 +150,10 @@ class InMemoryWorkflowRepository : WorkflowReplicaRepository {
         executions.value.firstOrNull { it.occurrenceId == occurrenceId }
 
     override suspend fun upsertExecution(execution: WorkflowExecution) {
+        val existing = getExecution(execution.id)
+        if (existing?.status == "CONFIRMED" && execution.status != "CONFIRMED") {
+            return
+        }
         executions.value = executions.value.filterNot { it.id == execution.id } + execution
     }
 

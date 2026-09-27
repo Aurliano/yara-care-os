@@ -78,7 +78,7 @@ def test_care_activity_lifecycle(elder, workflow_definition, recurrence_definiti
 
     ended = end_care_activity(care_activity_id=activity.id)
     assert ended.status == CareActivityStatus.ENDED
-    assert ScheduleDefinition.objects.get(pk=activity.schedule_definition_id).status == ScheduleStatus.CANCELLED
+    assert ScheduleDefinition.objects.get(pk=activity.schedule_definition_id).status == ScheduleStatus.ENDED
     assert EventRecord.objects.filter(event_type="CareActivityEnded").count() == 1
 
 

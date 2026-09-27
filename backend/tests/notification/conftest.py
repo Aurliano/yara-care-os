@@ -32,6 +32,24 @@ def elder(db, notification_user):
 
 
 @pytest.fixture
+def licensed_elder(elder):
+    return elder
+
+
+@pytest.fixture
+def recurrence_definition():
+    return {"type": "daily", "time": "08:00"}
+
+
+@pytest.fixture
+def schedule_start_at():
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+
+    return datetime(2026, 8, 1, 0, 0, tzinfo=ZoneInfo("UTC"))
+
+
+@pytest.fixture
 def authenticated_client(api_client: APIClient, notification_user) -> APIClient:
     api_client.force_authenticate(user=notification_user)
     return api_client

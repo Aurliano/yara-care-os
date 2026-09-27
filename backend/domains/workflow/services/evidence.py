@@ -42,11 +42,19 @@ def submit_confirmation_evidence(
     ).first()
     if existing_evidence is not None:
         execution.refresh_from_db()
+    if execution.status == ExecutionStatus.CONFIRMED:
         return execution
 
-    _ensure_not_terminal(execution)
-    if execution.status != ExecutionStatus.ACTIVE:
-        raise InvalidExecutionStateError("Evidence can only be submitted for active executions.")
+    # Physical confirmation exception: If execution was administratively cancelled
+    # before Hub sync arrived, physical elder confirmation (DIRECT_INTERACTION) supersedes cancellation.
+    is_cancelled_exception = (
+        execution.status == ExecutionStatus.CANCELLED
+        and source_type == EvidenceSourceType.DIRECT_INTERACTION
+    )
+    if not is_cancelled_exception:
+        _ensure_not_terminal(execution)
+        if execution.status != ExecutionStatus.ACTIVE:
+            raise InvalidExecutionStateError("Evidence can only be submitted for active executions.")
 
     definition = validate_workflow_definition(execution.workflow_definition.definition)
     accepted_types = get_accepted_evidence_types(definition)

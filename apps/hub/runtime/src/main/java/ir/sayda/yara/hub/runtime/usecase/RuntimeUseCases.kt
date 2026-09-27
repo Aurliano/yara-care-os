@@ -94,6 +94,7 @@ class PostponeReminderUseCaseImpl @Inject constructor(
     private val workflowReplicaRepository: WorkflowReplicaRepository,
     private val schedulingReplicaRepository: SchedulingReplicaRepository,
     private val careReplicaRepository: CareReplicaRepository,
+    private val pendingEvidenceRepository: PendingEvidenceRepository,
     private val runtimeAlarmCoordinator: RuntimeAlarmCoordinator,
     private val runtimeScheduler: RuntimeScheduler,
     private val workflowReplicaRuntime: WorkflowReplicaRuntime,
@@ -105,6 +106,12 @@ class PostponeReminderUseCaseImpl @Inject constructor(
             ?: return AppResult.Error(IllegalStateException("Execution not found: $executionId"))
         if (execution.status != WorkflowExecutionStatus.ACTIVE.name) {
             return AppResult.Error(IllegalStateException("Execution is not active: ${execution.status}"))
+        }
+
+        val idempotencyKey = "postpone:$executionId:$interactionReference"
+        val existingEvidence = pendingEvidenceRepository.getPending().firstOrNull { it.idempotencyKey == idempotencyKey }
+        if (existingEvidence != null) {
+            return AppResult.Success(execution.activeUntilEpochMillis ?: now)
         }
 
         val occurrence = schedulingReplicaRepository.getOccurrence(execution.occurrenceId)
@@ -128,20 +135,21 @@ class PostponeReminderUseCaseImpl @Inject constructor(
         val postponedUntil = now + policy.delaySeconds * 1000
         val timeoutSeconds = WorkflowDefinitionParser.stepTimeoutSeconds(definition.definitionJson)
 
-        schedulingReplicaRepository.upsertOccurrence(
-            occurrence.copy(
-                status = OccurrenceStatus.SCHEDULED.name,
-                scheduledForEpochMillis = postponedUntil,
-                updatedAtEpochMillis = now,
-            ),
+        val updatedExecution = execution.copy(
+            postponeCount = execution.postponeCount + 1,
+            activeUntilEpochMillis = postponedUntil + timeoutSeconds * 1000,
+            updatedAtEpochMillis = now,
+            aggregateVersion = execution.aggregateVersion + 1,
         )
-        workflowReplicaRepository.upsertExecution(
-            execution.copy(
-                postponeCount = execution.postponeCount + 1,
-                activeUntilEpochMillis = postponedUntil + timeoutSeconds * 1000,
-                updatedAtEpochMillis = now,
-                aggregateVersion = execution.aggregateVersion + 1,
-            ),
+        workflowReplicaRepository.upsertExecution(updatedExecution)
+
+        pendingEvidenceRepository.enqueue(
+            workflowExecutionId = execution.id,
+            evidenceType = "POSTPONE",
+            interactionReference = interactionReference,
+            payloadJson = """{"execution_id":"$executionId","interaction_reference":"$interactionReference","postpone_count":${execution.postponeCount + 1}}""",
+            correlationId = UUID.randomUUID().toString(),
+            idempotencyKey = idempotencyKey,
         )
 
         runtimeAlarmCoordinator.cancelAlarmForOccurrence(occurrence.id)

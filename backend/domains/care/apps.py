@@ -6,3 +6,7 @@ class CareConfig(AppConfig):
     name = "domains.care"
     label = "care"
     verbose_name = "Care"
+
+    def ready(self) -> None:
+        import domains.care.signals  # noqa: F401
+

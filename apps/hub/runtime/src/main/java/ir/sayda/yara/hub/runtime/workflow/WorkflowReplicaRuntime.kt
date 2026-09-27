@@ -10,6 +10,8 @@ import ir.sayda.yara.hub.core.runtime.RuntimeEvent
 import ir.sayda.yara.hub.core.runtime.RuntimeEventBus
 import ir.sayda.yara.hub.core.runtime.WorkflowStarted
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import ir.sayda.yara.hub.core.scheduling.OccurrenceStatus
 import ir.sayda.yara.hub.core.workflow.WorkflowActionType
 import ir.sayda.yara.hub.core.workflow.WorkflowExecutionStatus
@@ -27,6 +29,7 @@ class WorkflowReplicaRuntime @Inject constructor(
     private val eventBus: RuntimeEventBus,
 ) {
     private val dispatchedExecutionIds = mutableSetOf<String>()
+    private val timeoutMutex = Mutex()
 
     suspend fun processDueOccurrences(nowEpochMillis: Long = System.currentTimeMillis()): WorkflowCycleResult {
         val dueOccurrences = schedulingRepository.getOccurrencesDueBefore(nowEpochMillis)
@@ -57,8 +60,9 @@ class WorkflowReplicaRuntime @Inject constructor(
         nowEpochMillis: Long,
     ): WorkflowExecution? {
         val careActivity = careRepository.getCareActivityByScheduleDefinition(occurrence.scheduleDefinitionId)
-        val definition = careActivity?.let { workflowRepository.getDefinition(it.workflowDefinitionId) }
-        if (careActivity == null || definition == null) return null
+        if (careActivity == null || careActivity.status != "ACTIVE") return null
+        val definition = workflowRepository.getDefinition(careActivity.workflowDefinitionId)
+        if (definition == null) return null
         val executionId = computeExecutionId(occurrence.id)
         val existing = workflowRepository.getExecution(executionId)
         if (existing != null && existing.status in TERMINAL_OR_ACTIVE) {
@@ -94,6 +98,75 @@ class WorkflowReplicaRuntime @Inject constructor(
             ),
         )
         return execution
+    }
+
+    suspend fun processTimeouts(nowEpochMillis: Long = System.currentTimeMillis()): Int = timeoutMutex.withLock {
+        val activeExecutions = workflowRepository.observeActiveExecutions().first()
+        var processed = 0
+        for (item in activeExecutions) {
+            val execution = workflowRepository.getExecution(item.id) ?: continue
+            if (execution.status != WorkflowExecutionStatus.ACTIVE.name) continue
+            val activeUntil = execution.activeUntilEpochMillis ?: continue
+            if (activeUntil > nowEpochMillis) continue
+
+            val definition = workflowRepository.getDefinition(execution.workflowDefinitionId) ?: continue
+            val definitionJson = definition.definitionJson
+            val timeoutSeconds = WorkflowDefinitionParser.stepTimeoutSeconds(definitionJson)
+
+            val retryPolicy = WorkflowDefinitionParser.retryPolicy(definitionJson)
+            if (retryPolicy.allowed && execution.retryCount < retryPolicy.maxRetries) {
+                val nextRetry = execution.retryCount + 1
+                val retryTimeout = if (retryPolicy.timeoutSeconds > 0) retryPolicy.timeoutSeconds else timeoutSeconds
+                workflowRepository.upsertExecution(
+                    execution.copy(
+                        retryCount = nextRetry,
+                        currentStep = "retry_$nextRetry",
+                        activeUntilEpochMillis = nowEpochMillis + (retryTimeout * 1000),
+                        updatedAtEpochMillis = nowEpochMillis,
+                    ),
+                )
+                releaseReminderDispatch(execution.id)
+                processed++
+                continue
+            }
+
+            val escalationSteps = WorkflowDefinitionParser.escalationSteps(definitionJson)
+            if (execution.escalationIndex < escalationSteps.size) {
+                val nextIndex = execution.escalationIndex + 1
+                val step = escalationSteps[nextIndex - 1]
+                val escalationTimeout = if (step.timeoutSeconds > 0) step.timeoutSeconds else timeoutSeconds
+                workflowRepository.upsertExecution(
+                    execution.copy(
+                        escalationIndex = nextIndex,
+                        currentStep = "escalation_$nextIndex",
+                        currentActionJson = step.actionJson,
+                        activeUntilEpochMillis = nowEpochMillis + (escalationTimeout * 1000),
+                        updatedAtEpochMillis = nowEpochMillis,
+                    ),
+                )
+                runtimeDispatcher.dispatch(
+                    actionType = step.actionType,
+                    actionPayload = HubJsonReader.buildObject(
+                        "execution_id" to execution.id,
+                        "occurrence_id" to execution.occurrenceId,
+                    ),
+                    executionId = execution.id,
+                )
+                processed++
+                continue
+            }
+
+            workflowRepository.upsertExecution(
+                execution.copy(
+                    status = WorkflowExecutionStatus.MISSED.name,
+                    completedAtEpochMillis = nowEpochMillis,
+                    updatedAtEpochMillis = nowEpochMillis,
+                ),
+            )
+            releaseReminderDispatch(execution.id)
+            processed++
+        }
+        return@withLock processed
     }
 
     private suspend fun dispatchReminderIfNeeded(execution: WorkflowExecution): Boolean {

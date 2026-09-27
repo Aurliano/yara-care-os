@@ -230,6 +230,15 @@ def skip_occurrence(*, occurrence_id: uuid.UUID) -> Occurrence:
         return occurrence
     if occurrence.status not in {OccurrenceStatus.SCHEDULED, OccurrenceStatus.DUE}:
         raise InvalidOccurrenceStateError("Only scheduled or due occurrences can be skipped.")
+
+    from domains.workflow.enums import ExecutionStatus
+    from domains.workflow.models import WorkflowExecution
+    if WorkflowExecution.objects.filter(
+        occurrence_id=occurrence.id,
+        status__in=[ExecutionStatus.CONFIRMED, ExecutionStatus.MISSED],
+    ).exists():
+        raise InvalidOccurrenceStateError("Occurrence already has a completed execution.")
+
     occurrence.status = OccurrenceStatus.SKIPPED
     occurrence.save(update_fields=["status"])
     emit_occurrence_skipped(
@@ -237,12 +246,25 @@ def skip_occurrence(*, occurrence_id: uuid.UUID) -> Occurrence:
         schedule_definition_id=occurrence.schedule_definition_id,
         scheduled_for=occurrence.scheduled_for,
     )
+    try:
+        from domains.workflow.services.executions import cancel_execution
+
+        active_executions = WorkflowExecution.objects.filter(
+            occurrence_id=occurrence.id,
+            status__in=[ExecutionStatus.ACTIVE, ExecutionStatus.PENDING],
+        )
+        for execution in active_executions:
+            cancel_execution(execution_id=execution.id)
+    except Exception:
+        pass
     return occurrence
 
 
 @transaction.atomic
 def cancel_occurrence(*, occurrence_id: uuid.UUID) -> Occurrence:
     occurrence = get_occurrence(occurrence_id)
+    if occurrence.status == OccurrenceStatus.CANCELLED:
+        return occurrence
     if occurrence.status != OccurrenceStatus.SCHEDULED:
         raise InvalidOccurrenceStateError("Only scheduled occurrences can be cancelled.")
     occurrence.status = OccurrenceStatus.CANCELLED

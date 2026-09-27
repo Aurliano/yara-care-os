@@ -23,6 +23,7 @@ from domains.identity_access.models import Elder
 from domains.scheduling.services.schedules import (
     cancel_schedule,
     create_schedule,
+    end_schedule,
     pause_schedule,
     resume_schedule,
     update_schedule,
@@ -197,6 +198,8 @@ def update_care_activity(
 @transaction.atomic
 def pause_care_activity(*, care_activity_id: uuid.UUID) -> CareActivity:
     activity = CareActivity.objects.select_for_update().get(pk=care_activity_id)
+    if activity.status == CareActivityStatus.PAUSED:
+        return activity
     if activity.status != CareActivityStatus.ACTIVE:
         raise InvalidCareActivityStateError("Only active care activities can be paused.")
     activity.status = CareActivityStatus.PAUSED
@@ -204,6 +207,18 @@ def pause_care_activity(*, care_activity_id: uuid.UUID) -> CareActivity:
     bump_care_activity_version(activity, update_fields)
     activity.save(update_fields=update_fields)
     pause_schedule(activity.schedule_definition_id)
+
+    from domains.workflow.enums import ExecutionStatus
+    from domains.workflow.models import WorkflowExecution
+    from domains.workflow.services.executions import cancel_execution
+
+    active_executions = WorkflowExecution.objects.filter(
+        occurrence__schedule_definition_id=activity.schedule_definition_id,
+        status__in=[ExecutionStatus.ACTIVE, ExecutionStatus.PENDING],
+    )
+    for execution in active_executions:
+        cancel_execution(execution_id=execution.id)
+
     emit_care_activity_paused(care_activity_id=activity.id)
     return activity
 
@@ -211,6 +226,8 @@ def pause_care_activity(*, care_activity_id: uuid.UUID) -> CareActivity:
 @transaction.atomic
 def resume_care_activity(*, care_activity_id: uuid.UUID) -> CareActivity:
     activity = CareActivity.objects.select_for_update().get(pk=care_activity_id)
+    if activity.status == CareActivityStatus.ACTIVE:
+        return activity
     if activity.status != CareActivityStatus.PAUSED:
         raise InvalidCareActivityStateError("Only paused care activities can be resumed.")
     activity.status = CareActivityStatus.ACTIVE
@@ -231,6 +248,35 @@ def end_care_activity(*, care_activity_id: uuid.UUID) -> CareActivity:
     update_fields = ["status", "updated_at"]
     bump_care_activity_version(activity, update_fields)
     activity.save(update_fields=update_fields)
-    cancel_schedule(activity.schedule_definition_id)
+    end_schedule(activity.schedule_definition_id)
+
+    from domains.workflow.enums import ExecutionStatus
+    from domains.workflow.models import WorkflowExecution
+    from domains.workflow.services.executions import cancel_execution
+
+    active_executions = WorkflowExecution.objects.filter(
+        occurrence__schedule_definition_id=activity.schedule_definition_id,
+        status__in=[ExecutionStatus.ACTIVE, ExecutionStatus.PENDING],
+    )
+    for execution in active_executions:
+        cancel_execution(execution_id=execution.id)
+
     emit_care_activity_ended(care_activity_id=activity.id)
     return activity
+
+
+@transaction.atomic
+def bump_care_activity_version_for_schedule(schedule_definition_id: uuid.UUID) -> CareActivity | None:
+    """Increment CareActivity aggregate_version when a schedule/occurrence mutation occurs."""
+    activity = (
+        CareActivity.objects.select_for_update()
+        .filter(schedule_definition_id=schedule_definition_id)
+        .first()
+    )
+    if activity is None:
+        return None
+    update_fields = ["updated_at"]
+    bump_care_activity_version(activity, update_fields)
+    activity.save(update_fields=update_fields)
+    return activity
+

@@ -31,6 +31,10 @@ class WorkflowReplicaRepositoryImpl @Inject constructor(
         executionDao.getByOccurrenceId(occurrenceId)?.toDomain()
 
     override suspend fun upsertExecution(execution: WorkflowExecution) {
+        val existing = executionDao.getById(execution.id)
+        if (existing?.status == "CONFIRMED" && execution.status != "CONFIRMED") {
+            return
+        }
         executionDao.upsert(execution.toEntity())
     }
 

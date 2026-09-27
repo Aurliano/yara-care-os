@@ -63,13 +63,20 @@ class NotifyCaregiverHandler:
         occurrence = get_occurrence(uuid.UUID(str(occurrence_raw)))
         activity = get_care_activity_for_schedule(occurrence.schedule_definition_id)
         execution_id = payload.get("workflow_execution_id") or dispatch_context.get("workflow_execution_id")
+        escalation_index = payload.get("escalation_index") or dispatch_context.get("escalation_index")
+        if execution_id and escalation_index:
+            source_reference = f"{execution_id}:{escalation_index}"
+        elif execution_id:
+            source_reference = str(execution_id)
+        else:
+            source_reference = str(occurrence.id)
         record_caregiver_alert(
             elder_id=activity.elder_id,
             title=f"داروی {activity.display_title} هنوز مصرف نشده",
             body="یادآوری روی هاب پاسخ داده نشده است. لطفاً وضعیت سالمند را بررسی کنید.",
             severity=AlertSeverity.ATTENTION,
             source_type="NOTIFY_CAREGIVER",
-            source_reference=str(execution_id or occurrence.id),
+            source_reference=source_reference,
         )
 
 

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from collections.abc import Iterator
 from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta
@@ -20,20 +21,68 @@ WEEKDAY_MAP = {
     "SUN": 6,
 }
 
+TIME_FORMAT_REGEX = re.compile(r"^(?:[01]\d|2[0-3]):[0-5]\d$")
+
 
 @dataclass(frozen=True, slots=True)
 class RecurrenceSlot:
-  """A logical occurrence slot before exceptions are applied."""
+    """A logical occurrence slot before exceptions are applied."""
 
-  original_time: datetime  # UTC-aware canonical instant for the slot
+    original_time: datetime  # UTC-aware canonical instant for the slot
 
 
 def parse_local_time(value: str) -> time:
-    parts = value.split(":")
-    if len(parts) != 2:
-        raise InvalidRecurrenceDefinitionError("time must use HH:MM format.")
+    if not isinstance(value, str):
+        raise InvalidRecurrenceDefinitionError("time must be a string in HH:MM format.")
+    clean = value.strip()
+    if not TIME_FORMAT_REGEX.match(clean):
+        raise InvalidRecurrenceDefinitionError(f"Invalid time format '{value}'. Must use 24-hour HH:MM format.")
+    parts = clean.split(":")
     hour, minute = int(parts[0]), int(parts[1])
     return time(hour=hour, minute=minute)
+
+
+def extract_and_validate_times(recurrence_definition: dict[str, Any], required: bool = True) -> list[str]:
+    """Validate, deduplicate, and deterministically sort time slots in HH:MM format."""
+    if "times" in recurrence_definition:
+        raw_times = recurrence_definition["times"]
+        if not isinstance(raw_times, list):
+            raise InvalidRecurrenceDefinitionError("times must be a list of HH:MM strings.")
+        if len(raw_times) == 0:
+            if required:
+                raise InvalidRecurrenceDefinitionError("times cannot be empty for recurring schedule.")
+            return []
+
+        cleaned: list[str] = []
+        for item in raw_times:
+            if not isinstance(item, str):
+                raise InvalidRecurrenceDefinitionError("Each time in times must be an HH:MM string.")
+            t_str = item.strip()
+            if not TIME_FORMAT_REGEX.match(t_str):
+                raise InvalidRecurrenceDefinitionError(
+                    f"Invalid time format '{item}'. Must use 24-hour HH:MM format (00:00 to 23:59)."
+                )
+            cleaned.append(t_str)
+
+        if len(set(cleaned)) != len(cleaned):
+            raise InvalidRecurrenceDefinitionError("Duplicate times are not allowed.")
+
+        return sorted(cleaned)
+
+    if "time" in recurrence_definition:
+        raw_time = recurrence_definition["time"]
+        if not isinstance(raw_time, str):
+            raise InvalidRecurrenceDefinitionError("time must be a string in HH:MM format.")
+        t_str = raw_time.strip()
+        if not TIME_FORMAT_REGEX.match(t_str):
+            raise InvalidRecurrenceDefinitionError(
+                f"Invalid time format '{raw_time}'. Must use 24-hour HH:MM format (00:00 to 23:59)."
+            )
+        return [t_str]
+
+    if required:
+        raise InvalidRecurrenceDefinitionError("Recurrence definition requires 'time' or 'times'.")
+    return []
 
 
 def _ensure_aware_utc(value: datetime) -> datetime:
@@ -56,28 +105,41 @@ def _to_utc_slot(local_dt: datetime, tz: ZoneInfo) -> RecurrenceSlot:
 
 def validate_recurrence_definition(recurrence_definition: dict[str, Any]) -> None:
     recurrence_type = recurrence_definition.get("type")
-    if recurrence_type not in {"once", "daily", "weekly", "interval"}:
-        raise InvalidRecurrenceDefinitionError("type must be one of: once, daily, weekly, interval.")
+    if recurrence_type in {"every_n_hours"} or (
+        recurrence_type == "interval" and recurrence_definition.get("unit") == "hours"
+    ):
+        raise InvalidRecurrenceDefinitionError("Hourly interval recurrence is not supported in MVP.")
 
-    if recurrence_type in {"daily", "weekly"}:
-        if "time" not in recurrence_definition:
-            raise InvalidRecurrenceDefinitionError("daily/weekly recurrence requires time.")
-        parse_local_time(recurrence_definition["time"])
+    if recurrence_type not in {"once", "daily", "weekly", "specific_days", "every_n_days", "interval"}:
+        raise InvalidRecurrenceDefinitionError(
+            "type must be one of: once, daily, specific_days, every_n_days."
+        )
 
-    if recurrence_type == "weekly":
+    if recurrence_type == "daily":
+        extract_and_validate_times(recurrence_definition, required=True)
+
+    elif recurrence_type in {"weekly", "specific_days"}:
         days = recurrence_definition.get("days")
-        if not days:
-            raise InvalidRecurrenceDefinitionError("weekly recurrence requires days.")
+        if not days or not isinstance(days, list) or len(days) == 0:
+            raise InvalidRecurrenceDefinitionError("specific_days/weekly recurrence requires days.")
         for day in days:
             if day not in WEEKDAY_MAP:
                 raise InvalidRecurrenceDefinitionError(f"Unsupported weekday: {day}")
+        extract_and_validate_times(recurrence_definition, required=True)
 
-    if recurrence_type == "interval":
-        if recurrence_definition.get("unit") not in {"hours", "days"}:
-            raise InvalidRecurrenceDefinitionError("interval recurrence requires unit hours or days.")
+    elif recurrence_type in {"every_n_days", "interval"}:
+        if recurrence_type == "interval" and recurrence_definition.get("unit") != "days":
+            raise InvalidRecurrenceDefinitionError("interval recurrence in MVP requires unit 'days'.")
         every = recurrence_definition.get("every")
-        if not isinstance(every, int) or every <= 0:
-            raise InvalidRecurrenceDefinitionError("interval recurrence requires positive integer every.")
+        if not isinstance(every, int) or isinstance(every, bool) or every <= 0:
+            raise InvalidRecurrenceDefinitionError("every_n_days recurrence requires positive integer every.")
+        extract_and_validate_times(recurrence_definition, required=True)
+
+    elif recurrence_type == "once":
+        if "time" in recurrence_definition or "times" in recurrence_definition:
+            times = extract_and_validate_times(recurrence_definition, required=False)
+            if len(times) > 1:
+                raise InvalidRecurrenceDefinitionError("once recurrence does not support multiple time slots.")
 
 
 def iter_recurrence_slots(
@@ -108,16 +170,7 @@ def iter_recurrence_slots(
             yield RecurrenceSlot(original_time=start_at_utc)
         return
 
-    if recurrence_type == "interval":
-        yield from _iter_interval_slots(
-            recurrence_definition=recurrence_definition,
-            start_at_utc=start_at_utc,
-            effective_start=effective_start,
-            effective_end=effective_end,
-        )
-        return
-
-    local_time = parse_local_time(recurrence_definition["time"])
+    sorted_times = extract_and_validate_times(recurrence_definition, required=True)
     local_start = _localize_instant(start_at, tz)
     current_day = max(local_start.date(), _localize_instant(effective_start, tz).date())
     end_day = _localize_instant(effective_end, tz).date()
@@ -125,34 +178,23 @@ def iter_recurrence_slots(
     while current_day <= end_day:
         if recurrence_type == "daily":
             include_day = current_day >= local_start.date()
-        else:
+        elif recurrence_type in {"weekly", "specific_days"}:
             day_code = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"][current_day.weekday()]
             include_day = day_code in recurrence_definition["days"] and current_day >= local_start.date()
+        elif recurrence_type in {"every_n_days", "interval"}:
+            every = recurrence_definition["every"]
+            days_diff = (current_day - local_start.date()).days
+            include_day = current_day >= local_start.date() and (days_diff >= 0) and (days_diff % every == 0)
+        else:
+            include_day = False
 
         if include_day:
-            local_dt = datetime.combine(current_day, local_time, tzinfo=tz)
-            slot = _to_utc_slot(local_dt, tz)
-            if effective_start <= slot.original_time <= effective_end:
-                yield slot
+            for t_str in sorted_times:
+                slot_time = parse_local_time(t_str)
+                local_dt = datetime.combine(current_day, slot_time, tzinfo=tz)
+                slot = _to_utc_slot(local_dt, tz)
+                if effective_start <= slot.original_time <= effective_end:
+                    yield slot
 
         current_day += timedelta(days=1)
 
-
-def _iter_interval_slots(
-    *,
-    recurrence_definition: dict[str, Any],
-    start_at_utc: datetime,
-    effective_start: datetime,
-    effective_end: datetime,
-) -> Iterator[RecurrenceSlot]:
-    every = recurrence_definition["every"]
-    unit = recurrence_definition["unit"]
-    delta = timedelta(hours=every) if unit == "hours" else timedelta(days=every)
-
-    current = start_at_utc
-    while current < effective_start:
-        current += delta
-
-    while current <= effective_end:
-        yield RecurrenceSlot(original_time=current)
-        current += delta
