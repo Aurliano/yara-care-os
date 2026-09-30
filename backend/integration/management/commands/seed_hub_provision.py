@@ -2,6 +2,7 @@
 
 from django.core.management.base import BaseCommand
 
+from common.guards import ensure_not_production
 from domains.device.enums import DeviceCapabilityCode
 from domains.device.services.device_models import register_device_model
 from domains.identity_access.models import User
@@ -20,6 +21,7 @@ class Command(BaseCommand):
     help = "Seed YARA-HUB-TABLET model, dev caregiver, and demo sync payload."
 
     def handle(self, *args, **options):
+        ensure_not_production("seed_hub_provision")
         register_device_model(
             manufacturer="Yara",
             model_code="YARA-HUB-TABLET",

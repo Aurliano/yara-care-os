@@ -5,13 +5,13 @@ from __future__ import annotations
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
-from django.conf import settings
 from django.core.management import call_command
-from django.core.management.base import BaseCommand, CommandError
+from django.core.management.base import BaseCommand
 from django.db import transaction
 
+from common.guards import ensure_not_production
+
 from domains.billing.models import Invoice, InvoiceLineItem, PaymentAttempt
-from domains.care.enums import CareActivityType
 from domains.care.models import CareActivity, CareCompletion, Prescription
 from domains.care.services.prescriptions import create_prescription
 from domains.communication.enums import CommunicationChannel
@@ -87,24 +87,12 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options):
-        # 1. Strict production safety checks
-        if not settings.DEBUG:
-            raise CommandError(
-                "CRITICAL SAFETY CHECK FAILED: Refusing to reset test environment because DEBUG is False. "
-                "This command cannot run against production environments."
-            )
-
-        db_name = str(settings.DATABASES.get("default", {}).get("NAME", "")).lower()
-        if "prod" in db_name or "production" in db_name:
-            raise CommandError(
-                f"CRITICAL SAFETY CHECK FAILED: Database name '{db_name}' appears to be production. Aborting."
-            )
-
-        if not options.get("confirm"):
-            raise CommandError(
-                "Confirmation flag --confirm is required. "
-                "Usage: python manage.py reset_test_environment --confirm"
-            )
+        # 1. Strict production safety checks & confirmation
+        ensure_not_production(
+            "reset_test_environment",
+            require_confirmation=True,
+            is_confirmed=bool(options.get("confirm")),
+        )
 
         self.stdout.write(self.style.WARNING("Initiating clean environment reset..."))
 

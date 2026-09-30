@@ -11,9 +11,12 @@ env = environ.Env(
     ALLOWED_HOSTS=(list, []),
     CORS_ALLOWED_ORIGINS=(list, []),
     LOG_LEVEL=(str, "INFO"),
+    YARA_ENVIRONMENT=(str, "development"),
 )
 
 environ.Env.read_env(BASE_DIR / ".env")
+
+YARA_ENVIRONMENT = env("YARA_ENVIRONMENT")
 
 SECRET_KEY = env("SECRET_KEY")
 
@@ -80,12 +83,23 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "config.wsgi.application"
 
-DATABASES = {
-    "default": env.db(
-        "DATABASE_URL",
-        default="postgres://yara:yara@localhost:5432/yara",
+if YARA_ENVIRONMENT == "staging":
+    if (BASE_DIR / ".env.staging").exists():
+        environ.Env.read_env(BASE_DIR / ".env.staging", overwrite=True)
+    staging_db_raw = env(
+        "STAGING_DATABASE_URL",
+        default=env("DATABASE_URL", default="postgres://yara:yara@localhost:5432/yara_staging"),
     )
-}
+    DATABASES = {
+        "default": env.db_url_config(staging_db_raw),
+    }
+else:
+    DATABASES = {
+        "default": env.db(
+            "DATABASE_URL",
+            default="postgres://yara:yara@localhost:5432/yara",
+        )
+    }
 
 AUTH_PASSWORD_VALIDATORS = [
     {

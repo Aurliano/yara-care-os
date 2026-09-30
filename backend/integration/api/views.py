@@ -10,7 +10,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from integration.health import collect_health_status
+from integration.health import collect_health_status, collect_readiness_status
 from domains.synchronization.services.operations import submit_aggregate_delta, submit_aggregate_snapshot
 from integration.api.errors import hub_error_response
 from integration.context import IntegrationContext
@@ -49,6 +49,28 @@ def _ctx_from_request(request: Request) -> IntegrationContext:
     if actor_id:
         ctx = ctx.with_actor(actor_id)
     return ctx
+
+
+class ProcessLivenessView(APIView):
+    """Public liveness probe. Verifies process responsiveness with zero external/database queries."""
+
+    authentication_classes: list = []
+    permission_classes: list = []
+
+    def get(self, request: Request) -> Response:
+        return Response({"status": "alive"}, status=status.HTTP_200_OK)
+
+
+class PlatformReadinessView(APIView):
+    """Public readiness probe (database connectivity and migration readiness)."""
+
+    authentication_classes: list = []
+    permission_classes: list = []
+
+    def get(self, request: Request) -> Response:
+        payload = collect_readiness_status()
+        status_code = status.HTTP_200_OK if payload["status"] == "ready" else status.HTTP_503_SERVICE_UNAVAILABLE
+        return Response(payload, status=status_code)
 
 
 class PlatformHealthView(APIView):

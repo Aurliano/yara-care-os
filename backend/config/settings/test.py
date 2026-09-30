@@ -3,11 +3,12 @@
 from .base import *  # noqa: F403
 
 DEBUG = False
+YARA_ENVIRONMENT = "test"
 
 SECRET_KEY = "test-secret-key-not-for-production"
 
 DATABASES = {
-    "default": env.db(
+    "default": env.db(  # noqa: F405
         "TEST_DATABASE_URL",
         default="postgres://yara:yara@localhost:5432/yara_test",
     )

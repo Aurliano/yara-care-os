@@ -2,6 +2,7 @@
 
 from django.core.management.base import BaseCommand
 
+from common.guards import ensure_not_production
 from integration.services.family_lab_seed import (
     FAMILY_CAREGIVER_PASSWORD,
     FAMILY_CAREGIVER_PHONE,
@@ -13,6 +14,7 @@ class Command(BaseCommand):
     help = "Seed Family lab caregiver, PREMIUM elder, VIDEO priority contact, and medication workflow."
 
     def handle(self, *args, **options):
+        ensure_not_production("seed_family_lab")
         result = ensure_family_lab_seed()
         self.stdout.write(
             self.style.SUCCESS(

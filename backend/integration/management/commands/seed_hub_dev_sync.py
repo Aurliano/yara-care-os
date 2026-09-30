@@ -4,6 +4,7 @@ import uuid
 
 from django.core.management.base import BaseCommand, CommandError
 
+from common.guards import ensure_not_production
 from domains.device.enums import AssignmentType
 from domains.device.services.assignments import assign_device, get_assignments
 from domains.device.enums import AssignmentStatus
@@ -21,6 +22,7 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options):
+        ensure_not_production("seed_hub_dev_sync")
         elder_id = get_dev_elder_id()
         if elder_id is None:
             raise CommandError("Dev caregiver not found. Run: python manage.py seed_hub_provision")

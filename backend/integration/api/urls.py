@@ -19,6 +19,8 @@ from integration.api.views import (
     HubSyncSnapshotView,
     HubSyncStartView,
     PlatformHealthView,
+    PlatformReadinessView,
+    ProcessLivenessView,
     RuntimeHealthView,
     RuntimeProcessView,
 )
@@ -28,6 +30,8 @@ urlpatterns = [
     path("hub/provision/authenticate/", HubProvisionAuthenticateView.as_view(), name="hub-provision-authenticate"),
     path("hub/provision/status/", HubProvisionStatusView.as_view(), name="hub-provision-status"),
     path("hub/provision/revoke/", HubProvisionRevokeView.as_view(), name="hub-provision-revoke"),
+    path("health/live/", ProcessLivenessView.as_view(), name="process-liveness"),
+    path("health/ready/", PlatformReadinessView.as_view(), name="platform-readiness"),
     path("health/", PlatformHealthView.as_view(), name="platform-health"),
     path("hub/runtime/health/", RuntimeHealthView.as_view(), name="hub-runtime-health"),
     path("hub/runtime/process/", RuntimeProcessView.as_view(), name="hub-runtime-process"),

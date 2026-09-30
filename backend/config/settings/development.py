@@ -4,7 +4,7 @@ from .base import *  # noqa: F403
 
 DEBUG = True
 
-ALLOWED_HOSTS = env.list(
+ALLOWED_HOSTS = env.list(  # noqa: F405
     "ALLOWED_HOSTS",
     default=[
         "localhost",
@@ -16,7 +16,7 @@ ALLOWED_HOSTS = env.list(
 
 # Hub tablets and other LAN clients reach the dev machine by private IP
 # (e.g. http://192.168.1.101:8000). Django permits '*' only when DEBUG=True.
-if env.bool("DEV_ALLOW_LAN_HOSTS", default=True):
+if env.bool("DEV_ALLOW_LAN_HOSTS", default=True):  # noqa: F405
     ALLOWED_HOSTS = list(dict.fromkeys([*ALLOWED_HOSTS, "*"]))
 
 CORS_ALLOWED_ORIGINS = [
