@@ -2,7 +2,7 @@ import { useState } from "react";
 import { StyleSheet, View } from "react-native";
 import { Link, useRouter } from "expo-router";
 import { t } from "../../src/i18n";
-import { colors, spacing } from "../../src/theme/tokens";
+import { colors, sizes, spacing } from "../../src/theme/tokens";
 import { AppText, BrandLockup, Button, Card, Screen, TextField } from "../../src/components";
 import { useSessionStore } from "../../src/stores/sessionStore";
 import { ApiError } from "../../src/api/errors";
@@ -84,6 +84,16 @@ export default function SignInScreen() {
           {t.acceptInvite}
         </AppText>
       </Link>
+      <Link href="/(auth)/discovery" style={styles.discoveryLink}>
+        <AppText variant="caption" color={colors.textSecondary} align="center">
+          {t.discoveryExplore}
+        </AppText>
+      </Link>
+      <Link href="/(auth)/marketplace" style={styles.discoveryLink}>
+        <AppText variant="caption" color={colors.primary} align="center">
+          مشاهده بسته‌ها و تجهیزات یارا
+        </AppText>
+      </Link>
     </Screen>
   );
 }
@@ -93,4 +103,5 @@ const styles = StyleSheet.create({
   form: { gap: spacing.md, width: "100%" },
   footer: { marginTop: spacing.lg, flexDirection: "row", justifyContent: "space-between" },
   link: { marginTop: spacing.lg, alignSelf: "center" },
+  discoveryLink: { marginTop: spacing.md, alignSelf: "center", minHeight: sizes.touch, justifyContent: "center" },
 });

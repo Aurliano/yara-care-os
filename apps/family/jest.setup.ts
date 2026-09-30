@@ -53,3 +53,13 @@ jest.mock("livekit-client", () => {
     },
   };
 });
+
+jest.mock("@livekit/react-native", () => ({
+  LiveKitRoom: ({ children }: any) => children ?? null,
+  useTracks: () => [],
+  VideoTrack: () => null,
+  useConnectionState: () => "connected",
+  useLocalParticipant: () => ({ localParticipant: null }),
+  useRemoteParticipants: () => [],
+}));
+

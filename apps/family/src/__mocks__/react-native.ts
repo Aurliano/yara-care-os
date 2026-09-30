@@ -46,11 +46,26 @@ export const StyleSheet = {
 
 export const View = ({ children, ...props }: any) => React.createElement("View", props, children);
 export const Text = ({ children, ...props }: any) => React.createElement("Text", props, children);
+export const ScrollView = ({ children, ...props }: any) => React.createElement("ScrollView", props, children);
 export const Modal = ({ children, ...props }: any) => props.visible !== false ? React.createElement("Modal", props, children) : null;
 export const Pressable = ({ children, onPress, ...props }: any) => React.createElement("Pressable", { onClick: onPress, ...props }, typeof children === "function" ? children({ pressed: false }) : children);
 export const ActivityIndicator = (props: any) => React.createElement("ActivityIndicator", props);
 export const Touchable = { Mixin: {} };
 export const Image = (props: any) => React.createElement("Image", props);
+export const TextInput = (props: any) => React.createElement("TextInput", props);
+export const AccessibilityInfo = {
+  announceForAccessibility: jest.fn(),
+  isScreenReaderEnabled: jest.fn(async () => false),
+};
+export const I18nManager = {
+  isRTL: true,
+  allowRTL: jest.fn(),
+  forceRTL: jest.fn(),
+};
+
+export const NativeModules = {
+  WebRTCModule: {},
+};
 
 export default {
   Platform,
@@ -60,9 +75,15 @@ export default {
   StyleSheet,
   View,
   Text,
+  ScrollView,
   Modal,
   Pressable,
   ActivityIndicator,
   Touchable,
   Image,
+  TextInput,
+  AccessibilityInfo,
+  I18nManager,
+  NativeModules,
 };
+
