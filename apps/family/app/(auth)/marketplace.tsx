@@ -55,6 +55,11 @@ export default function MarketplaceScreen() {
         contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + spacing.xl }]}
         showsVerticalScrollIndicator={false}
       >
+        {/* Campaign Hero Banner */}
+        <View style={styles.bannerWrap}>
+          <ProductAsset assetId="yara-marketplace-hero" size="hero" resizeMode="cover" />
+        </View>
+
         {/* Hero Section */}
         <View style={styles.titleSection}>
           <AppText variant="headline" style={styles.headline}>
@@ -197,6 +202,10 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
     backgroundColor: colors.surface,
     borderColor: colors.borderMuted,
+    ...elevation.card,
+  },
+  bannerWrap: {
+    marginBottom: spacing.md,
     ...elevation.card,
   },
   cardHeader: {

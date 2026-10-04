@@ -23,7 +23,7 @@
 | :--- | :--- | :--- | :--- |
 | **`development`** | `yara` | `config.settings.development` | اتصال مجاز به `yara` یا دیتابیس محلی توسعه. در صورت اتصال به دیتابیس‌های حاوی پسوند `_production` بلاک می‌شود. |
 | **`test`** | `yara_test` | `config.settings.test` | مجاز به اتصال به دیتابیس تست (`yara_test`). |
-| **`staging`** | `yara_staging` | `config.settings.staging` | **گارد سخت‌گیرانه:** استارتاپ پروژه بلافاصله متوقف (`RuntimeError`) می‌شود اگر نام دیتابیس دقیقاً `yara_staging` نباشد. اتصال به `yara` یا هر دیتابیس دیگر در این حالت ممنوع است. |
+| **`staging`** | `yara_staging` | `config.settings.staging` | **گارد سخت‌گیرانه:** استارتاپ پروژه بلافاصله متوقف (`ImproperlyConfigured`) می‌شود اگر نام دیتابیس دقیقاً `yara_staging` نباشد. اتصال به `yara` یا هر دیتابیس دیگر در این حالت ممنوع است. |
 | **`production`** | دیتابیس اختصاصی (مثلاً `yara_production`) | `config.settings.production` | **گارد محافظتی:** اتصال به دیتابیس‌های `yara`، `yara_staging`، `yara_test` ممنوع است. تمام فرامین seed و reset بلاک می‌شوند. |
 
 ---
