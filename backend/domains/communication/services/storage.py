@@ -74,6 +74,68 @@ def get_media_root() -> Path:
     return path
 
 
+def validate_magic_bytes(file_obj: BinaryIO, media_type: str, mime: str) -> None:
+    """Validate magic bytes / file signature to prevent MIME spoofing."""
+    file_obj.seek(0)
+    header = file_obj.read(512)
+    file_obj.seek(0)
+
+    if not header:
+        raise InvalidMediaError("Uploaded file is empty.")
+
+    # Block dangerous executable, script, archive, or document signatures
+    dangerous_signatures = (
+        b"MZ",                     # DOS/Windows PE executable (.exe, .dll)
+        b"\x7fELF",                # Linux ELF binary
+        b"<!DOCTYPE",              # HTML / SVG script injection
+        b"<!doctype",
+        b"<html",
+        b"<HTML",
+        b"<script",
+        b"<SCRIPT",
+        b"<?php",                  # PHP script
+        b"#!/",                    # Shell / Python script
+        b"%PDF-",                  # PDF document
+        b"PK\x03\x04",              # ZIP / APK / JAR
+        b"7z\xbc\xaf\x27\x1c",     # 7-Zip
+        b"Rar!\x1a\x07",           # RAR archive
+    )
+    for sig in dangerous_signatures:
+        if header.startswith(sig):
+            raise InvalidMediaError(f"Disallowed file signature detected: {sig[:8]!r}")
+
+    header_lower = header.lower()
+    if b"<script" in header_lower or b"javascript:" in header_lower or b"<?php" in header_lower:
+        raise InvalidMediaError("Disallowed executable or script content detected in media.")
+
+    # Cross-type mismatch detection
+    is_wave = header[:4] == b"RIFF" and len(header) >= 12 and header[8:12] == b"WAVE"
+    is_webp = header[:4] == b"RIFF" and len(header) >= 12 and header[8:12] == b"WEBP"
+    is_png = header.startswith(b"\x89PNG\r\n\x1a\n")
+    is_jpeg = header.startswith(b"\xff\xd8\xff")
+    is_ogg = header.startswith(b"OggS")
+    is_mp3 = header.startswith(b"ID3") or (len(header) >= 2 and header[0] == 0xFF and (header[1] & 0xE0) == 0xE0)
+    is_ebml = header.startswith(b"\x1a\x45\xdf\xa3")
+
+    if media_type == MessageType.IMAGE:
+        if is_wave or is_ogg or is_mp3:
+            raise InvalidMediaError("Audio file disguised as image.")
+        if mime == "image/jpeg" and (is_png or is_webp):
+            raise InvalidMediaError("Mismatched image format signature.")
+        if mime == "image/png" and (is_jpeg or is_webp):
+            raise InvalidMediaError("Mismatched image format signature.")
+        if mime == "image/webp" and (is_jpeg or is_png):
+            raise InvalidMediaError("Mismatched image format signature.")
+
+    elif media_type == MessageType.VOICE:
+        if is_jpeg or is_png or is_webp or is_ebml:
+            raise InvalidMediaError("Image or video file disguised as audio.")
+
+    elif media_type == MessageType.VIDEO:
+        if is_jpeg or is_png or is_webp:
+            raise InvalidMediaError("Image file disguised as video.")
+
+
 def validate_media(
     file_obj: BinaryIO,
     claimed_mime_type: str | None,
@@ -98,20 +160,26 @@ def validate_media(
             f"Invalid MIME type '{mime}' for {media_type}. Allowed: {sorted(allowed_mimes)}"
         )
 
-    # Check size
+    # Check size first
     file_obj.seek(0, os.SEEK_END)
     size = file_obj.tell()
     file_obj.seek(0)
+
+    if size == 0:
+        raise InvalidMediaError("Uploaded file is empty.")
 
     max_size = MAX_FILE_SIZES.get(media_type, 10 * 1024 * 1024)
     if size > max_size:
         raise InvalidMediaError(
             f"File size ({size} bytes) exceeds limit ({max_size} bytes) for {media_type}."
         )
-    if size == 0:
-        raise InvalidMediaError("Uploaded file is empty.")
+
+    # Check magic bytes signature
+    validate_magic_bytes(file_obj, media_type, mime)
 
     return mime
+
+
 
 
 def save_media_file(

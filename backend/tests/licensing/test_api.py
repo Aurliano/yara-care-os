@@ -9,9 +9,8 @@ def test_license_activate_and_entitlement_api(authenticated_client, elder):
     activate_response = authenticated_client.post(
         f"/api/v1/elders/{elder.id}/license/activate/",
         {
-            "plan_code": "PLUS",
+            "plan_code": "BASIC",
             "valid_from": (timezone.now() - timedelta(days=1)).isoformat(),
-            "valid_until": (timezone.now() + timedelta(days=30)).isoformat(),
         },
         format="json",
     )
@@ -20,11 +19,11 @@ def test_license_activate_and_entitlement_api(authenticated_client, elder):
 
     license_response = authenticated_client.get(f"/api/v1/elders/{elder.id}/license/")
     assert license_response.status_code == 200
-    assert license_response.json()["plan_code"] == "PLUS"
+    assert license_response.json()["plan_code"] == "BASIC"
 
     check_response = authenticated_client.post(
         f"/api/v1/elders/{elder.id}/entitlements/check/",
-        {"entitlement_key": "SENSOR_SUPPORT"},
+        {"entitlement_key": "PILLBOX_SUPPORT"},
         format="json",
     )
     assert check_response.status_code == 200
@@ -34,7 +33,7 @@ def test_license_activate_and_entitlement_api(authenticated_client, elder):
         f"/api/v1/elders/{elder.id}/entitlements/limits/MAX_CAREGIVERS/"
     )
     assert limit_response.status_code == 200
-    assert limit_response.json()["limit"] == 5
+    assert limit_response.json()["limit"] == 2
 
     suspend_response = authenticated_client.post(
         f"/api/v1/elders/{elder.id}/license/{license_id}/suspend/",
@@ -42,6 +41,22 @@ def test_license_activate_and_entitlement_api(authenticated_client, elder):
     )
     assert suspend_response.status_code == 200
     assert suspend_response.json()["status"] == "SUSPENDED"
+
+
+@pytest.mark.django_db
+def test_direct_paid_license_activation_denied(authenticated_client, elder):
+    response = authenticated_client.post(
+        f"/api/v1/elders/{elder.id}/license/activate/",
+        {
+            "plan_code": "PLUS",
+            "valid_from": (timezone.now() - timedelta(days=1)).isoformat(),
+            "valid_until": (timezone.now() + timedelta(days=30)).isoformat(),
+        },
+        format="json",
+    )
+    assert response.status_code == 403
+    assert "Paid plans" in response.json().get("detail", "")
+
 
 
 @pytest.mark.django_db

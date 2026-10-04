@@ -25,6 +25,7 @@ from domains.workflow.exceptions import (
     WorkflowError,
     WorkflowNotFoundError,
 )
+from domains.workflow.hooks import can_access_execution
 from domains.workflow.services.actions import advance_escalation, report_action_result
 from domains.workflow.services.evidence import submit_confirmation_evidence
 from domains.workflow.services.executions import (
@@ -83,6 +84,8 @@ class ExecutionDetailView(APIView):
             execution = get_execution(execution_id)
         except WorkflowError as exc:
             return _workflow_error_response(exc)
+        if not can_access_execution(request.user, execution):
+            return Response({"detail": "Forbidden"}, status=status.HTTP_403_FORBIDDEN)
         return Response(WorkflowExecutionSerializer(execution).data)
 
 
@@ -90,6 +93,12 @@ class ExecutionStatusView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request: Request, execution_id: uuid.UUID) -> Response:
+        try:
+            execution = get_execution(execution_id)
+        except WorkflowError as exc:
+            return _workflow_error_response(exc)
+        if not can_access_execution(request.user, execution):
+            return Response({"detail": "Forbidden"}, status=status.HTTP_403_FORBIDDEN)
         return Response({"status": get_execution_status(execution_id)})
 
 
@@ -98,13 +107,20 @@ class ActiveExecutionsView(APIView):
 
     def get(self, request: Request) -> Response:
         executions = get_active_executions()
-        return Response(WorkflowExecutionSerializer(executions, many=True).data)
+        filtered = [e for e in executions if can_access_execution(request.user, e)]
+        return Response(WorkflowExecutionSerializer(filtered, many=True).data)
 
 
 class SubmitEvidenceView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request: Request, execution_id: uuid.UUID) -> Response:
+        try:
+            execution = get_execution(execution_id)
+        except WorkflowError as exc:
+            return _workflow_error_response(exc)
+        if not can_access_execution(request.user, execution):
+            return Response({"detail": "Forbidden"}, status=status.HTTP_403_FORBIDDEN)
         serializer = ConfirmationEvidenceSubmitSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
@@ -126,6 +142,12 @@ class PostponeExecutionView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request: Request, execution_id: uuid.UUID) -> Response:
+        try:
+            execution = get_execution(execution_id)
+        except WorkflowError as exc:
+            return _workflow_error_response(exc)
+        if not can_access_execution(request.user, execution):
+            return Response({"detail": "Forbidden"}, status=status.HTTP_403_FORBIDDEN)
         postpone_request_id = request.data.get("postpone_request_id")
         try:
             execution = postpone_execution(
@@ -142,6 +164,12 @@ class CancelExecutionView(APIView):
 
     def post(self, request: Request, execution_id: uuid.UUID) -> Response:
         try:
+            execution = get_execution(execution_id)
+        except WorkflowError as exc:
+            return _workflow_error_response(exc)
+        if not can_access_execution(request.user, execution):
+            return Response({"detail": "Forbidden"}, status=status.HTTP_403_FORBIDDEN)
+        try:
             execution = cancel_execution(execution_id=execution_id)
         except WorkflowError as exc:
             return _workflow_error_response(exc)
@@ -153,6 +181,12 @@ class AdvanceEscalationView(APIView):
 
     def post(self, request: Request, execution_id: uuid.UUID) -> Response:
         try:
+            execution = get_execution(execution_id)
+        except WorkflowError as exc:
+            return _workflow_error_response(exc)
+        if not can_access_execution(request.user, execution):
+            return Response({"detail": "Forbidden"}, status=status.HTTP_403_FORBIDDEN)
+        try:
             execution = advance_escalation(execution_id=execution_id)
         except WorkflowError as exc:
             return _workflow_error_response(exc)
@@ -163,6 +197,12 @@ class ReportActionResultView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request: Request, execution_id: uuid.UUID) -> Response:
+        try:
+            execution = get_execution(execution_id)
+        except WorkflowError as exc:
+            return _workflow_error_response(exc)
+        if not can_access_execution(request.user, execution):
+            return Response({"detail": "Forbidden"}, status=status.HTTP_403_FORBIDDEN)
         serializer = ActionResultSubmitSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
@@ -183,3 +223,4 @@ class ReportActionResultView(APIView):
                 "result_status": result.result_status,
             }
         )
+

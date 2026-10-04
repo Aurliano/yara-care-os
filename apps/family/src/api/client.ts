@@ -57,8 +57,8 @@ async function refreshAccessToken(): Promise<string | null> {
       await store.clear();
       return null;
     }
-    const data = (await response.json()) as { access: string };
-    await store.setTokens(data.access, refresh);
+    const data = (await response.json()) as { access: string; refresh?: string };
+    await store.setTokens(data.access, data.refresh ?? refresh);
     return data.access;
   })();
   try {
@@ -129,8 +129,8 @@ export async function login(phone: string, password: string): Promise<TokenPair>
   });
 }
 
-export async function refreshSession(refresh: string): Promise<{ access: string }> {
-  return apiRequest<{ access: string }>("/auth/token/refresh/", {
+export async function refreshSession(refresh: string): Promise<{ access: string; refresh?: string }> {
+  return apiRequest<{ access: string; refresh?: string }>("/auth/token/refresh/", {
     method: "POST",
     auth: false,
     body: { refresh },

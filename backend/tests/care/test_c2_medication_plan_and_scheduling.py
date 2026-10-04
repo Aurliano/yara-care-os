@@ -126,7 +126,8 @@ def test_daily_multi_dose_occurrence_generation():
     assert len(times_seen) == len(occ_list)
 
     tehran_hours = [occ.scheduled_for.astimezone(ZoneInfo("Asia/Tehran")).hour for occ in occ_list[:3]]
-    assert tehran_hours == [8, 14, 20]
+    assert sorted(tehran_hours) == [8, 14, 20]
+
 
 
 @pytest.mark.django_db

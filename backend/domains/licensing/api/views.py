@@ -9,6 +9,7 @@ from rest_framework.views import APIView
 
 from domains.identity_access.api.permissions import CanManageSubscription, HasElderAccess
 from common.api.errors import domain_error_response
+from domains.licensing.hooks import is_paid_plan
 from domains.licensing.api.serializers import (
     EntitlementCheckResponseSerializer,
     EntitlementCheckSerializer,
@@ -86,6 +87,12 @@ class ElderLicenseActivateView(APIView):
     def post(self, request: Request, elder_id) -> Response:
         serializer = LicenseActivateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
+        plan_code = serializer.validated_data["plan_code"]
+        if is_paid_plan(plan_code):
+            return Response(
+                {"detail": "Paid plans must be activated through verified payment checkout."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
         try:
             license = activate_license(elder_id=elder_id, **serializer.validated_data)
         except LicensingError as exc:

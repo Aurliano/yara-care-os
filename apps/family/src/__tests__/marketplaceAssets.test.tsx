@@ -5,7 +5,6 @@ import {
   PRODUCT_IMAGE_SOURCES,
   resolveSemanticAssetId,
   type SemanticProductAssetId,
-  type ProductAssetId,
 } from "../marketplace/assets";
 
 describe("Marketplace Photographic Assets & Semantic Resolution", () => {

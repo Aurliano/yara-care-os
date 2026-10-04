@@ -33,6 +33,7 @@ from domains.synchronization.exceptions import (
     SynchronizationError,
     VersionMismatchError,
 )
+from domains.synchronization.hooks import can_access_replica
 from domains.synchronization.services.conflicts import get_conflicts, resolve_conflict
 from domains.synchronization.services.operations import submit_aggregate_delta, submit_aggregate_snapshot
 from domains.synchronization.services.replicas import (
@@ -74,6 +75,11 @@ class StartSynchronizationView(APIView):
         serializer = StartSynchronizationSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
+        if not can_access_replica(request.user, data["replica_identifier"]):
+            return Response(
+                {"detail": "You do not have permission to synchronize this replica."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
         try:
             session = start_synchronization(
                 replica_identifier=data["replica_identifier"],
@@ -182,6 +188,11 @@ class ReplicaStateView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request: Request, replica_identifier: uuid.UUID) -> Response:
+        if not can_access_replica(request.user, replica_identifier):
+            return Response(
+                {"detail": "You do not have permission to access this replica."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
         try:
             replica = get_replica_state(replica_identifier=replica_identifier)
         except ReplicaNotFoundError as exc:
@@ -193,6 +204,11 @@ class ReplicaCheckpointView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request: Request, replica_identifier: uuid.UUID) -> Response:
+        if not can_access_replica(request.user, replica_identifier):
+            return Response(
+                {"detail": "You do not have permission to access this replica."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
         try:
             checkpoint = get_checkpoint(replica_identifier=replica_identifier)
         except ReplicaNotFoundError as exc:
@@ -204,6 +220,11 @@ class ReplicaStatisticsView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request: Request, replica_identifier: uuid.UUID) -> Response:
+        if not can_access_replica(request.user, replica_identifier):
+            return Response(
+                {"detail": "You do not have permission to access this replica."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
         try:
             stats = get_synchronization_statistics(replica_identifier=replica_identifier)
         except ReplicaNotFoundError as exc:
@@ -215,6 +236,11 @@ class ReplicaHistoryView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request: Request, replica_identifier: uuid.UUID) -> Response:
+        if not can_access_replica(request.user, replica_identifier):
+            return Response(
+                {"detail": "You do not have permission to access this replica."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
         sessions = get_synchronization_history(replica_identifier=replica_identifier)
         return Response(SynchronizationSessionSerializer(sessions, many=True).data)
 
@@ -223,6 +249,11 @@ class ReplicaConflictsView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request: Request, replica_identifier: uuid.UUID) -> Response:
+        if not can_access_replica(request.user, replica_identifier):
+            return Response(
+                {"detail": "You do not have permission to access this replica."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
         try:
             conflicts = get_conflicts(replica_identifier=replica_identifier)
         except ReplicaNotFoundError as exc:
@@ -250,6 +281,11 @@ class ReplicaResetView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request: Request, replica_identifier: uuid.UUID) -> Response:
+        if not can_access_replica(request.user, replica_identifier):
+            return Response(
+                {"detail": "You do not have permission to reset this replica."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
         try:
             get_replica_state(replica_identifier=replica_identifier)
             replica = reset_replica(replica_identifier=replica_identifier)
@@ -262,6 +298,11 @@ class ReplicaHealthView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request: Request, replica_identifier: uuid.UUID) -> Response:
+        if not can_access_replica(request.user, replica_identifier):
+            return Response(
+                {"detail": "You do not have permission to access this replica."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
         action = request.data.get("action", "healthy")
         try:
             if action == "outdated":

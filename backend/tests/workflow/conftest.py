@@ -20,13 +20,24 @@ def api_client() -> APIClient:
 
 
 @pytest.fixture
-def authenticated_client(api_client: APIClient, db) -> APIClient:
-    user = create_user(
+def workflow_user(db):
+    return create_user(
         phone="+989131111111",
         password="securepass123",
         full_name="Workflow Tester",
     )
-    api_client.force_authenticate(user=user)
+
+
+@pytest.fixture
+def workflow_elder(workflow_user):
+    from domains.identity_access.services.profiles import create_elder
+
+    return create_elder(actor=workflow_user, full_name="Workflow Elder")
+
+
+@pytest.fixture
+def authenticated_client(api_client: APIClient, workflow_user) -> APIClient:
+    api_client.force_authenticate(user=workflow_user)
     return api_client
 
 
@@ -60,17 +71,33 @@ def workflow_definition(db):
 
 
 @pytest.fixture
-def due_occurrence(workflow_definition):
-    schedule = create_schedule(
-        owner_reference="care_activity:test",
-        recurrence_definition={"type": "daily", "time": "08:00"},
+def due_occurrence(workflow_definition, workflow_elder):
+    from domains.care.enums import CareActivityType
+    from domains.care.services.activities import create_care_activity
+
+    now = timezone.now().replace(microsecond=0)
+    activity = create_care_activity(
+        elder_id=workflow_elder.id,
+        activity_type=CareActivityType.MEDICATION,
+        workflow_definition_id=workflow_definition.id,
+        recurrence_definition={"type": "daily", "times": [now.strftime("%H:%M")]},
         timezone_name="UTC",
-        start_at=_aware(datetime(2026, 7, 1, 0, 0, tzinfo=ZoneInfo("UTC"))),
+        start_at=now - timedelta(minutes=10),
+        display_title="Test Workflow Medication",
     )
-    occurrence = Occurrence.objects.filter(schedule_definition=schedule).first()
-    occurrence.status = OccurrenceStatus.DUE
-    occurrence.save(update_fields=["status"])
+    occurrence = Occurrence.objects.filter(schedule_definition_id=activity.schedule_definition_id).first()
+    if occurrence is None:
+        occurrence = Occurrence.objects.create(
+            id=uuid.uuid4(),
+            schedule_definition_id=activity.schedule_definition_id,
+            scheduled_for=now,
+            status=OccurrenceStatus.DUE,
+        )
+    else:
+        occurrence.status = OccurrenceStatus.DUE
+        occurrence.save(update_fields=["status"])
     return occurrence
+
 
 
 def start_due_execution(occurrence, workflow_definition):

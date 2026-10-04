@@ -231,13 +231,8 @@ def skip_occurrence(*, occurrence_id: uuid.UUID) -> Occurrence:
     if occurrence.status not in {OccurrenceStatus.SCHEDULED, OccurrenceStatus.DUE}:
         raise InvalidOccurrenceStateError("Only scheduled or due occurrences can be skipped.")
 
-    from domains.workflow.enums import ExecutionStatus
-    from domains.workflow.models import WorkflowExecution
-    if WorkflowExecution.objects.filter(
-        occurrence_id=occurrence.id,
-        status__in=[ExecutionStatus.CONFIRMED, ExecutionStatus.MISSED],
-    ).exists():
-        raise InvalidOccurrenceStateError("Occurrence already has a completed execution.")
+    from domains.scheduling.hooks import run_post_skip_hooks, run_pre_skip_hooks
+    run_pre_skip_hooks(occurrence.id)
 
     occurrence.status = OccurrenceStatus.SKIPPED
     occurrence.save(update_fields=["status"])
@@ -246,17 +241,7 @@ def skip_occurrence(*, occurrence_id: uuid.UUID) -> Occurrence:
         schedule_definition_id=occurrence.schedule_definition_id,
         scheduled_for=occurrence.scheduled_for,
     )
-    try:
-        from domains.workflow.services.executions import cancel_execution
-
-        active_executions = WorkflowExecution.objects.filter(
-            occurrence_id=occurrence.id,
-            status__in=[ExecutionStatus.ACTIVE, ExecutionStatus.PENDING],
-        )
-        for execution in active_executions:
-            cancel_execution(execution_id=execution.id)
-    except Exception:
-        pass
+    run_post_skip_hooks(occurrence.id)
     return occurrence
 
 

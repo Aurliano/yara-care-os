@@ -10,3 +10,4 @@ class IntegrationConfig(AppConfig):
         from integration.runtime.action_handlers import register_default_handlers
 
         register_default_handlers()
+

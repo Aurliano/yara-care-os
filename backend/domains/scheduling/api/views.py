@@ -27,6 +27,7 @@ from domains.scheduling.exceptions import (
     ScheduleNotFoundError,
     SchedulingError,
 )
+from domains.scheduling.hooks import can_access_occurrence, can_access_schedule
 from domains.scheduling.models import ScheduleDefinition
 from domains.scheduling.services.occurrences import (
     cancel_occurrence,
@@ -84,9 +85,17 @@ class ScheduleDetailView(APIView):
             schedule = get_schedule(schedule_id)
         except SchedulingError as exc:
             return _scheduling_error_response(exc)
+        if not can_access_schedule(request.user, schedule):
+            return Response({"detail": "Forbidden"}, status=status.HTTP_403_FORBIDDEN)
         return Response(ScheduleDefinitionSerializer(schedule).data)
 
     def patch(self, request: Request, schedule_id: uuid.UUID) -> Response:
+        try:
+            schedule = get_schedule(schedule_id)
+        except SchedulingError as exc:
+            return _scheduling_error_response(exc)
+        if not can_access_schedule(request.user, schedule):
+            return Response({"detail": "Forbidden"}, status=status.HTTP_403_FORBIDDEN)
         serializer = ScheduleUpdateSerializer(data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         update_kwargs = dict(serializer.validated_data)
@@ -104,6 +113,12 @@ class SchedulePauseView(APIView):
 
     def post(self, request: Request, schedule_id: uuid.UUID) -> Response:
         try:
+            schedule = get_schedule(schedule_id)
+        except SchedulingError as exc:
+            return _scheduling_error_response(exc)
+        if not can_access_schedule(request.user, schedule):
+            return Response({"detail": "Forbidden"}, status=status.HTTP_403_FORBIDDEN)
+        try:
             schedule = pause_schedule(schedule_id)
         except SchedulingError as exc:
             return _scheduling_error_response(exc)
@@ -114,6 +129,12 @@ class ScheduleResumeView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request: Request, schedule_id: uuid.UUID) -> Response:
+        try:
+            schedule = get_schedule(schedule_id)
+        except SchedulingError as exc:
+            return _scheduling_error_response(exc)
+        if not can_access_schedule(request.user, schedule):
+            return Response({"detail": "Forbidden"}, status=status.HTTP_403_FORBIDDEN)
         try:
             schedule = resume_schedule(schedule_id)
         except SchedulingError as exc:
@@ -126,6 +147,12 @@ class ScheduleCancelView(APIView):
 
     def post(self, request: Request, schedule_id: uuid.UUID) -> Response:
         try:
+            schedule = get_schedule(schedule_id)
+        except SchedulingError as exc:
+            return _scheduling_error_response(exc)
+        if not can_access_schedule(request.user, schedule):
+            return Response({"detail": "Forbidden"}, status=status.HTTP_403_FORBIDDEN)
+        try:
             schedule = cancel_schedule(schedule_id)
         except SchedulingError as exc:
             return _scheduling_error_response(exc)
@@ -136,6 +163,12 @@ class ScheduleExceptionCreateView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request: Request, schedule_id: uuid.UUID) -> Response:
+        try:
+            schedule = get_schedule(schedule_id)
+        except SchedulingError as exc:
+            return _scheduling_error_response(exc)
+        if not can_access_schedule(request.user, schedule):
+            return Response({"detail": "Forbidden"}, status=status.HTTP_403_FORBIDDEN)
         serializer = ScheduleExceptionCreateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
@@ -160,6 +193,8 @@ class OccurrenceDetailView(APIView):
             occurrence = get_occurrence(occurrence_id)
         except SchedulingError as exc:
             return _scheduling_error_response(exc)
+        if not can_access_occurrence(request.user, occurrence):
+            return Response({"detail": "Forbidden"}, status=status.HTTP_403_FORBIDDEN)
         return Response(OccurrenceSerializer(occurrence).data)
 
 
@@ -167,7 +202,9 @@ class ScheduleOccurrenceQueryView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request: Request, schedule_id: uuid.UUID) -> Response:
-        get_object_or_404(ScheduleDefinition, pk=schedule_id)
+        schedule = get_object_or_404(ScheduleDefinition, pk=schedule_id)
+        if not can_access_schedule(request.user, schedule):
+            return Response({"detail": "Forbidden"}, status=status.HTTP_403_FORBIDDEN)
         query_type = request.query_params.get("type", "upcoming")
 
         if query_type == "next":
@@ -206,6 +243,12 @@ class OccurrenceSkipView(APIView):
 
     def post(self, request: Request, occurrence_id: uuid.UUID) -> Response:
         try:
+            occurrence = get_occurrence(occurrence_id)
+        except SchedulingError as exc:
+            return _scheduling_error_response(exc)
+        if not can_access_occurrence(request.user, occurrence):
+            return Response({"detail": "Forbidden"}, status=status.HTTP_403_FORBIDDEN)
+        try:
             occurrence = skip_occurrence(occurrence_id=occurrence_id)
         except SchedulingError as exc:
             return _scheduling_error_response(exc)
@@ -217,7 +260,14 @@ class OccurrenceCancelView(APIView):
 
     def post(self, request: Request, occurrence_id: uuid.UUID) -> Response:
         try:
+            occurrence = get_occurrence(occurrence_id)
+        except SchedulingError as exc:
+            return _scheduling_error_response(exc)
+        if not can_access_occurrence(request.user, occurrence):
+            return Response({"detail": "Forbidden"}, status=status.HTTP_403_FORBIDDEN)
+        try:
             occurrence = cancel_occurrence(occurrence_id=occurrence_id)
         except SchedulingError as exc:
             return _scheduling_error_response(exc)
         return Response(OccurrenceSerializer(occurrence).data)
+

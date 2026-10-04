@@ -43,9 +43,13 @@ class HubProvisionRegisterView(APIView):
         return Response(result, status=status.HTTP_201_CREATED)
 
 
+from common.throttling import HubProvisionRateThrottle
+
+
 class HubProvisionAuthenticateView(APIView):
     authentication_classes: list = []
     permission_classes = [AllowAny]
+    throttle_classes = [HubProvisionRateThrottle]
 
     def post(self, request: Request) -> Response:
         data = request.data
@@ -99,7 +103,29 @@ class HubProvisionRevokeView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
         try:
-            result = revoke_hub_provisioning(device_id=uuid.UUID(device_id_raw))
+            device_id = uuid.UUID(str(device_id_raw))
+        except (ValueError, TypeError):
+            return Response(
+                {"detail": "Invalid device_id format."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        from domains.device.services.assignments import get_assignments
+        from domains.identity_access.services.authorization import user_is_associated_with_elder
+        from domains.device.enums import AssignmentStatus
+
+        assignments = get_assignments(device_id=device_id)
+        if assignments:
+            assigned = [a for a in assignments if a.status == AssignmentStatus.ASSIGNED]
+            elder = assigned[0].elder if assigned else assignments[0].elder
+            if not user_is_associated_with_elder(request.user, elder):
+                return Response(
+                    {"detail": "You do not have permission to revoke provisioning for this device."},
+                    status=status.HTTP_403_FORBIDDEN,
+                )
+
+        try:
+            result = revoke_hub_provisioning(device_id=device_id)
         except Exception as exc:  # noqa: BLE001
             return hub_error_response(exc)
         return Response(result, status=status.HTTP_200_OK)

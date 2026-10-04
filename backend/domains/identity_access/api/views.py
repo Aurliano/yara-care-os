@@ -69,9 +69,13 @@ def _domain_error_response(exc: IdentityAccessError) -> Response:
     return Response({"detail": str(exc)}, status=code)
 
 
+from common.throttling import AuthRegisterRateThrottle
+
+
 class RegisterView(APIView):
     authentication_classes: list = []
     permission_classes = [AllowAny]
+    throttle_classes = [AuthRegisterRateThrottle]
 
     def post(self, request: Request) -> Response:
         serializer = RegisterSerializer(data=request.data)

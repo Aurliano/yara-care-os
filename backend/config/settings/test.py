@@ -27,3 +27,12 @@ ZARINPAL_MERCHANT_ID = ""
 ZARINPAL_SANDBOX = True
 
 LOGGING["root"]["level"] = "WARNING"  # noqa: F405
+
+REST_FRAMEWORK["DEFAULT_THROTTLE_RATES"] = {
+    "anon": "100000/minute",
+    "user": "100000/minute",
+    "auth_token": "100000/minute",
+    "auth_register": "100000/minute",
+    "hub_provision": "100000/minute",
+}
+

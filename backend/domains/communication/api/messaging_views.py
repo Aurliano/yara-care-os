@@ -44,7 +44,7 @@ from domains.communication.services.storage import open_media_stream
 from domains.identity_access.api.permissions import HasElderAccess
 from domains.identity_access.enums import PermissionCode
 from domains.identity_access.models import Elder
-from domains.identity_access.services.authorization import can
+from domains.identity_access.services.authorization import can, user_is_associated_with_elder
 
 
 def _messaging_error_response(exc: CommunicationError) -> Response:
@@ -184,6 +184,25 @@ class MediaUploadView(APIView):
             settings.DATA_UPLOAD_MAX_MEMORY_SIZE = original_limit
 
     def post(self, request: Request) -> Response:
+        # Enforce elder membership context
+        elder_id = request.data.get("elder_id")
+        if elder_id:
+            elder = get_object_or_404(Elder, id=elder_id)
+            if not user_is_associated_with_elder(request.user, elder):
+                return Response(
+                    {"detail": "User does not have access to the specified elder."},
+                    status=status.HTTP_403_FORBIDDEN,
+                )
+        else:
+            from domains.identity_access.enums import MembershipStatus
+            from domains.identity_access.models import Membership
+
+            if not Membership.objects.filter(user=request.user, status=MembershipStatus.ACTIVE).exists():
+                return Response(
+                    {"detail": "Active elder membership required to upload media."},
+                    status=status.HTTP_403_FORBIDDEN,
+                )
+
         serializer = UploadMediaSerializer(data=request.data)
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -210,34 +229,41 @@ class MediaUploadView(APIView):
         )
 
 
-from rest_framework_simplejwt.authentication import JWTAuthentication
-
-
-class QueryParamOrHeaderJWTAuthentication(JWTAuthentication):
-    """Allows JWT authentication via Authorization header or ?token= query parameter for media streaming."""
-
-    def authenticate(self, request: Request):
-        header_auth = super().authenticate(request)
-        if header_auth is not None:
-            return header_auth
-
-        raw_token = request.query_params.get("token")
-        if raw_token:
-            validated_token = self.get_validated_token(raw_token)
-            return self.get_user(validated_token), validated_token
-
-        return None
-
-
 class MediaDownloadView(APIView):
     """Secure streaming download of a media attachment."""
 
-    authentication_classes = [QueryParamOrHeaderJWTAuthentication]
     permission_classes = [IsAuthenticated]
 
-    def get(self, request: Request, attachment_id: uuid.UUID) -> StreamingHttpResponse:
+    def get(self, request: Request, attachment_id: uuid.UUID) -> StreamingHttpResponse | Response:
         try:
             attachment = get_attachment(attachment_id=attachment_id)
+        except (AttachmentNotFoundError, MediaNotFoundError) as exc:
+            raise Http404(str(exc))
+
+        # Authorization: resolve elder via message or contact photo_reference
+        elder = None
+        if hasattr(attachment, "message") and attachment.message is not None:
+            elder = attachment.message.elder
+        else:
+            from domains.communication.models import Contact
+
+            contact = Contact.objects.filter(photo_reference=attachment.id).select_related("elder").first()
+            if contact is not None:
+                elder = contact.elder
+
+        if elder is None:
+            return Response(
+                {"detail": "Media attachment is not associated with an authorized elder resource."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        if not user_is_associated_with_elder(request.user, elder):
+            return Response(
+                {"detail": "You do not have access to this elder's media."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        try:
             stream, file_size, mime_type = open_media_stream(attachment.file_path)
         except (AttachmentNotFoundError, MediaNotFoundError) as exc:
             raise Http404(str(exc))
@@ -248,3 +274,4 @@ class MediaDownloadView(APIView):
         # Never expose internal path or server headers
         response["Content-Disposition"] = f'inline; filename="{attachment.original_filename}"'
         return response
+

@@ -132,11 +132,11 @@ def test_e2e_messaging_lifecycle_unmocked():
     assert dl_header_resp.status_code == status.HTTP_200_OK
     assert dl_header_resp["Content-Type"] in {"audio/m4a", "audio/mp4"}
 
-    # 6.2 Download attachment via query parameter ?token= (for mobile media players)
+    # 6.2 Query parameter ?token= must NOT authenticate the request (fail 401)
     unauth_client = APIClient()
     dl_token_resp = unauth_client.get(f"/api/v1/media/{attachment_id}/download/?token={access_token}")
-    assert dl_token_resp.status_code == status.HTTP_200_OK
-    assert dl_token_resp["Content-Type"] in {"audio/m4a", "audio/mp4"}
+    assert dl_token_resp.status_code == status.HTTP_401_UNAUTHORIZED
+
 
     # 6.3 Download without any credentials fails 401
     dl_noauth_resp = unauth_client.get(f"/api/v1/media/{attachment_id}/download/")

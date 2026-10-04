@@ -2,6 +2,7 @@ import pytest
 from django.utils import timezone
 from datetime import timedelta
 
+from rest_framework.test import APIClient
 from domains.device.enums import AssignmentType, CommandType
 from domains.device.services.assignments import assign_device
 from domains.identity_access.services.profiles import create_user
@@ -23,7 +24,12 @@ def test_create_device_api(authenticated_client, hub_model):
 
 
 @pytest.mark.django_db
-def test_create_command_api(authenticated_client, hub_device):
+def test_create_command_api(authenticated_client, licensed_elder, hub_device):
+    assign_device(
+        device_id=hub_device.id,
+        elder_id=licensed_elder.id,
+        assignment_type=AssignmentType.OWNED,
+    )
     response = authenticated_client.post(
         f"/api/v1/devices/{hub_device.id}/commands/",
         {
@@ -36,6 +42,53 @@ def test_create_command_api(authenticated_client, hub_device):
     )
     assert response.status_code == 201
     assert response.json()["status"] == "QUEUED"
+
+
+@pytest.mark.django_db
+def test_device_idor_prevents_unrelated_user(api_client, authenticated_client, licensed_elder, hub_device):
+    assign_device(
+        device_id=hub_device.id,
+        elder_id=licensed_elder.id,
+        assignment_type=AssignmentType.OWNED,
+    )
+    # Authorized user can inspect device detail and state
+    detail_res = authenticated_client.get(f"/api/v1/devices/{hub_device.id}/")
+    assert detail_res.status_code == 200
+
+    state_res = authenticated_client.get(f"/api/v1/devices/{hub_device.id}/state/")
+    assert state_res.status_code == 200
+
+    # User B (Outsider) cannot view device, view state, or send command
+    outsider = create_user(
+        phone="+989188888888",
+        password="securepass123",
+        full_name="Outsider B",
+    )
+    api_client.force_authenticate(user=outsider)
+
+    res_b_detail = api_client.get(f"/api/v1/devices/{hub_device.id}/")
+    assert res_b_detail.status_code == 403
+
+    res_b_state = api_client.get(f"/api/v1/devices/{hub_device.id}/state/")
+    assert res_b_state.status_code == 403
+
+    res_b_cmd = api_client.post(
+        f"/api/v1/devices/{hub_device.id}/commands/",
+        {
+            "command_type": CommandType.OPEN_COMPARTMENT,
+            "idempotency_key": "outsider-cmd-1",
+            "expires_at": (timezone.now() + timedelta(hours=1)).isoformat(),
+            "parameters": {"compartment": 1},
+        },
+        format="json",
+    )
+    assert res_b_cmd.status_code == 403
+
+    # Unauthenticated user receives 401
+    unauth_client = APIClient()
+    assert unauth_client.get(f"/api/v1/devices/{hub_device.id}/").status_code == 401
+    assert unauth_client.get(f"/api/v1/devices/{hub_device.id}/state/").status_code == 401
+
 
 
 @pytest.mark.django_db

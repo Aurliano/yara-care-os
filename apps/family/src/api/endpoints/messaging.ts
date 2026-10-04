@@ -50,10 +50,7 @@ export function uploadMedia(formData: FormData): Promise<MessageAttachment> {
   });
 }
 
-export function getMediaDownloadUrl(attachmentId: string, token?: string | null): string {
+export function getMediaDownloadUrl(attachmentId: string, _token?: string | null): string {
   const base = API_BASE_URL.replace(/\/$/, "");
-  if (token) {
-    return `${base}/media/${attachmentId}/download/?token=${encodeURIComponent(token)}`;
-  }
   return `${base}/media/${attachmentId}/download/`;
 }

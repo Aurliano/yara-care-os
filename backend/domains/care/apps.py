@@ -9,4 +9,8 @@ class CareConfig(AppConfig):
 
     def ready(self) -> None:
         import domains.care.signals  # noqa: F401
+        from domains.care.services.authorizers import register_care_authorizers
+
+        register_care_authorizers()
+
 

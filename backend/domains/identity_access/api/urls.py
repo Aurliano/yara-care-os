@@ -18,11 +18,16 @@ from domains.identity_access.api.views import (
     PermissionCheckView,
     RegisterView,
 )
+from common.throttling import AuthTokenRateThrottle
 from domains.identity_access.api.auth import PhoneTokenObtainPairSerializer
 
-token_view = TokenObtainPairView.as_view(
-    serializer_class=PhoneTokenObtainPairSerializer,
-)
+
+class ThrottledTokenObtainPairView(TokenObtainPairView):
+    serializer_class = PhoneTokenObtainPairSerializer
+    throttle_classes = [AuthTokenRateThrottle]
+
+
+token_view = ThrottledTokenObtainPairView.as_view()
 
 urlpatterns = [
     path("auth/register/", RegisterView.as_view(), name="identity-register"),

@@ -473,3 +473,51 @@ def test_provisioning_authenticate_returns_404_device_not_found_for_missing_devi
     assert response.json()["detail"] == "Device not found."
 
 
+def test_hub_provision_revoke_idor_protection(db, api_client, integration_user, licensed_elder, hub_model):
+    serial = f"HUB-REVOKE-{uuid.uuid4().hex[:8]}"
+    reg = api_client.post(
+        "/api/v1/hub/provision/register/",
+        {
+            "serial_number": serial,
+            "device_model_code": hub_model.model_code,
+            "hardware_version": "v1.0",
+            "firmware_version": "0.1.0",
+        },
+        format="json",
+    )
+    assert reg.status_code == 201
+    device_id = reg.json()["device_id"]
+    api_client.post(
+        "/api/v1/hub/provision/authenticate/",
+        {
+            "device_id": device_id,
+            "phone": integration_user.phone,
+            "password": "securepass123",
+        },
+        format="json",
+    )
+
+    second_user = create_user(
+        phone="+989129999991",
+        password="securepass123",
+        full_name="Unrelated Attacker",
+    )
+    api_client.force_authenticate(user=second_user)
+
+    attack_res = api_client.post(
+        "/api/v1/hub/provision/revoke/",
+        {"device_id": device_id},
+        format="json",
+    )
+    assert attack_res.status_code == 403
+
+    api_client.force_authenticate(user=integration_user)
+    owner_res = api_client.post(
+        "/api/v1/hub/provision/revoke/",
+        {"device_id": device_id},
+        format="json",
+    )
+    assert owner_res.status_code == 200
+
+
+

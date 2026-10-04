@@ -388,4 +388,20 @@ A feature is complete only if:
 - **Current State:** Incoming messages rely on `PeriodicWorkRequest` polling bounded to 15-minute minimum intervals. This architectural choice results in up to 15 minutes of latency for receiving messages.
 - **Target:** Implement a realtime signaling channel (e.g. FCM Data Messages, WebSockets, or LiveKit Data Channels) to trigger immediate sync/fetch upon new message arrival.
 - **Priority:** P1 (Sprint 3 / Phase 4)
-- **Status:** Documented & Tracked
+- **Status:** Documented & Tracked
+
+## TD-SEC-001 — Unassigned Hub Provision Revocation Access Control
+- **Component:** `HubProvisionRevokeView` in `integration/api/provisioning_views.py`.
+- **Current State:** Devices assigned to an elder are strictly protected by server-side elder membership checks (403 Forbidden for unauthorized users). If a device has never been assigned to any elder (`assignments` is empty, e.g. unassigned device or test harness), revocation is permitted.
+- **Target:** Transition to a strict fail-closed model for unassigned devices by binding revocation rights to the authenticating user stored in the provisioning state blob or restricting to internal management.
+- **Priority:** P2 (Milestone R2 Follow-up)
+- **Status:** Documented & Tracked
+
+## TD-SEC-002 — NPM Dev-Dependency Tooling Audit & Upgrade
+- **Component:** Expo / React Native tooling dependencies in `apps/family/package.json`.
+- **Current State:** 33 vulnerabilities flagged in development/build dependencies (nested CLI and dev server tools; non-runtime).
+- **Target:** Upgrade Expo SDK and transitive development dependencies during the scheduled R2 dependency refresh.
+- **Milestone:** Release R2 (Target: Sprint R2-B / Q1 2027)
+- **Priority:** P2
+- **Status:** Documented & Tracked
+

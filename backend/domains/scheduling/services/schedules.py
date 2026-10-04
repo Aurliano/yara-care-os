@@ -172,17 +172,8 @@ def add_schedule_exception(
         original_time=original_time,
     )
     if exception_type == ScheduleExceptionType.RESCHEDULE:
-        from domains.workflow.enums import ExecutionStatus
-        from domains.workflow.models import WorkflowExecution
-
-        if WorkflowExecution.objects.filter(
-            occurrence_id=occurrence_id,
-            status__in=[ExecutionStatus.CONFIRMED, ExecutionStatus.MISSED],
-        ).exists():
-            raise InvalidScheduleStateError(
-                "Cannot reschedule an occurrence that already has a completed execution."
-            )
-
+        from domains.scheduling.hooks import run_pre_reschedule_hooks
+        run_pre_reschedule_hooks(occurrence_id)
         assert_reschedule_does_not_collide(
             schedule_definition_id=schedule.id,
             replacement_time=replacement_time,
@@ -246,16 +237,5 @@ def _apply_exception_to_existing_occurrence(
     occurrence._from_schedule_exception = True
     occurrence.save(update_fields=["scheduled_for", "status"])
 
-    try:
-        from domains.workflow.enums import ExecutionStatus
-        from domains.workflow.models import WorkflowExecution
-        from domains.workflow.services.executions import cancel_execution
-
-        active_executions = WorkflowExecution.objects.filter(
-            occurrence_id=occurrence.id,
-            status__in=[ExecutionStatus.ACTIVE, ExecutionStatus.PENDING],
-        )
-        for execution in active_executions:
-            cancel_execution(execution_id=execution.id)
-    except Exception:
-        pass
+    from domains.scheduling.hooks import run_post_reschedule_hooks
+    run_post_reschedule_hooks(occurrence.id)
