@@ -1,0 +1,146 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ page_title }}</title>
+  <meta name="description" content="{{ meta_description }}">
+  <link rel="canonical" href="{{ canonical_url }}">
+  <meta name="robots" content="index, follow">
+
+  <!-- Open Graph / Social Sharing -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="{{ canonical_url }}">
+  <meta property="og:title" content="{{ page_title }}">
+  <meta property="og:description" content="{{ meta_description }}">
+  <meta property="og:image" content="https://{{ support.domain }}{% static 'landing/images/logo.png' %}">
+  <meta property="og:locale" content="fa_IR">
+  <meta property="og:site_name" content="سایدا (SAYDA Care)">
+
+  <!-- Twitter Meta -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="{{ page_title }}">
+  <meta name="twitter:description" content="{{ meta_description }}">
+  <meta name="twitter:image" content="https://{{ support.domain }}{% static 'landing/images/logo.png' %}">
+
+  <!-- Favicons -->
+  <link rel="icon" type="image/png" href="{% static 'landing/images/favicon.png' %}">
+  <link rel="apple-touch-icon" href="{% static 'landing/images/favicon.png' %}">
+
+  <!-- Typography: Vazirmatn -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+  <!-- Stylesheet -->
+  <link rel="stylesheet" href="{% static 'landing/css/landing.css' %}">
+  {% block extra_head %}{% endblock %}
+</head>
+<body>
+  <a href="#main-content" class="skip-link">رفتن به محتوای اصلی</a>
+
+  <!-- Header -->
+  <header class="site-header" role="banner">
+    <div class="container header-content">
+      <a href="{% url 'landing:home' %}" class="brand-lockup" aria-label="سایدا — صفحه اصلی">
+        <picture>
+          <source srcset="{% static 'landing/images/logo.webp' %}" type="image/webp">
+          <img src="{% static 'landing/images/logo.png' %}" alt="نشان سایدا" class="brand-logo-img" width="44" height="44">
+        </picture>
+        <div class="brand-text-block">
+          <span class="brand-title">سایدا</span>
+          <span class="brand-subtitle">همراه مراقبت هوشمند</span>
+        </div>
+      </a>
+
+      <nav class="site-nav" role="navigation" aria-label="ناوبری اصلی">
+        <ul class="nav-links">
+          <li><a href="{% url 'landing:home' %}#value">چرا سایدا؟</a></li>
+          <li><a href="{% url 'landing:home' %}#capabilities">قابلیت‌ها</a></li>
+          <li><a href="{% url 'landing:home' %}#how-it-works">چگونگی کارکرد</a></li>
+          <li><a href="{% url 'landing:home' %}#trust">امنیت و حریم خصوصی</a></li>
+          <li><a href="{% url 'landing:home' %}#faq">پرسش‌های متداول</a></li>
+        </ul>
+      </nav>
+
+      <div class="header-action">
+        <a href="{% url 'landing:home' %}#download" class="btn btn-primary header-cta">دریافت اپلیکیشن</a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main id="main-content" role="main">
+    {% block content %}{% endblock %}
+  </main>
+
+  <!-- Footer -->
+  <footer class="site-footer" role="contentinfo">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <h3>سایدا (Yara Care OS)</h3>
+          <p>
+            همراهی آرام در روزهای زندگی. یارا سامانه‌ای برای هماهنگی خانواده و حفظ استقلال و آرامش والدین در منزل است؛ با فناوری ساده‌ای که در خدمت انسان است و بی‌دلیل توجه کسی را به خود جلب نمی‌کند.
+          </p>
+        </div>
+
+        <div class="footer-col">
+          <h4>بخش‌های سایت</h4>
+          <ul class="footer-links">
+            <li><a href="{% url 'landing:home' %}#capabilities">قابلیت‌های سامانه</a></li>
+            <li><a href="{% url 'landing:home' %}#how-it-works">نحوه اتصال و استفاده</a></li>
+            <li><a href="{% url 'landing:home' %}#download">کانال‌های دریافت اپ</a></li>
+            <li><a href="{% url 'landing:home' %}#faq">پرسش‌های متداول</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-col">
+          <h4>پشتیبانی و قانون</h4>
+          <ul class="footer-links">
+            <li><a href="{% url 'landing:privacy' %}">حریم خصوصی و داده‌ها</a></li>
+            <li><a href="{% url 'landing:terms' %}">شرایط استفاده و سلب مسئولیت</a></li>
+            <li><a href="mailto:{{ support.email }}">پشتیبانی: {{ support.email }}</a></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="footer-bottom">
+        <p>© ۱۴۰۵ سایدا تک (Sayda Tech). تمامی حقوق محفوظ است.</p>
+        <p>نسخه نرم‌افزار ۲.۰.۰ — منطبق با تبلت‌های همراه مراقبت و گوشی‌های هوشمند خانواده</p>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Accessible Accordion & Smooth Behavior -->
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // FAQ Accordion
+      const faqQuestions = document.querySelectorAll('.faq-question');
+      faqQuestions.forEach(function(btn) {
+        btn.addEventListener('click', function() {
+          const item = this.parentElement;
+          const isExpanded = this.getAttribute('aria-expanded') === 'true';
+          
+          // Toggle current
+          if (isExpanded) {
+            item.classList.remove('active');
+            this.setAttribute('aria-expanded', 'false');
+          } else {
+            // Close others
+            document.querySelectorAll('.faq-item').forEach(function(el) {
+              el.classList.remove('active');
+              const q = el.querySelector('.faq-question');
+              if (q) q.setAttribute('aria-expanded', 'false');
+            });
+            item.classList.add('active');
+            this.setAttribute('aria-expanded', 'true');
+          }
+        });
+      });
+    });
+  </script>
+  {% block extra_scripts %}{% endblock %}
+</body>
+</html>

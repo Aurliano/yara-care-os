@@ -9,7 +9,7 @@ def projectRoot = rootDir.getAbsoluteFile().getParentFile().getAbsolutePath()
  * By default you don't need to apply any configuration, just uncomment the lines you need.
  */
 react {
-    entryFile = file(["node", "-e", "require('expo/scripts/resolveAppEntry')", projectRoot, "android", "absolute"].execute(null, rootDir).text.trim())
+    entryFile = file(new File(projectRoot, ["node", "-e", "require('expo/scripts/resolveAppEntry')", projectRoot, "android", "relative"].execute(null, rootDir).text.trim()))
     reactNativeDir = new File(["node", "--print", "require.resolve('react-native/package.json')"].execute(null, rootDir).text.trim()).getParentFile().getAbsoluteFile()
     hermesCommand = new File(["node", "--print", "require.resolve('react-native/package.json')"].execute(null, rootDir).text.trim()).getParentFile().getAbsolutePath() + "/sdks/hermesc/%OS-BIN%/hermesc"
     codegenDir = new File(["node", "--print", "require.resolve('@react-native/codegen/package.json', { paths: [require.resolve('react-native/package.json')] })"].execute(null, rootDir).text.trim()).getParentFile().getAbsoluteFile()
@@ -17,7 +17,7 @@ react {
     enableBundleCompression = (findProperty('android.enableBundleCompression') ?: false).toBoolean()
     // Use Expo CLI to bundle the app, this ensures the Metro config
     // works correctly with Expo projects.
-    cliFile = new File(["node", "--print", "require.resolve('@expo/cli', { paths: [require.resolve('expo/package.json')] })"].execute(null, rootDir).text.trim())
+    cliFile = file("$rootDir/cli-wrapper.js")
     bundleCommand = "export:embed"
 
     /* Folders */
@@ -81,6 +81,17 @@ def enableMinifyInReleaseBuilds = (findProperty('android.enableMinifyInReleaseBu
  */
 def jscFlavor = 'io.github.react-native-community:jsc-android:2026004.+'
 
+def localProperties = new Properties()
+def localPropertiesFile = rootProject.file('local.properties')
+if (localPropertiesFile.exists()) {
+    localPropertiesFile.withInputStream { localProperties.load(it) }
+}
+
+def releaseStoreFile = localProperties.getProperty('family.release.storeFile') ?: project.findProperty('SAYDA_RELEASE_STORE_FILE') ?: System.getenv('SAYDA_RELEASE_STORE_FILE')
+def releaseStorePassword = localProperties.getProperty('family.release.storePassword') ?: project.findProperty('SAYDA_RELEASE_STORE_PASSWORD') ?: System.getenv('SAYDA_RELEASE_STORE_PASSWORD')
+def releaseKeyAlias = localProperties.getProperty('family.release.keyAlias') ?: project.findProperty('SAYDA_RELEASE_KEY_ALIAS') ?: System.getenv('SAYDA_RELEASE_KEY_ALIAS')
+def releaseKeyPassword = localProperties.getProperty('family.release.keyPassword') ?: project.findProperty('SAYDA_RELEASE_KEY_PASSWORD') ?: System.getenv('SAYDA_RELEASE_KEY_PASSWORD')
+
 android {
     ndkVersion rootProject.ext.ndkVersion
 
@@ -104,15 +115,25 @@ android {
             keyAlias 'androiddebugkey'
             keyPassword 'android'
         }
+        release {
+            if (releaseStoreFile != null && file(releaseStoreFile).exists()) {
+                storeFile file(releaseStoreFile)
+                storePassword releaseStorePassword
+                keyAlias releaseKeyAlias
+                keyPassword releaseKeyPassword
+            }
+        }
     }
     buildTypes {
         debug {
             signingConfig signingConfigs.debug
         }
         release {
-            // Caution! In production, you need to generate your own keystore file.
-            // see https://reactnative.dev/docs/signed-apk-android.
-            signingConfig signingConfigs.debug
+            if (releaseStoreFile != null && file(releaseStoreFile).exists()) {
+                signingConfig signingConfigs.release
+            } else {
+                signingConfig signingConfigs.debug
+            }
             def enableShrinkResources = findProperty('android.enableShrinkResourcesInReleaseBuilds') ?: 'false'
             shrinkResources enableShrinkResources.toBoolean()
             minifyEnabled enableMinifyInReleaseBuilds

@@ -26,6 +26,7 @@ from domains.identity_access.enums import MembershipStatus
 from domains.identity_access.models import Elder, Membership
 from domains.synchronization.enums import ReplicaType
 from common.observability.logging import log_structured
+from common.phone import normalize_phone
 from domains.synchronization.services.replicas import get_or_create_replica_state, reset_replica
 from integration.exceptions import HubProvisioningError
 
@@ -204,7 +205,8 @@ def authenticate_hub_device(
         raise HubProvisioningError("Device is not registered for hub provisioning.")
     _ensure_not_revoked(blob)
 
-    user = authenticate(username=phone, password=password)
+    canonical_phone = normalize_phone(phone)
+    user = authenticate(username=canonical_phone, password=password)
     if user is None:
         raise HubProvisioningError("Invalid credentials.")
 

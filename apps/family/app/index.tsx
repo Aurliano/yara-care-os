@@ -1,11 +1,10 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Redirect } from "expo-router";
 import { useSessionStore } from "../src/stores/sessionStore";
 import { useElderStore } from "../src/stores/elderStore";
 import { useAlertAckStore } from "../src/stores/alertAckStore";
 import { useOnboardingStore } from "../src/stores/onboardingStore";
-import { LoadingSkeleton } from "../src/components";
-import { Screen } from "../src/components/Screen";
+import { SplashScreenView } from "../src/components";
 
 export default function Index() {
   const hydrateSession = useSessionStore((state) => state.hydrate);
@@ -19,6 +18,8 @@ export default function Index() {
   const onboardingHydrated = useOnboardingStore((state) => state.hydrated);
   const discoveryStatus = useOnboardingStore((state) => state.status);
 
+  const [splashFinished, setSplashFinished] = useState(false);
+
   useEffect(() => {
     void hydrateSession();
     void hydrateElder();
@@ -26,11 +27,16 @@ export default function Index() {
     void hydrateOnboarding();
   }, [hydrateSession, hydrateElder, hydrateAcks, hydrateOnboarding]);
 
-  if (hydrating || !elderHydrated || !onboardingHydrated) {
+  const allHydrated = !hydrating && elderHydrated && onboardingHydrated;
+
+  if (!allHydrated || !splashFinished) {
     return (
-      <Screen>
-        <LoadingSkeleton />
-      </Screen>
+      <SplashScreenView
+        hydratingSession={hydrating}
+        elderHydrated={elderHydrated}
+        onboardingHydrated={onboardingHydrated}
+        onAnimationComplete={() => setSplashFinished(true)}
+      />
     );
   }
 

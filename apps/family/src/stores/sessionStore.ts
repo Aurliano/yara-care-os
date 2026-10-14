@@ -3,7 +3,7 @@ import { login } from "../api/client";
 import { getCurrentUser } from "../api/endpoints/identity";
 import { getTokenStore } from "../api/tokenStore";
 import type { User } from "../api/types";
-import { toLatinDigits } from "../i18n/numerals";
+import { normalizePhone, toLatinDigits } from "../i18n/numerals";
 
 type SessionState = {
   hydrating: boolean;
@@ -33,7 +33,7 @@ export const useSessionStore = create<SessionState>((set) => ({
     }
   },
   async signIn(phone, password) {
-    const tokens = await login(toLatinDigits(phone).trim(), password);
+    const tokens = await login(normalizePhone(phone), password);
     await getTokenStore().setTokens(tokens.access, tokens.refresh);
     const user = await getCurrentUser();
     set({ user });

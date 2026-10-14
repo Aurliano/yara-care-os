@@ -1,16 +1,16 @@
 {
   "expo": {
-    "name": "YARA",
-    "slug": "yara-family",
-    "scheme": "yara-family",
+    "name": "SAYDA",
+    "slug": "sayda-family",
+    "scheme": "sayda-family",
     "version": "0.1.0",
     "orientation": "portrait",
-    "icon": "./assets/images/yara-logo.png",
+    "icon": "./assets/images/sayda-icon.png",
     "userInterfaceStyle": "light",
     "splash": {
-      "image": "./assets/images/yara-logo.png",
+      "image": "./assets/images/sayda-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#F5FAF8"
+      "backgroundColor": "#F4F0E7"
     },
     "ios": {
       "supportsTablet": false,
@@ -18,8 +18,8 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/yara-logo.png",
-        "backgroundColor": "#F5FAF8"
+        "foregroundImage": "./assets/images/sayda-icon.png",
+        "backgroundColor": "#F4F0E7"
       },
       "package": "ir.sayda.yara.family"
     },

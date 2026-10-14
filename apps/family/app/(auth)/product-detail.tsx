@@ -156,7 +156,7 @@ export default function ProductDetailScreen() {
             روش دریافت دستگاه
           </AppText>
           <AppText variant="caption" color={colors.textMuted} style={styles.configHint}>
-            نحوه استفاده از تجهیزات یارا را متناسب با نیاز خانواده انتخاب کنید:
+            نحوه استفاده از تجهیزات سایدا را متناسب با نیاز خانواده انتخاب کنید:
           </AppText>
 
           {/* Level 1 Primary Options */}
@@ -229,7 +229,7 @@ export default function ProductDetailScreen() {
                   🎁 ۳ ماه اشتراک رایگان همراه خرید دستگاه
                 </AppText>
                 <AppText variant="caption" color={colors.textSecondary} style={styles.giftDesc}>
-                  با خرید دستگاه، ۳ ماه نخست استفاده از خدمات نرم‌افزاری، تماس‌ها و پشتیبانی یارا رایگان خواهد بود.
+                  با خرید دستگاه، ۳ ماه نخست استفاده از خدمات نرم‌افزاری، تماس‌ها و پشتیبانی سایدا رایگان خواهد بود.
                 </AppText>
               </View>
 
@@ -426,7 +426,7 @@ export default function ProductDetailScreen() {
         <View style={styles.disclaimerBox}>
           <Icon name="info" color={colors.textMuted} width={18} height={18} />
           <AppText variant="caption" color={colors.textMuted} style={styles.disclaimerText}>
-            تجهیزات و بسته‌های همراهی یارا برای آسایش و تسهیل مراقبت خانوادگی طراحی شده‌اند و جایگزین خدمات اورژانس، پزشک معالج یا تجهیزات مراقبت ویژه بیمارستانی نیستند.
+            تجهیزات و بسته‌های همراهی سایدا برای آسایش و تسهیل مراقبت خانوادگی طراحی شده‌اند و جایگزین خدمات اورژانس، پزشک معالج یا تجهیزات مراقبت ویژه بیمارستانی نیستند.
           </AppText>
         </View>
       </ScrollView>

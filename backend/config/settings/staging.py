@@ -11,7 +11,7 @@ YARA_ENVIRONMENT = "staging"
 # Load .env.staging if present
 staging_env_file = BASE_DIR / ".env.staging"  # noqa: F405
 if staging_env_file.exists():
-    environ.Env.read_env(staging_env_file, overwrite=True)
+    environ.Env.read_env(staging_env_file, overwrite=False)
 
 # Explicitly resolve the staging database connection.
 # Default strictly targets yara_staging.

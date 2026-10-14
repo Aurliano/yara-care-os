@@ -6,7 +6,8 @@ import { colors, spacing } from "../../src/theme/tokens";
 import { AppText, Button, Card, Screen, TextField, TopAppBar } from "../../src/components";
 import { registerUser } from "../../src/api/endpoints/identity";
 import { useSessionStore } from "../../src/stores/sessionStore";
-import { toLatinDigits } from "../../src/i18n/numerals";
+import { normalizePhone } from "../../src/i18n/numerals";
+import { ApiError } from "../../src/api/errors";
 
 export default function RegisterScreen() {
   const router = useRouter();
@@ -21,15 +22,20 @@ export default function RegisterScreen() {
     setLoading(true);
     setError(null);
     try {
+      const canonicalPhone = normalizePhone(phone);
       await registerUser({
-        phone: toLatinDigits(phone).trim(),
+        phone: canonicalPhone,
         password,
         full_name: fullName.trim(),
       });
-      await signIn(phone, password);
+      await signIn(canonicalPhone, password);
       router.replace("/(auth)/select-elder");
-    } catch {
-      setError("ایجاد حساب انجام نشد. اگر این شماره قبلاً ثبت شده، وارد شوید.");
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 400) {
+        setError("این شماره قبلاً ثبت شده یا مشخصات نامعتبر است. اگر حساب دارید، وارد شوید.");
+      } else {
+        setError("ایجاد حساب انجام نشد. اتصال اینترنت خود را بررسی کنید.");
+      }
     } finally {
       setLoading(false);
     }

@@ -37,8 +37,11 @@ export function LocalImage({
 }
 
 export const images = {
-  logo: require("../../assets/images/yara-logo-emblem.png"),
-  wordmark: require("../../assets/images/yara-wordmark.png"),
+  logo: require("../../assets/images/sayda-emblem.png"),
+  wordmark: require("../../assets/images/sayda-wordmark.png"),
+  icon: require("../../assets/images/sayda-icon.png"),
+  splashBg: require("../../assets/images/sayda-splash-bg.png"),
+  splashOriginal: require("../../assets/images/sayda-splash-original.png"),
   noElder: require("../../assets/illustrations/no-elder.png"),
   permissionDenied: require("../../assets/illustrations/permission-denied.png"),
 };

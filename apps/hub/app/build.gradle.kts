@@ -23,6 +23,15 @@ val hubProvisionPassword = localProperties.getProperty("hub.provision.password")
 val hubLivekitUrl = localProperties.getProperty("hub.livekit.url")?.trim()
     ?: "wss://yara-care-8qxaz9wd.livekit.cloud"
 
+val releaseStoreFile = localProperties.getProperty("hub.release.storeFile")?.trim()
+    ?: System.getenv("SAYDA_RELEASE_STORE_FILE")
+val releaseStorePassword = localProperties.getProperty("hub.release.storePassword")?.trim()
+    ?: System.getenv("SAYDA_RELEASE_STORE_PASSWORD")
+val releaseKeyAlias = localProperties.getProperty("hub.release.keyAlias")?.trim()
+    ?: System.getenv("SAYDA_RELEASE_KEY_ALIAS")
+val releaseKeyPassword = localProperties.getProperty("hub.release.keyPassword")?.trim()
+    ?: System.getenv("SAYDA_RELEASE_KEY_PASSWORD")
+
 android {
     namespace = "ir.sayda.yara.hub"
     compileSdk = 36
@@ -42,6 +51,17 @@ android {
         buildConfigField("String", "PROVISION_PASSWORD", "\"$hubProvisionPassword\"")
     }
 
+    signingConfigs {
+        if (!releaseStoreFile.isNullOrEmpty() && file(releaseStoreFile).exists()) {
+            create("release") {
+                storeFile = file(releaseStoreFile)
+                storePassword = releaseStorePassword
+                keyAlias = releaseKeyAlias
+                keyPassword = releaseKeyPassword
+            }
+        }
+    }
+
     buildTypes {
         debug {
             buildConfigField("boolean", "DEBUG", "true")
@@ -55,6 +75,9 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
             )
+            signingConfigs.findByName("release")?.let {
+                signingConfig = it
+            }
         }
     }
     compileOptions {

@@ -6,9 +6,9 @@ import { images } from "./Icon";
 type Size = "sm" | "md" | "lg";
 
 const SIZES: Record<Size, { emblemW: number; emblemH: number; wordmarkW: number; wordmarkH: number }> = {
-  sm: { emblemW: 30, emblemH: 32, wordmarkW: 90, wordmarkH: 22 },
-  md: { emblemW: 40, emblemH: 43, wordmarkW: 120, wordmarkH: 29 },
-  lg: { emblemW: 56, emblemH: 60, wordmarkW: 168, wordmarkH: 41 },
+  sm: { emblemW: 34, emblemH: 28, wordmarkW: 98, wordmarkH: 18 },
+  md: { emblemW: 46, emblemH: 38, wordmarkW: 130, wordmarkH: 24 },
+  lg: { emblemW: 70, emblemH: 58, wordmarkW: 196, wordmarkH: 36 },
 };
 
 type Props = {

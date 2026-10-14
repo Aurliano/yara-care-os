@@ -9,6 +9,7 @@ from django.db import models
 from django.db.models import Q
 from django.utils import timezone
 
+from common.phone import normalize_phone
 from domains.identity_access.enums import (
     ElderStatus,
     EmergencyRecipientStatus,
@@ -22,6 +23,7 @@ class UserManager(BaseUserManager):
     def create_user(self, phone: str, password: str | None = None, **extra_fields):
         if not phone:
             raise ValueError("Phone is required.")
+        phone = normalize_phone(phone)
         user = self.model(phone=phone, **extra_fields)
         user.set_password(password)
         user.save(using=self._db)

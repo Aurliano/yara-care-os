@@ -39,7 +39,7 @@ describe("R1.1 — Pre-Login Marketplace UX Polish & Acquisition Model", () => {
   it("allows unauthenticated users to access and browse Marketplace", () => {
     expect(useSessionStore.getState().user).toBeNull();
     const { getByText } = render(<MarketplaceScreen />);
-    expect(getByText("بسته‌ها و تجهیزات یارا")).toBeTruthy();
+    expect(getByText("بسته‌ها و تجهیزات سایدا")).toBeTruthy();
   });
 
   // 2. Product Detail works
@@ -47,10 +47,10 @@ describe("R1.1 — Pre-Login Marketplace UX Polish & Acquisition Model", () => {
     useMarketplaceStore.getState().setSelectedProductId("yara-care");
     const { getByText } = render(<ProductDetailScreen />);
 
-    expect(getByText("بسته مراقبت یارا")).toBeTruthy();
+    expect(getByText("بسته مراقبت سایدا")).toBeTruthy();
     expect(getByText("اقلام و تجهیزات موجود در بسته")).toBeTruthy();
-    expect(getByText("جعبه داروی هوشمند یارا")).toBeTruthy();
-    expect(getByText("هاب رومیزی لمسی یارا")).toBeTruthy();
+    expect(getByText("جعبه داروی هوشمند سایدا")).toBeTruthy();
+    expect(getByText("هاب رومیزی لمسی سایدا")).toBeTruthy();
     expect(getByText("ویژگی‌ها و قابلیت‌های محوری")).toBeTruthy();
   });
 
@@ -179,17 +179,17 @@ describe("R1.1 — Pre-Login Marketplace UX Polish & Acquisition Model", () => {
     fireEvent.press(getByText("بعدی"));
 
     await waitFor(() => {
-      expect(getByText("مشاهده بسته‌ها و محصولات یارا")).toBeTruthy();
+      expect(getByText("مشاهده بسته‌ها و محصولات سایدا")).toBeTruthy();
     });
 
-    fireEvent.press(getByText("مشاهده بسته‌ها و محصولات یارا"));
+    fireEvent.press(getByText("مشاهده بسته‌ها و محصولات سایدا"));
     expect(mockPush).toHaveBeenCalledWith("/(auth)/marketplace");
   });
 
   // 14. Returning unauthenticated users can reach Marketplace from Login
   it("renders secondary exploration link to Marketplace on SignIn screen", () => {
     const { getByText } = render(<SignInScreen />);
-    expect(getByText("مشاهده بسته‌ها و تجهیزات یارا")).toBeTruthy();
+    expect(getByText("مشاهده بسته‌ها و تجهیزات سایدا")).toBeTruthy();
   });
 
   // 15. Checkout boundary navigates to SignIn

@@ -10,6 +10,7 @@ from domains.identity_access.models import (
     Membership,
     User,
 )
+from common.phone import normalize_phone
 
 
 class RegisterSerializer(serializers.Serializer):
@@ -17,6 +18,12 @@ class RegisterSerializer(serializers.Serializer):
     password = serializers.CharField(write_only=True, min_length=8)
     full_name = serializers.CharField(max_length=255)
     email = serializers.EmailField(required=False, allow_blank=True, default="")
+
+    def validate_phone(self, value: str) -> str:
+        normalized = normalize_phone(value)
+        if not normalized:
+            raise serializers.ValidationError("Phone number is invalid.")
+        return normalized
 
 
 class UserSerializer(serializers.ModelSerializer):

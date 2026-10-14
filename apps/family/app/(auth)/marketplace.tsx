@@ -63,7 +63,7 @@ export default function MarketplaceScreen() {
         {/* Hero Section */}
         <View style={styles.titleSection}>
           <AppText variant="headline" style={styles.headline}>
-            بسته‌ها و تجهیزات یارا
+            بسته‌ها و تجهیزات سایدا
           </AppText>
           <AppText variant="body" color={colors.textSecondary} style={styles.subhead}>
             تجهیزات آرامش‌بخش خانه و زیست‌بوم مراقبت سالمند؛ متناسب با شرایط و نیاز خانواده عزیزتان انتخاب کنید.

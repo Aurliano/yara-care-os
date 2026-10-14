@@ -222,7 +222,7 @@ describe("R1 — Product Discovery Screen & Interaction", () => {
     fireEvent.press(getByText(t.discoveryNext));
     await waitFor(() => {
       expect(getByText("هاب اختصاصی؛ همراه بدون پیچیدگی")).toBeTruthy();
-      expect(getByText("هاب رومیزی یارا")).toBeTruthy();
+      expect(getByText("هاب رومیزی سایدا")).toBeTruthy();
     });
 
     // Step 2 -> Step 3 (Medication)

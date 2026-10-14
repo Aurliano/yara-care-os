@@ -91,7 +91,7 @@ export default function SignInScreen() {
       </Link>
       <Link href="/(auth)/marketplace" style={styles.discoveryLink}>
         <AppText variant="caption" color={colors.primary} align="center">
-          مشاهده بسته‌ها و تجهیزات یارا
+          مشاهده بسته‌ها و تجهیزات سایدا
         </AppText>
       </Link>
     </Screen>

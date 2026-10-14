@@ -40,14 +40,14 @@ describe("Marketplace Photographic Assets & Semantic Resolution", () => {
 
   it("renders a semantic asset cleanly with accessibility role and label", () => {
     const { getByLabelText } = render(<ProductAsset assetId="yara-hub-hero" size="md" />);
-    expect(getByLabelText("تصویر هاب یارا")).toBeTruthy();
+    expect(getByLabelText("تصویر هاب سایدا")).toBeTruthy();
   });
 
   it("renders the marketplace hero banner asset with size=hero", () => {
     const { getByLabelText } = render(
       <ProductAsset assetId="yara-marketplace-hero" size="hero" resizeMode="cover" />
     );
-    expect(getByLabelText("تصویر زیست‌بوم مراقبت سالمند یارا")).toBeTruthy();
+    expect(getByLabelText("تصویر زیست‌بوم مراقبت سالمند سایدا")).toBeTruthy();
   });
 
   it("renders all 12 assets without throwing errors", () => {

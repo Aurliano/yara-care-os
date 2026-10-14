@@ -1,0 +1,562 @@
+{% extends "landing/base.html" %}
+{% load static %}
+
+{% block content %}
+<!-- A. Hero Section -->
+<section class="hero-section" id="hero">
+  <div class="container hero-grid">
+    <div class="hero-text-side">
+      <div class="hero-badge">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        <span>همراه آرام در زندگی روزمرهٔ خانواده</span>
+      </div>
+
+      <h1 class="hero-title">
+        آرامش خاطر خانواده، <br>
+        <span class="highlight">استقلال و عزت سالمند</span>
+      </h1>
+
+      <p class="hero-description">
+        یارا بدون پیچیدگی و سردرگمی، در گوشه‌ای از خانه کنار والدین می‌نشیند. 
+        زمان مصرف داروها را آرام و سر وقت یادآوری می‌کند و خیال فرزندان را از راه دور راحت نگه می‌دارد؛ 
+        فناوری ساده‌ای که به چشم نمی‌آید، اما بودنش مایهٔ دلگرمی است.
+      </p>
+
+      <div class="hero-actions">
+        <a href="#download" class="btn btn-primary">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          دانلود اپلیکیشن مراقب
+        </a>
+        <a href="#capabilities" class="btn btn-secondary">
+          دیدن بخش‌های برنامه
+        </a>
+      </div>
+
+      <div class="hero-guarantee">
+        <span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#15803D" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+          بدون نیاز به آشنایی با گوشی هوشمند برای سالمند
+        </span>
+        <span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#15803D" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+          کارکرد مطمئن ساعت و داروها حتی هنگام قطعی اینترنت
+        </span>
+      </div>
+    </div>
+
+    <div class="hero-visual-side">
+      <div class="hero-visual-card">
+        <picture>
+          <source srcset="{% static 'landing/images/hero-tab.webp' %}" type="image/webp">
+          <img src="{% static 'landing/images/hero-tab.png' %}" alt="رابط کاربری واقعی هاب سایدا روی تبلت سامسونگ" class="hero-img" width="560" height="420" loading="eager">
+        </picture>
+        <div class="hero-caption">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+          <span>تصویر زنده از هاب رومیزی — اجراشده روی تبلت سامسونگ Galaxy Tab S2</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- B. The Problem and The Value -->
+<section class="value-section" id="value">
+  <div class="container">
+    <div class="section-header">
+      <span class="section-tag">چرا یارا متولد شد؟</span>
+      <h2 class="section-title">مراقبت عاشقانه، بدون نگرانی و فرسایش روزمره</h2>
+      <p class="section-subtitle">
+        بسیاری از ما نگران فراموش شدن یک قرص ساده یا احوال روزمرهٔ والدینمان هستیم؛ 
+        اما نمی‌خواهیم با تماس‌های پی‌درپی و اضطراب‌آور، حس استقلال و آرامش آن‌ها را کم‌رنگ کنیم.
+      </p>
+    </div>
+
+    <div class="value-grid">
+      <div class="value-card">
+        <div class="value-icon-box" aria-hidden="true">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
+        </div>
+        <h3>یادآوری به‌موقع، بدون هیاهو</h3>
+        <p>
+          نوبت‌های دارویی سر ساعت، با خط درشت و صدایی آرام یادآوری می‌شوند. 
+          دیگر نه دارویی جا می‌ماند و نه نیازی به زنگ‌زدن‌های مکرر و خسته‌کننده در طول روز است.
+        </p>
+      </div>
+
+      <div class="value-card">
+        <div class="value-icon-box" aria-hidden="true">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        </div>
+        <h3>همدلی خانواده بدون حس کنترل</h3>
+        <p>
+          اعضای خانواده وضعیت مصرف و روند روزانه را روی گوشی خود می‌بینند، 
+          بدون آنکه سالمند احساس کند کسی از دور مراقب تک‌تک کارهای اوست یا خلوت او به هم خورده است.
+        </p>
+      </div>
+
+      <div class="value-card">
+        <div class="value-icon-box" aria-hidden="true">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+        </div>
+        <h3>ساده و صمیمی، مثل رادیوی خانگی</h3>
+        <p>
+          صفحه‌ای روشن با ساعت و تقویم واضح. سالمند نیازی به یادگیری منوهای پیچیده ندارد؛ 
+          تنها با یک لمس ملایم، تأیید می‌کند که داروی خود را میل کرده است.
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- C. Product Capabilities with Authentic Screenshots -->
+<section class="capabilities-section" id="capabilities">
+  <div class="container">
+    <div class="section-header">
+      <span class="section-tag">بخش‌های واقعی سامانه</span>
+      <h2 class="section-title">دیدن واقعیت محصولات یارا</h2>
+      <p class="section-subtitle">
+        تصاویر زیر عکس‌های واقعی از نسخهٔ نهایی است که مستقیماً از تبلت هاب و گوشی اعضای خانواده ثبت شده‌اند.
+      </p>
+    </div>
+
+    <!-- Feature 1: Elder Hub Overview (Tab S2) -->
+    <div class="feature-block">
+      <div class="feature-text-side">
+        <span class="feature-badge">هاب خانگی — تبلت Galaxy Tab S2</span>
+        <h3 class="feature-title">همراه رومیزی سالمند؛ همیشه بیدار و باوقار</h3>
+        <p class="feature-desc">
+          دستگاه در جایی آرام از خانه، مثل میز کنار تخت یا پذیرایی قرار می‌گیرد. ساعت بزرگ و تاریخ شمسی همیشه پیش چشم سالمند است. هنگام نوبت دارو، هاب به آرامی به او یادآوری می‌کند و سالمند تنها با فشردن یک دکمهٔ بزرگ مصرف دارو را اعلام می‌کند.
+        </p>
+        <ul class="feature-points">
+          <li>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            <span>نوشته‌های درشت با کنتراست بالا برای راحتی چشم والدین</span>
+          </li>
+          <li>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            <span>کارکرد کاملاً مستقل ساعت و آلارم‌ها، حتی اگر اینترنت خانه برای روزها قطع باشد</span>
+          </li>
+          <li>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            <span>محیط امن و قفل‌شده برای جلوگیری از دستکاری ناخواسته یا بسته‌شدن برنامه</span>
+          </li>
+        </ul>
+      </div>
+
+      <div class="feature-visual-side">
+        <div class="device-frame-card tablet-frame">
+          <picture>
+            <source srcset="{% static 'landing/images/screenshots/hub-tablet.webp' %}" type="image/webp">
+            <img src="{% static 'landing/images/screenshots/hub-tablet.png' %}" alt="رابط کاربری زنده هاب سایدا روی تبلت" width="540" height="405" loading="lazy">
+          </picture>
+          <div class="device-frame-meta">
+            <span>عکس زنده از هاب رومیزی</span>
+            <span>مدل سامسونگ Galaxy Tab S2 (نسبت ۴:۳)</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Feature 2: Family Reassurance & Experience (A31) -->
+    <div class="feature-block reversed">
+      <div class="feature-text-side">
+        <span class="feature-badge">برنامهٔ خانواده — گوشی Galaxy A31</span>
+        <h3 class="feature-title">آرامش خاطر اعضای خانواده، با حفظ کرامت عزیزانتان</h3>
+        <p class="feature-desc">
+          برنامهٔ خانواده به گونه‌ای طراحی شده که پل ارتباطی میان شما و عزیز سالخورده‌تان باشد. هدف آن همراهی مداوم بدون ایجاد استرس یا حس نظارت سنگین است، تا سالمند با عزت در خانهٔ خود زندگی کند و شما نیز آرامش خیال داشته باشید.
+        </p>
+        <ul class="feature-points">
+          <li>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            <span>مراقبت باوقار و همراهی بدون احساس نظارت تحمیلی</span>
+          </li>
+          <li>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            <span>کاهش اضطراب دوری برای فرزندان شاغل یا دور از منزل</span>
+          </li>
+          <li>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            <span>آگاهی مداوم از احوال روزمره با احترام کامل به حریم شخصی</span>
+          </li>
+        </ul>
+      </div>
+
+      <div class="feature-visual-side">
+        <div class="device-frame-card phone-frame">
+          <picture>
+            <source srcset="{% static 'landing/images/screenshots/family-discovery-a31.webp' %}" type="image/webp">
+            <img src="{% static 'landing/images/screenshots/family-discovery-a31.png' %}" alt="رابط کاربری واقعی برنامه خانواده روی گوشی سامسونگ A31" width="300" height="666" loading="lazy">
+          </picture>
+          <div class="device-frame-meta">
+            <span>عکس زنده از برنامهٔ خانواده</span>
+            <span>سامسونگ Galaxy A31</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Feature 3: Contacts & Calling (A31) -->
+    <div class="feature-block">
+      <div class="feature-text-side">
+        <span class="feature-badge">گفتگو و ارتباط — گوشی Galaxy A31</span>
+        <h3 class="feature-title">تماس و گفتگو با هاب خانه، تنها با یک اشاره</h3>
+        <p class="feature-desc">
+          از داخل برنامه می‌توانید مستقیماً با هاب عزیزتان ارتباط برقرار کنید؛ پیام صوتی، تصویر یا پیام متنی محبت‌آمیز بفرستید یا تماس برقرار کنید. مخاطبان مورد اعتماد خانواده نیز در این بخش مدیریت می‌شوند.
+        </p>
+        <ul class="feature-points">
+          <li>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            <span>ارسال پیام‌های متنی، صوتی و دلگرمی‌های خانوادگی به تبلت سالمند</span>
+          </li>
+          <li>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            <span>مشخص کردن مخاطبان اصلی و امین خانواده برای دسترسی سریع</span>
+          </li>
+          <li>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            <span>امکان برقراری تماس تصویری و صوتی ساده و شفاف</span>
+          </li>
+        </ul>
+      </div>
+
+      <div class="feature-visual-side">
+        <div class="device-frame-card phone-frame">
+          <picture>
+            <source srcset="{% static 'landing/images/screenshots/family-contacts-a31.webp' %}" type="image/webp">
+            <img src="{% static 'landing/images/screenshots/family-contacts-a31.png' %}" alt="صفحه تماس و گفتگوی برنامه خانواده روی گوشی A31" width="300" height="666" loading="lazy">
+          </picture>
+          <div class="device-frame-meta">
+            <span>عکس زنده از بخش تماس و گفتگو</span>
+            <span>سامسونگ Galaxy A31</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Feature 4: Device Health & Management (A31) -->
+    <div class="feature-block reversed">
+      <div class="feature-text-side">
+        <span class="feature-badge">مدیریت دستگاه‌ها — گوشی Galaxy A31</span>
+        <h3 class="feature-title">اطمینان از شارژ باتری و پایداری دستگاه</h3>
+        <p class="feature-desc">
+          لازم نیست حدس بزنید که دستگاه سالمند روشن است یا به شارژ متصل مانده. بخش دستگاه‌ها در برنامهٔ خانواده به شما نشان می‌دهد که هاب متصل است، چقدر شارژ دارد و آخرین تبادل اطلاعات در چه ساعتی انجام شده است.
+        </p>
+        <ul class="feature-points">
+          <li>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            <span>مشاهدهٔ آنلاین بودن و آخرین زمان تبادل اطلاعات با دستگاه منزل</span>
+          </li>
+          <li>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            <span>آگاهی از میزان شارژ باتری برای پیشگیری از خاموش شدن دستگاه</span>
+          </li>
+          <li>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            <span>راهنمای گام‌به‌گام و ساده در صورت بروز هرگونه مشکل در اتصال</span>
+          </li>
+        </ul>
+      </div>
+
+      <div class="feature-visual-side">
+        <div class="device-frame-card phone-frame">
+          <picture>
+            <source srcset="{% static 'landing/images/screenshots/family-devices-a31.webp' %}" type="image/webp">
+            <img src="{% static 'landing/images/screenshots/family-devices-a31.png' %}" alt="صفحه وضعیت دستگاه‌ها در برنامه خانواده روی گوشی A31" width="300" height="666" loading="lazy">
+          </picture>
+          <div class="device-frame-meta">
+            <span>عکس زنده از پایش دستگاه‌ها</span>
+            <span>سامسونگ Galaxy A31</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- D. How It Works -->
+<section class="how-it-works-section" id="how-it-works">
+  <div class="container">
+    <div class="section-header">
+      <span class="section-tag">مسیر شروع</span>
+      <h2 class="section-title">راه‌اندازی یارا در ۳ مرحلهٔ آسان</h2>
+      <p class="section-subtitle">
+        همه‌چیز برای این طراحی شده که بدون دردسر و بدون نیاز به تنظیمات پیچیده کار کند.
+      </p>
+    </div>
+
+    <div class="steps-grid">
+      <div class="step-card">
+        <span class="step-number">۱</span>
+        <h3>قرار دادن هاب روی میز منزل</h3>
+        <p>
+          تبلت هاب را به برق متصل کرده و روی میز اتاق یا پذیرایی قرار می‌دهید. تبلت به اینترنت وای‌فای خانه وصل می‌شود و ساعت و تاریخ شمسی را نمایش می‌دهد.
+        </p>
+      </div>
+
+      <div class="step-card">
+        <span class="step-number">۲</span>
+        <h3>تنظیم برنامه در گوشی فرزندان</h3>
+        <p>
+          برنامهٔ خانواده را روی گوشی خود باز می‌کنید، نوبت‌های دارویی یا یادآوری‌های روزانه را وارد می‌نمایید. برنامه به صورت خودکار با هاب هماهنگ می‌شود.
+        </p>
+      </div>
+
+      <div class="step-card">
+        <span class="step-number">۳</span>
+        <h3>همراهی آرام در روزهای زندگی</h3>
+        <p>
+          سالمند یادآوری را با نوشته‌های درشت می‌بیند و با یک اشاره اعلام مصرف می‌کند. شما هم روی گوشی‌تان از حال او مطمئن می‌شوید.
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- E. Product Ecosystem -->
+<section class="value-section" id="ecosystem" style="background-color: var(--color-bg-page);">
+  <div class="container">
+    <div class="section-header">
+      <span class="section-tag">اجزای هماهنگ</span>
+      <h2 class="section-title">زیست‌بوم مراقبت یارا چگونه کار می‌کند؟</h2>
+      <p class="section-subtitle">
+        ترکیب یک دستگاه رومیزی آرام در خانه و یک برنامهٔ کاربردی روی گوشی همراه مراقبان.
+      </p>
+    </div>
+
+    <div class="value-grid">
+      <div class="value-card" style="background:#FFFFFF;">
+        <div class="value-icon-box" style="background-color: var(--color-green-light); color: var(--color-green-dark);" aria-hidden="true">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+        </div>
+        <h3>هاب رومیزی (Hub)</h3>
+        <p>
+          محیط کاربری ویژهٔ سالمندان بر روی تبلت؛ با ساعت بزرگ، تاریخ شمسی، زبان فارسی روان و پایداری کامل هنگام قطعی اینترنت.
+        </p>
+      </div>
+
+      <div class="value-card" style="background:#FFFFFF;">
+        <div class="value-icon-box" style="background-color: var(--color-blue-light); color: var(--color-blue-accent);" aria-hidden="true">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+        </div>
+        <h3>برنامهٔ خانواده (Family App)</h3>
+        <p>
+          برنامهٔ گوشی برای مراقبان جهت وارد کردن داروها، پیگیری وضعیت روزمره، برقراری تماس و هماهنگی میان اعضای خانواده.
+        </p>
+      </div>
+
+      <div class="value-card" style="background:#FFFFFF;">
+        <div class="value-icon-box" style="background-color: #FEF3C7; color: #B45309;" aria-hidden="true">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+        </div>
+        <h3>زیرساخت امن و پایدار</h3>
+        <p>
+          سرورهای امن برای ارتباط سریع و رمزنگاری‌شده میان تبلت منزل و گوشی‌های خانواده، با تضمین کامل حفظ محرمانگی داده‌ها.
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- F. Trust and Privacy -->
+<section class="trust-section" id="trust">
+  <div class="container">
+    <div class="trust-box">
+      <div class="trust-grid">
+        <div class="trust-content">
+          <span class="section-tag">صداقت و شفافیت</span>
+          <h2>امانت‌داری داده‌ها و مرزهای عملکرد یارا</h2>
+          <p>
+            اعتماد، باارزش‌ترین دارایی میان ما و خانواده‌ها است. اطلاعات عزیزان شما امانت است و تنها برای بهبود مراقبت در جمع خانواده‌تان استفاده می‌شود.
+          </p>
+
+          <div class="disclaimer-alert" role="note">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            <div>
+              <strong>سلب مسئولیت پزشکی:</strong>
+              سایدا یک سامانه همراه مراقبت خانوادگی است؛ دستگاه پزشکی، سامانهٔ تشخیص بیماری یا جایگزین خدمات اورژانس و توصیه‌های پزشک معالج نیست.
+            </div>
+          </div>
+        </div>
+
+        <div class="trust-points-list">
+          <div class="trust-point-item">
+            <div class="trust-icon" aria-hidden="true">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            </div>
+            <div>
+              <h4>ارتباط امن و محرمانه</h4>
+              <p>تمام تبادل اطلاعات میان تبلت و برنامه با پروتکل‌های استاندارد امنیتی محافظت می‌شود.</p>
+            </div>
+          </div>
+
+          <div class="trust-point-item">
+            <div class="trust-icon" aria-hidden="true">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            </div>
+            <div>
+              <h4>اطلاعات شما نزد ما امانت است</h4>
+              <p>اطلاعات خانواده به هیچ شرکت تبلیغاتی یا طرف سومی داده نمی‌شود و کاملاً خصوصی می‌ماند.</p>
+            </div>
+          </div>
+
+          <div class="trust-point-item">
+            <div class="trust-icon" aria-hidden="true">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m4.93 4.93 4.24 4.24"/><path d="m14.83 9.17 4.24-4.24"/><path d="m14.83 14.83 4.24 4.24"/><path d="m9.17 14.83-4.24 4.24"/></svg>
+            </div>
+            <div>
+              <h4>حفظ حریم خانه و استقلال سالمند</h4>
+              <p>یارا حس سرباری یا بازجویی ایجاد نمی‌کند؛ هدف آن همراهی آرام در بستر زندگی طبیعی است.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- G. Download Section -->
+<section class="download-section" id="download">
+  <div class="container">
+    <div class="download-wrapper">
+      <span class="section-tag">دریافت برنامه</span>
+      <h2 class="section-title">برنامهٔ همراه خانواده</h2>
+      <p class="section-subtitle">
+        برای نصب برنامه روی گوشی‌های اندرویدی اعضای خانواده، از کانال‌های رسمی زیر استفاده کنید.
+      </p>
+
+      <div class="download-cards-grid">
+        <!-- Bazaar -->
+        <div class="store-card {% if not channels.bazaar.available %}disabled{% endif %}">
+          <div class="store-icon-wrap" aria-hidden="true">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+          </div>
+          <span class="store-name">{{ channels.bazaar.name }}</span>
+          <span class="store-status">{{ channels.bazaar.status_label }}</span>
+        </div>
+
+        <!-- Myket -->
+        <div class="store-card {% if not channels.myket.available %}disabled{% endif %}">
+          <div class="store-icon-wrap" aria-hidden="true">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          </div>
+          <span class="store-name">{{ channels.myket.name }}</span>
+          <span class="store-status">{{ channels.myket.status_label }}</span>
+        </div>
+
+        <!-- Google Play -->
+        <div class="store-card {% if not channels.google_play.available %}disabled{% endif %}">
+          <div class="store-icon-wrap" aria-hidden="true">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 3 18 9-18 9V3z"/></svg>
+          </div>
+          <span class="store-name">{{ channels.google_play.name }}</span>
+          <span class="store-status">{{ channels.google_play.status_label }}</span>
+        </div>
+      </div>
+
+      <div style="margin-top: 36px; font-size: 0.95rem; color: var(--color-text-light);">
+        <span>سوالی دربارهٔ نصب برنامه یا تهیه هاب دارید؟ </span>
+        <a href="mailto:{{ support.email }}" style="color: var(--color-blue-accent); font-weight: 600; text-decoration: none;">با پشتیبانی یارا گفتگو کنید</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- H. FAQ Section -->
+<section class="faq-section" id="faq">
+  <div class="container">
+    <div class="section-header">
+      <span class="section-tag">پرسش‌های پرتکرار</span>
+      <h2 class="section-title">پاسخ به سوالات متداول خانواده‌ها</h2>
+      <p class="section-subtitle">
+        پاسخ‌های شفاف و ساده به پرسش‌هایی که ممکن است برای شما پیش بیاید.
+      </p>
+    </div>
+
+    <div class="faq-list">
+      <div class="faq-item">
+        <button class="faq-question" type="button" aria-expanded="false">
+          <span>برنامهٔ خانواده روی چه گوشی‌هایی نصب می‌شود؟</span>
+          <span class="faq-icon" aria-hidden="true">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </span>
+        </button>
+        <div class="faq-answer">
+          <p>
+            برنامهٔ خانواده روی تمامی گوشی‌های اندرویدی (نسخهٔ ۷.۰ و بالاتر) به راحتی نصب می‌شود. تبلت هاب خانگی نیز برای صفحه‌نمایش‌های ۷ اینچی و بزرگ‌تر مانند مدل‌های سامسونگ بهینه‌سازی شده است.
+          </p>
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-question" type="button" aria-expanded="false">
+          <span>اگر اینترنت خانه قطع شود، یادآوری داروها کار می‌کند؟</span>
+          <span class="faq-icon" aria-hidden="true">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </span>
+        </button>
+        <div class="faq-answer">
+          <p>
+            بله، کاملاً. یارا از پایه به صورت «آفلاین اول» ساخته شده است. بعد از وارد کردن داروها، تمام زمان‌بندی‌ها روی حافظهٔ خود تبلت ذخیره می‌شوند. حتی اگر اینترنت خانه روزها قطع باشد، ساعت و زنگ یادآوری‌ها دقیقاً سر موعد به صدا درمی‌آیند. وقتی اینترنت دوباره وصل شود، گزارش‌ها با گوشی شما هماهنگ می‌گردند.
+          </p>
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-question" type="button" aria-expanded="false">
+          <span>آیا چند فرزند می‌توانند هم‌زمان وضعیت والدین را ببینند؟</span>
+          <span class="faq-icon" aria-hidden="true">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </span>
+        </button>
+        <div class="faq-answer">
+          <p>
+            بله. خواهران و برادران یا مراقبان می‌توانند با دعوت سرپرست خانواده، به پروندهٔ سالمند دسترسی پیدا کنند تا همه در جریان نوبت‌ها و وضعیت روزمره قرار گیرند و بار مراقبت میان فرزندان تقسیم شود.
+          </p>
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-question" type="button" aria-expanded="false">
+          <span>آیا کار با تبلت برای سالمندی که با گوشی راحت نیست، سخت نیست؟</span>
+          <span class="faq-icon" aria-hidden="true">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </span>
+        </button>
+        <div class="faq-answer">
+          <p>
+            خیر؛ اصل طراحی یارا همین است که سالمند نیازی به کار کردن با منوهای پیچیده نداشته باشد. هیچ رمز یا تنظیماتی از سالمند پرسیده نمی‌شود. نوشته‌ها بسیار بزرگ و خوانا هستند و اعلام مصرف دارو فقط با لمس یک کلید انجام می‌شود.
+          </p>
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-question" type="button" aria-expanded="false">
+          <span>آیا یارا یک دستگاه پزشکی یا اورژانس است؟</span>
+          <span class="faq-icon" aria-hidden="true">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </span>
+        </button>
+        <div class="faq-answer">
+          <p>
+            خیر. یارا یک دستیار کمکی و آرامش‌بخش خانگی برای نظم دارویی و هماهنگی خانواده است. این سامانه جایگزین نظر پزشک متخصص، تجهیزات پایش بیمارستانی یا تماس فوری با اورژانس (۱۱۵) نیست.
+          </p>
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-question" type="button" aria-expanded="false">
+          <span>چطور می‌توانم با پشتیبانی یارا گفتگو کنم؟</span>
+          <span class="faq-icon" aria-hidden="true">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </span>
+        </button>
+        <div class="faq-answer">
+          <p>
+            همکاران ما از طریق نشانی ایمیل {{ support.email }} آمادهٔ پاسخگویی به پرسش‌ها و راهنمایی شما در مراحل راه‌اندازی هستند.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

@@ -89,7 +89,7 @@ interface AssetMetadata {
 
 const ASSET_META: Record<SemanticProductAssetId, AssetMetadata> = {
   "yara-hub-hero": {
-    label: "هاب یارا",
+    label: "هاب سایدا",
     accentColor: colors.primary,
     primaryIcon: "hub",
     defaultResizeMode: "contain",
@@ -103,7 +103,7 @@ const ASSET_META: Record<SemanticProductAssetId, AssetMetadata> = {
     bgColor: "#EAE7DF",
   },
   "yara-hub-ui": {
-    label: "نمایشگر هاب یارا",
+    label: "نمایشگر هاب سایدا",
     accentColor: colors.primary,
     primaryIcon: "hub",
     defaultResizeMode: "contain",
@@ -124,7 +124,7 @@ const ASSET_META: Record<SemanticProductAssetId, AssetMetadata> = {
     bgColor: "#EAE7DF",
   },
   "yara-wearable-hero": {
-    label: "دستبند سلامت یارا",
+    label: "دستبند سلامت سایدا",
     accentColor: colors.secondary,
     primaryIcon: "walking",
     defaultResizeMode: "contain",
@@ -138,7 +138,7 @@ const ASSET_META: Record<SemanticProductAssetId, AssetMetadata> = {
     bgColor: "#EAE7DF",
   },
   "yara-care-bundle": {
-    label: "بسته مراقبت یارا",
+    label: "بسته مراقبت سایدا",
     accentColor: colors.primary,
     primaryIcon: "hub",
     secondaryIcons: ["pillbox"],
@@ -146,7 +146,7 @@ const ASSET_META: Record<SemanticProductAssetId, AssetMetadata> = {
     bgColor: "#E6DCCE",
   },
   "yara-care-plus-bundle": {
-    label: "بسته مراقبت پلاس یارا",
+    label: "بسته مراقبت پلاس سایدا",
     accentColor: colors.secondary,
     primaryIcon: "hub",
     secondaryIcons: ["pillbox", "walking"],
@@ -162,7 +162,7 @@ const ASSET_META: Record<SemanticProductAssetId, AssetMetadata> = {
     bgColor: "#EAE7DF",
   },
   "yara-full-ecosystem": {
-    label: "اکوسیستم کامل یارا",
+    label: "اکوسیستم کامل سایدا",
     accentColor: colors.secondary,
     primaryIcon: "hub",
     secondaryIcons: ["pillbox", "walking"],
@@ -170,7 +170,7 @@ const ASSET_META: Record<SemanticProductAssetId, AssetMetadata> = {
     bgColor: "#EAE7DF",
   },
   "yara-marketplace-hero": {
-    label: "زیست‌بوم مراقبت سالمند یارا",
+    label: "زیست‌بوم مراقبت سالمند سایدا",
     accentColor: colors.primary,
     primaryIcon: "hub",
     secondaryIcons: ["pillbox", "walking"],

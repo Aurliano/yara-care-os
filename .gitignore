@@ -40,3 +40,8 @@ media/
 # OS
 .DS_Store
 Thumbs.db
+
+# Keystores & Release Backups
+*.jks
+release-backups-*/
+!apps/family/android/app/debug.keystore

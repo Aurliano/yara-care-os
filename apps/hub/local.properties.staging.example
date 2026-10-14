@@ -6,17 +6,19 @@
 ## برای اعمال روی دستگاه/شبیه‌ساز، مقادیر آن را در apps/hub/local.properties قرار دهید.
 ## توجه: فایل apps/hub/local.properties و مشتقات محلی آن در .gitignore قرار دارند.
 ##
-## 1. آدرس Backend استیجینگ (سرویس‌شده توسط محیط yara_staging)
+## 1. آدرس Backend استیجینگ (سرویس‌شده توسط محیط yara_staging روی لیارا)
+## - آدرس عمومی HTTPS محیط Staging:
+hub.backend.url=https://yara-care-staging.liara.run/api/v1/
 ## - برای تبلت فیزیکی هاب در شبکه اختصاصی/آزمایشگاه (Physical QA over LAN):
-hub.backend.url=http://10.254.230.230:8000/api/v1/
+## hub.backend.url=http://10.254.230.230:8000/api/v1/
 ## - برای شبیه‌ساز اندروید (Android Emulator):
 ## hub.backend.url=http://10.0.2.2:8000/api/v1/
 
 ## 2. مشخصات احراز هویت اولیه (Provisioning) در محیط Staging
-## اطلاعات حساب کاربری Caregiver که در yara_staging آماده‌سازی شده است
-## (به عنوان نمونه پس از اجرای seed_family_lab در محیط staging)
-hub.provision.phone=+989121111111
-## رمز عبور کاربر مراقب را از مستندات seed_family_lab یا مدیریت رمز تیم وارد کنید:
+## اطلاعات حساب کاربری Caregiver که در yara_staging برای تبلت هاب آماده‌سازی شده است
+## (منطبق با دستور seed_hub_provision در محیط backend)
+hub.provision.phone=+989136666666
+## رمز عبور کاربر مراقب را از مستندات seed_hub_provision یا مدیریت رمز تیم وارد کنید:
 hub.provision.password=<STAGING_CAREGIVER_PASSWORD>
 
 ## 3. آدرس سرور WebRTC / LiveKit محیط Staging

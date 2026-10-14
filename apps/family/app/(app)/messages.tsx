@@ -500,7 +500,7 @@ export default function MessagesScreen() {
         : lastMsg.message_type === "VIDEO"
         ? "🎥 ویدیو"
         : "🎙️ پیام صوتی"
-      : "ارتباط مستقیم با تبلت یارا";
+      : "ارتباط مستقیم با تبلت سایدا";
 
     const lastMsgTime = lastMsg?.created_at
       ? toPersianDigits(formatClock(lastMsg.created_at))
@@ -527,7 +527,7 @@ export default function MessagesScreen() {
               setSelectedChat({
                 id: "elder",
                 title: elderName,
-                subtitle: "تبلت یارا • آنلاین",
+                subtitle: "تبلت سایدا • آنلاین",
                 isElder: true,
               });
               isNearBottomRef.current = true;
@@ -619,7 +619,7 @@ export default function MessagesScreen() {
                         ) : null}
                       </View>
                       <AppText variant="caption" color={colors.textSecondary} style={styles.contactPhone}>
-                        {contact.phone || "مخاطب تبلت یارا"}
+                        {contact.phone || "مخاطب تبلت سایدا"}
                       </AppText>
                     </View>
                     <AppText variant="label" color="#8696A0" style={styles.chevron}>

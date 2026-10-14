@@ -25,10 +25,16 @@ jest.mock("react-native-safe-area-context", () => {
 
 jest.mock("react-native-svg", () => {
   const React = require("react");
+  const Svg = ({ children, ...props }: any) => React.createElement("Svg", props, children);
   return {
+    __esModule: true,
+    default: Svg,
+    Svg,
     SvgXml: (props: any) => React.createElement("SvgXml", props),
-    Svg: ({ children, ...props }: any) => React.createElement("Svg", props, children),
     Path: (props: any) => React.createElement("Path", props),
+    Defs: ({ children, ...props }: any) => React.createElement("Defs", props, children),
+    LinearGradient: ({ children, ...props }: any) => React.createElement("LinearGradient", props, children),
+    Stop: (props: any) => React.createElement("Stop", props),
   };
 });
 

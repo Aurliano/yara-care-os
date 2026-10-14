@@ -2,9 +2,16 @@
 
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
+from common.phone import normalize_phone
+
 
 class PhoneTokenObtainPairSerializer(TokenObtainPairSerializer):
     username_field = "phone"
+
+    def validate(self, attrs):
+        if "phone" in attrs:
+            attrs["phone"] = normalize_phone(attrs["phone"])
+        return super().validate(attrs)
 
     @classmethod
     def get_token(cls, user):
