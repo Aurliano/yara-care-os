@@ -41,6 +41,9 @@ media/
 .DS_Store
 Thumbs.db
 
+# Release artifacts
+/release/
+
 # Keystores & Release Backups
 *.jks
 release-backups-*/
