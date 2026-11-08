@@ -2,7 +2,7 @@ import { Pressable, StyleSheet, View } from "react-native";
 import { useRouter } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
 import { queryKeys } from "../../../src/api/queryKeys";
-import { isPermissionDenied } from "../../../src/api/errors";
+import { isPermissionDenied, getAppErrorDisplay } from "../../../src/api/errors";
 import {
   AppText,
   Avatar,
@@ -37,9 +37,26 @@ export default function HomeScreen() {
     queryFn: () => composeDashboard(elderId as string),
     enabled: Boolean(elderId),
   });
+  const handleRefetch = () => {
+    void query.refetch();
+  };
 
   if (!permissionsPending && !can(PERMISSIONS.VIEW_ELDER_STATUS)) {
     return <PermissionDenied />;
+  }
+
+  if (!elderId) {
+    return (
+      <Screen>
+        <TopAppBar />
+        <EmptyState
+          title={t.noElderTitle}
+          body={t.noElderBody}
+          actionLabel={t.setupElder}
+          onAction={() => router.push("/(auth)/create-elder")}
+        />
+      </Screen>
+    );
   }
 
   if (query.isPending) {
@@ -56,17 +73,32 @@ export default function HomeScreen() {
   }
 
   if (query.isError && !query.data) {
+    const errorDisplay = getAppErrorDisplay(query.error);
     return (
       <Screen>
         <TopAppBar />
-        <ErrorState onRetry={() => void query.refetch()} />
+        <ErrorState
+          title={errorDisplay.title}
+          body={errorDisplay.body}
+          onRetry={() => void query.refetch()}
+        />
       </Screen>
     );
   }
 
   const data = query.data;
   if (!data) {
-    return null;
+    return (
+      <Screen>
+        <TopAppBar />
+        <EmptyState
+          title={t.empty}
+          body={t.errorBody}
+          actionLabel={t.retry}
+          onAction={handleRefetch}
+        />
+      </Screen>
+    );
   }
 
   const stale = query.isError || (query.isFetched && query.isStale && query.fetchStatus === "paused");

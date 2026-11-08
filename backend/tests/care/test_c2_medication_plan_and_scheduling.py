@@ -154,7 +154,8 @@ def test_specific_days_multi_dose_occurrence_generation():
 
 @pytest.mark.django_db
 def test_every_n_days_occurrence_generation():
-    start_at = _aware(datetime(2026, 10, 1, 0, 0, tzinfo=ZoneInfo("UTC")))
+    from datetime import timedelta
+    start_at = (timezone.now() + timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
     schedule = create_schedule(
         owner_reference="prescription:test-every-n",
         recurrence_definition={

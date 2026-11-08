@@ -12,6 +12,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from common.api.errors import domain_error_response
+from domains.care.enums import CareActivityStatus
 from domains.care.models import CareActivity, Prescription
 from domains.care.api.serializers import (
     CareActivityCreateSerializer,
@@ -129,6 +130,9 @@ class ElderCareActivityListCreateView(APIView):
             serializer = CareActivityCreateSerializer(data=request.data)
             serializer.is_valid(raise_exception=True)
             validated_data = serializer.validated_data
+            if not validated_data.get("workflow_definition_id"):
+                from domains.workflow.services.executions import get_canonical_medication_workflow_definition
+                validated_data["workflow_definition_id"] = get_canonical_medication_workflow_definition().id
             if idempotency_key:
                 confirmation_req = dict(validated_data.get("confirmation_requirement") or {})
                 confirmation_req["idempotency_key"] = idempotency_key
@@ -269,6 +273,9 @@ class ElderPrescriptionListCreateView(APIView):
             serializer = PrescriptionCreateSerializer(data=request.data)
             serializer.is_valid(raise_exception=True)
             validated_data = serializer.validated_data
+            if not validated_data.get("workflow_definition_id"):
+                from domains.workflow.services.executions import get_canonical_medication_workflow_definition
+                validated_data["workflow_definition_id"] = get_canonical_medication_workflow_definition().id
             if idempotency_key:
                 confirmation_req = dict(validated_data.get("confirmation_requirement") or {})
                 confirmation_req["idempotency_key"] = idempotency_key

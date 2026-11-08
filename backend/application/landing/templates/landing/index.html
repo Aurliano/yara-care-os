@@ -17,7 +17,7 @@
       </h1>
 
       <p class="hero-description">
-        یارا بدون پیچیدگی و سردرگمی، در گوشه‌ای از خانه کنار والدین می‌نشیند. 
+        سایدا بدون پیچیدگی و سردرگمی، در گوشه‌ای از خانه کنار والدین می‌نشیند. 
         زمان مصرف داروها را آرام و سر وقت یادآوری می‌کند و خیال فرزندان را از راه دور راحت نگه می‌دارد؛ 
         فناوری ساده‌ای که به چشم نمی‌آید، اما بودنش مایهٔ دلگرمی است.
       </p>
@@ -59,7 +59,7 @@
 <section class="value-section" id="value">
   <div class="container">
     <div class="section-header">
-      <span class="section-tag">چرا یارا متولد شد؟</span>
+      <span class="section-tag">چرا سایدا متولد شد؟</span>
       <h2 class="section-title">مراقبت عاشقانه، بدون نگرانی و فرسایش روزمره</h2>
       <p class="section-subtitle">
         بسیاری از ما نگران فراموش شدن یک قرص ساده یا احوال روزمرهٔ والدینمان هستیم؛ 
@@ -109,13 +109,13 @@
   <div class="container">
     <div class="section-header">
       <span class="section-tag">بخش‌های واقعی سامانه</span>
-      <h2 class="section-title">دیدن واقعیت محصولات یارا</h2>
+      <h2 class="section-title">دیدن واقعیت محصولات سایدا</h2>
       <p class="section-subtitle">
         تصاویر زیر عکس‌های واقعی از نسخهٔ نهایی است که مستقیماً از تبلت هاب و گوشی اعضای خانواده ثبت شده‌اند.
       </p>
     </div>
 
-    <!-- Feature 1: Yara Full Ecosystem -->
+    <!-- Feature 1: Sayda Full Ecosystem -->
     <div class="feature-block">
       <div class="feature-text-side">
         <span class="feature-badge">زیست‌بوم جامع — هاب خانگی و تجهیزات همراه</span>
@@ -253,12 +253,286 @@
   </div>
 </section>
 
-<!-- D. How It Works -->
+<!-- D. Products & Hardware Catalog Section -->
+<section class="products-section" id="products">
+  <div class="container">
+    <div class="section-header">
+      <span class="section-tag">کاتالوگ تجهیزات و محصولات</span>
+      <h2 class="section-title">زیست‌بوم مراقبت و آرامش سایدا</h2>
+      <p class="section-subtitle">
+        تجهیزات فیزیکی سایدا با هدف حفظ استقلال و کرامت سالمندان و آسایش خاطر خانواده‌ها طراحی شده‌اند. 
+        بدون پیچیدگی‌های فناوری، سازگار با محیط خانه و آماده برای سفارش مستقیم.
+      </p>
+    </div>
+
+    <div class="products-grid">
+      {% for product in products %}
+      <article class="product-card" id="{{ product.id }}">
+        <div class="product-visual">
+          <picture>
+            <source srcset="{% static product.image_webp %}" type="image/webp">
+            <img src="{% static product.image_png %}" alt="{{ product.image_alt }}" loading="lazy" class="product-img">
+          </picture>
+          <span class="product-badge {{ product.badge_class }}">{{ product.badge_label }}</span>
+        </div>
+
+        <div class="product-body">
+          <div class="product-title-wrap">
+            <h3 class="product-title">{{ product.title }}</h3>
+            <span class="product-subtitle">{{ product.subtitle }}</span>
+          </div>
+
+          <p class="product-desc">{{ product.description }}</p>
+
+          <div class="product-pricing-box">
+            {% if product.price_original %}
+            <div class="pricing-original">{{ product.price_original }}</div>
+            {% endif %}
+            <div class="pricing-summary">{{ product.price_summary }}</div>
+            <div class="pricing-note">{{ product.price_note }}</div>
+          </div>
+
+          <div class="product-features">
+            <h4 class="features-label">قابلیت‌های برجسته:</h4>
+            <ul class="features-list">
+              {% for feat in product.features %}
+              <li>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+                <span>{{ feat }}</span>
+              </li>
+              {% endfor %}
+            </ul>
+          </div>
+
+          <div class="product-items-included">
+            <span class="items-label">اقلام همراه:</span>
+            <span class="items-text">{{ product.items_included|join:" • " }}</span>
+          </div>
+
+          <div class="product-actions">
+            {% if product.status == "available" %}
+            <button type="button" class="btn btn-primary product-cta-btn open-order-modal" data-product-title="{{ product.title }}">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+              {{ product.cta_label }}
+            </button>
+            <a href="mailto:{{ support.email }}?subject={{ product.cta_subject|urlencode }}" class="btn btn-secondary product-secondary-btn">
+              مشاوره مستقیم با ایمیل
+            </a>
+            {% else %}
+            <button type="button" class="btn btn-secondary product-cta-btn open-order-modal" data-product-title="{{ product.title }}">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+              {{ product.cta_label }}
+            </button>
+            {% endif %}
+          </div>
+        </div>
+      </article>
+      {% endfor %}
+    </div>
+
+    <!-- Free Tier Assurance Callout -->
+    <div class="free-tier-callout">
+      <div class="callout-icon-box" aria-hidden="true">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      </div>
+      <div class="callout-content">
+        <h4>استفاده رایگان از یادآور دارو در گوشی خانواده</h4>
+        <p>
+          اگر هنوز دستگاه هاب خانگی را تهیه نکرده‌اید، می‌توانید از امکانات یادآوری نوبت‌های دارو، ثبت گزارش مصرف و ساماندهی برنامه روزانه در خود اپلیکیشن مراقب خانواده به صورت کاملاً رایگان و نامحدود استفاده کنید.
+        </p>
+      </div>
+      <div class="callout-action">
+        <a href="#download" class="btn btn-secondary">دریافت رایگان اپ</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Pricing & Rental Plans Section -->
+<section class="pricing-section" id="pricing">
+  <div class="container">
+    <div class="section-header">
+      <span class="section-tag">تعرفه‌ها و طرح‌های همراهی</span>
+      <h2 class="section-title">شفاف، منعطف و متناسب با نیاز هر خانواده</h2>
+      <p class="section-subtitle">
+        امکان خرید دائمی دستگاه، اشتراک نرم‌افزاری یا اجاره مدت‌دار بر اساس روزهای دلخواه شما؛ بدون هزینه‌های پنهان.
+      </p>
+    </div>
+
+    <!-- Main Tier Showcase: Hub Hardware Purchase -->
+    <div class="pricing-highlight-card">
+      <div class="pricing-highlight-badge">خرید قطعی دستگاه با ۳ ماه اشتراک هدیه</div>
+      <div class="pricing-highlight-grid">
+        <div class="pricing-highlight-info">
+          <span class="pricing-item-category">دستگاه اختصاصی منزل سالمند</span>
+          <h3 class="pricing-highlight-title">{{ pricing.hub.title }}</h3>
+          <p class="pricing-highlight-desc">{{ pricing.hub.subtitle }}</p>
+          <ul class="pricing-feature-checklist">
+            {% for f in pricing.hub.features %}
+            <li>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              <span>{{ f }}</span>
+            </li>
+            {% endfor %}
+          </ul>
+        </div>
+        <div class="pricing-highlight-action-side">
+          <div class="pricing-discount-pill">{{ pricing.hub.discount_badge }}</div>
+          <div class="pricing-price-wrap">
+            <span class="price-strikethrough">{{ pricing.hub.original_price }} تومان</span>
+            <div class="price-main">
+              <span class="price-amount">{{ pricing.hub.price }}</span>
+              <span class="price-currency">تومان</span>
+            </div>
+          </div>
+          <p class="pricing-meta-note">شامل ۳ ماه اشتراک رایگان سامانه ابری و خدمات پشتیبانی</p>
+          <button type="button" class="btn btn-primary pricing-cta-btn open-order-modal" data-product-title="خرید همراه رومیزی سالمند (هاب سایدا)">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+            سفارش خرید هاب رومیزی
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Software Subscriptions Grid -->
+    <div class="pricing-sub-header">
+      <h3 class="pricing-sub-title">طرح‌های اشتراک نرم‌افزاری و پایش ابری</h3>
+      <p class="pricing-sub-desc">جهت همگام‌سازی تبلت خانه با اپلیکیشن فرزندان، تماس تصویری و ذخیره تاریخچه داروها.</p>
+    </div>
+
+    <div class="subscriptions-grid">
+      {% for sub in pricing.subscriptions %}
+      <div class="subscription-card {% if sub.badge %}featured{% endif %}">
+        {% if sub.badge %}
+        <span class="sub-card-badge">{{ sub.badge }}</span>
+        {% endif %}
+        <div class="sub-card-header">
+          <h4 class="sub-plan-name">{{ sub.title }}</h4>
+          <span class="sub-plan-duration">{{ sub.duration }}</span>
+        </div>
+        <div class="sub-price-wrap">
+          {% if sub.original_price %}
+          <span class="sub-price-strike">{{ sub.original_price }} تومان</span>
+          {% endif %}
+          <div class="sub-price-row">
+            <span class="sub-price-num">{{ sub.price }}</span>
+            <span class="sub-price-unit">تومان / {{ sub.period }}</span>
+          </div>
+          {% if sub.discount_label %}
+          <span class="sub-discount-tag">{{ sub.discount_label }}</span>
+          {% endif %}
+        </div>
+        <p class="sub-plan-desc">{{ sub.desc }}</p>
+        <ul class="sub-features-list">
+          {% for f in sub.features %}
+          <li>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            <span>{{ f }}</span>
+          </li>
+          {% endfor %}
+        </ul>
+        <button type="button" class="btn {% if sub.badge %}btn-primary{% else %}btn-secondary{% endif %} sub-cta-btn open-order-modal" data-product-title="اشتراک سایدا — {{ sub.title }}">
+          انتخاب و فعال‌سازی اشتراک
+        </button>
+      </div>
+      {% endfor %}
+    </div>
+
+    <!-- Interactive Rental Calculator -->
+    <div class="rental-calculator-card" id="rental-calc">
+      <div class="calculator-header">
+        <div class="calc-badge">طرح منعطف اجاره</div>
+        <h3 class="calc-title">ماشین‌حساب لحظه‌ای اجاره مدت‌دار دستگاه هاب</h3>
+        <p class="calc-subtitle">
+          اگر تمایل به خرید قطعی ندارید، می‌توانید دستگاه هاب رومیزی را برای هر مدت که نیاز دارید اجاره کنید. 
+          تعرفه روزانه اجاره دستگاه تنها ۶۰٪ بیشتر از اشتراک عادی روزانه است (روزی حدود ۳۴,۷۰۰ تومان) و شامل هاب کامل و اشتراک نامحدود است.
+        </p>
+      </div>
+
+      <div class="calculator-body">
+        <div class="calc-controls">
+          <label class="calc-label" for="rentalDaysInput">مدت زمان مورد نظر برای اجاره:</label>
+          <div class="calc-input-row">
+            <div class="input-with-unit">
+              <input type="number" id="rentalDaysInput" min="10" max="365" value="30" class="rental-number-input">
+              <span class="input-unit">روز</span>
+            </div>
+            <div class="quick-preset-pills">
+              <button type="button" class="preset-pill" data-days="15">۱۵ روز</button>
+              <button type="button" class="preset-pill active" data-days="30">۳۰ روز (۱ ماه)</button>
+              <button type="button" class="preset-pill" data-days="60">۶۰ روز (۲ ماه)</button>
+              <button type="button" class="preset-pill" data-days="90">۹۰ روز (۳ ماه)</button>
+              <button type="button" class="preset-pill" data-days="180">۱۸۰ روز (۶ ماه)</button>
+            </div>
+          </div>
+
+          <div class="slider-wrapper">
+            <input type="range" id="rentalDaysSlider" min="10" max="180" step="1" value="30" class="rental-range-slider" aria-label="انتخاب مدت اجاره به روز">
+            <div class="slider-labels">
+              <span>۱۰ روز</span>
+              <span>۶۰ روز</span>
+              <span>۱۲۰ روز</span>
+              <span>۱۸۰ روز</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="calc-result-box">
+          <div class="calc-result-tag">برآورد دقیق هزینه</div>
+          <div class="calc-result-price-row">
+            <span class="calc-result-label">هزینه کل اجاره:</span>
+            <div class="calc-result-amount-wrap">
+              <span class="calc-result-amount" id="rentalTotalAmount">۱,۰۴۰,۰۰۰</span>
+              <span class="calc-result-curr">تومان</span>
+            </div>
+          </div>
+          <div class="calc-result-details">
+            <div class="calc-detail-item">
+              <span>نرخ روزانه:</span>
+              <strong id="rentalDailyRate">۳۴,۶۶۷ تومان / روز</strong>
+            </div>
+            <div class="calc-detail-item">
+              <span>شامل:</span>
+              <span>دستگاه هاب + اشتراک کامل + پشتیبانی دائم</span>
+            </div>
+          </div>
+          <button type="button" class="btn btn-primary calc-cta-btn open-order-modal" id="rentalOrderBtn" data-product-title="اجاره هاب سایدا برای ۳۰ روز (۱,۰۴۰,۰۰۰ تومان)">
+            ثبت درخواست اجاره برای <span id="rentalDaysLabel">۳۰</span> روز
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Social Responsibility & Empathetic Callout -->
+    <div class="empathy-callout">
+      <div class="empathy-icon-box" aria-hidden="true">
+        <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>
+        </svg>
+      </div>
+      <div class="empathy-content">
+        <h3 class="empathy-title">در کنار شماییم؛ هیچ عزیزی نباید از آرامش مراقبت بازبماند</h3>
+        <p class="empathy-desc">
+          رسالت بنیادین سایدا، حفظ عزت و سلامتی بزرگ‌ترهای خانواده است. اگر برای مراقبت از عزیز سالخورده‌تان به امکانات سایدا نیاز دارید، اما در حال حاضر شرایط مالی تهیهٔ هاب رومیزی برای خانواده فراهم نیست، از صمیم قلب در کنارتان هستیم.
+          شما می‌توانید به‌صورت <strong>کاملاً رایگان و نامحدود</strong> از امکانات یادآور داروی سایدا در گوشی خود استفاده کنید، یا با پشتیبانی صمیمی ما گفتگو نمایید تا از طریق <strong>طرح‌های حمایتی، هاب‌های امانی و شرایط پرداخت منعطف</strong>، همراهی عزیزتان را بدون هیچ‌گونه دغدغه‌ای آغاز کنیم.
+        </p>
+        <div class="empathy-actions">
+          <button type="button" class="btn btn-secondary empathy-btn open-order-modal" data-product-title="درخواست طرح حمایتی و هماهنگی با پشتیبانی سایدا">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            گفتگو و هماهنگی با پشتیبانی سایدا
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- E. How It Works -->
 <section class="how-it-works-section" id="how-it-works">
   <div class="container">
     <div class="section-header">
       <span class="section-tag">مسیر شروع</span>
-      <h2 class="section-title">راه‌اندازی یارا در ۳ مرحلهٔ آسان</h2>
+      <h2 class="section-title">راه‌اندازی سایدا در ۳ مرحلهٔ آسان</h2>
       <p class="section-subtitle">
         همه‌چیز برای این طراحی شده که بدون دردسر و بدون نیاز به تنظیمات پیچیده کار کند.
       </p>
@@ -297,7 +571,7 @@
   <div class="container">
     <div class="section-header">
       <span class="section-tag">اجزای هماهنگ</span>
-      <h2 class="section-title">زیست‌بوم مراقبت یارا چگونه کار می‌کند؟</h2>
+      <h2 class="section-title">زیست‌بوم مراقبت سایدا چگونه کار می‌کند؟</h2>
       <p class="section-subtitle">
         ترکیب یک دستگاه رومیزی آرام در خانه و یک برنامهٔ کاربردی روی گوشی همراه مراقبان.
       </p>
@@ -344,7 +618,7 @@
       <div class="trust-grid">
         <div class="trust-content">
           <span class="section-tag">صداقت و شفافیت</span>
-          <h2>امانت‌داری داده‌ها و مرزهای عملکرد یارا</h2>
+          <h2>امانت‌داری داده‌ها و مرزهای عملکرد سایدا</h2>
           <p>
             اعتماد، باارزش‌ترین دارایی میان ما و خانواده‌ها است. اطلاعات عزیزان شما امانت است و تنها برای بهبود مراقبت در جمع خانواده‌تان استفاده می‌شود.
           </p>
@@ -385,7 +659,7 @@
             </div>
             <div>
               <h4>حفظ حریم خانه و استقلال سالمند</h4>
-              <p>یارا حس سرباری یا بازجویی ایجاد نمی‌کند؛ هدف آن همراهی آرام در بستر زندگی طبیعی است.</p>
+              <p>سایدا حس سرباری یا بازجویی ایجاد نمی‌کند؛ هدف آن همراهی آرام در بستر زندگی طبیعی است.</p>
             </div>
           </div>
         </div>
@@ -405,37 +679,59 @@
       </p>
 
       <div class="download-cards-grid">
-        <!-- Bazaar -->
-        <div class="store-card {% if not channels.bazaar.available %}disabled{% endif %}">
-          <div class="store-icon-wrap" aria-hidden="true">
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+        <!-- Cafe Bazaar (Active Official Store Link) -->
+        <a href="{{ channels.bazaar.url }}" target="_blank" rel="noopener noreferrer" class="store-card store-card-active" aria-label="دانلود مستقیم اپلیکیشن سایدا از کافه‌بازار">
+          <span class="store-corner-badge active-badge">نسخه رسمی</span>
+          <div class="store-icon-wrap bazaar-icon-bg" aria-hidden="true">
+            <!-- Authentic Cafe Bazaar Vector Logo -->
+            <svg width="40" height="40" viewBox="0 0 48 48" fill="none">
+              <path d="M10 16L13 40C13.2 41.1 14.1 42 15.2 42H32.8C33.9 42 34.8 41.1 35 40L38 16H10Z" fill="#18A957"/>
+              <path d="M17 16V12C17 8.1 20.1 5 24 5C27.9 5 31 8.1 31 12V16" stroke="#18A957" stroke-width="4.5" stroke-linecap="round"/>
+              <path d="M19 25C20.5 28 22.2 29.5 24 29.5C25.8 29.5 27.5 28 29 25" stroke="#FFFFFF" stroke-width="3.5" stroke-linecap="round"/>
+            </svg>
           </div>
           <span class="store-name">{{ channels.bazaar.name }}</span>
-          <span class="store-status">{{ channels.bazaar.status_label }}</span>
-        </div>
+          <span class="store-status store-status-active">{{ channels.bazaar.status_label }}</span>
+          <span class="store-cta-link">
+            دریافت از کافه‌بازار
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+          </span>
+        </a>
 
-        <!-- Myket -->
-        <div class="store-card {% if not channels.myket.available %}disabled{% endif %}">
-          <div class="store-icon-wrap" aria-hidden="true">
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+        <!-- Myket (Coming Soon) -->
+        <div class="store-card disabled">
+          <span class="store-corner-badge coming-badge">بزودی</span>
+          <div class="store-icon-wrap myket-icon-bg" aria-hidden="true">
+            <!-- Authentic Myket Vector Logo -->
+            <svg width="40" height="40" viewBox="0 0 48 48" fill="none">
+              <rect width="48" height="48" rx="12" fill="#0883FF"/>
+              <path d="M14 15.5C14 13.6 16.1 12.4 17.8 13.3L34 22.8C35.7 23.8 35.7 26.2 34 27.2L17.8 36.7C16.1 37.6 14 36.4 14 34.5V15.5Z" fill="#FFFFFF"/>
+              <path d="M22 18.5L31 25L22 31.5V18.5Z" fill="#0883FF" fill-opacity="0.25"/>
+            </svg>
           </div>
           <span class="store-name">{{ channels.myket.name }}</span>
           <span class="store-status">{{ channels.myket.status_label }}</span>
         </div>
 
-        <!-- Google Play -->
-        <div class="store-card {% if not channels.google_play.available %}disabled{% endif %}">
-          <div class="store-icon-wrap" aria-hidden="true">
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 3 18 9-18 9V3z"/></svg>
+        <!-- SibApp (Coming Soon for iOS) -->
+        <div class="store-card disabled">
+          <span class="store-corner-badge coming-badge">بزودی</span>
+          <div class="store-icon-wrap sibapp-icon-bg" aria-hidden="true">
+            <!-- Authentic SibApp Vector Logo -->
+            <svg width="40" height="40" viewBox="0 0 48 48" fill="none">
+              <rect width="48" height="48" rx="12" fill="#0084FF"/>
+              <path d="M27.8 11.2C27.5 12.8 26.5 14.1 25.1 14.3C24.9 12.8 26 11.4 27.8 11.2Z" fill="#FFFFFF"/>
+              <path d="M32.5 24.3C32.5 21.2 34.7 19.7 34.8 19.6C33.6 17.8 31.6 17.5 30.9 17.4C29.2 17.2 27.5 18.4 26.6 18.4C25.8 18.4 24.4 17.4 23.1 17.4C21.2 17.4 19.5 18.5 18.5 20.2C16.5 23.6 18 28.6 19.9 31.4C20.9 32.7 22 34.2 23.4 34.1C24.8 34 25.3 33.2 27 33.2C28.7 33.2 29.1 34.1 30.6 34.1C32.1 34.1 33.1 32.7 34 31.4C35.2 29.8 35.6 28.2 35.6 28.1C35.5 28 32.5 26.8 32.5 24.3Z" fill="#FFFFFF"/>
+            </svg>
           </div>
-          <span class="store-name">{{ channels.google_play.name }}</span>
-          <span class="store-status">{{ channels.google_play.status_label }}</span>
+          <span class="store-name">{{ channels.sibapp.name }}</span>
+          <span class="store-status">{{ channels.sibapp.status_label }}</span>
         </div>
       </div>
 
       <div style="margin-top: 36px; font-size: 0.95rem; color: var(--color-text-light);">
         <span>سوالی دربارهٔ نصب برنامه یا تهیه هاب دارید؟ </span>
-        <a href="mailto:{{ support.email }}" style="color: var(--color-blue-accent); font-weight: 600; text-decoration: none;">با پشتیبانی یارا گفتگو کنید</a>
+        <a href="mailto:{{ support.email }}" style="color: var(--color-blue-accent); font-weight: 600; text-decoration: none;">با پشتیبانی سایدا گفتگو کنید</a>
       </div>
     </div>
   </div>
@@ -476,7 +772,7 @@
         </button>
         <div class="faq-answer">
           <p>
-            بله، کاملاً. یارا از پایه به صورت «آفلاین اول» ساخته شده است. بعد از وارد کردن داروها، تمام زمان‌بندی‌ها روی حافظهٔ خود تبلت ذخیره می‌شوند. حتی اگر اینترنت خانه روزها قطع باشد، ساعت و زنگ یادآوری‌ها دقیقاً سر موعد به صدا درمی‌آیند. وقتی اینترنت دوباره وصل شود، گزارش‌ها با گوشی شما هماهنگ می‌گردند.
+            بله، کاملاً. سایدا از پایه به صورت «آفلاین اول» ساخته شده است. بعد از وارد کردن داروها، تمام زمان‌بندی‌ها روی حافظهٔ خود تبلت ذخیره می‌شوند. حتی اگر اینترنت خانه روزها قطع باشد، ساعت و زنگ یادآوری‌ها دقیقاً سر موعد به صدا درمی‌آیند. وقتی اینترنت دوباره وصل شود، گزارش‌ها با گوشی شما هماهنگ می‌گردند.
           </p>
         </div>
       </div>
@@ -504,28 +800,28 @@
         </button>
         <div class="faq-answer">
           <p>
-            خیر؛ اصل طراحی یارا همین است که سالمند نیازی به کار کردن با منوهای پیچیده نداشته باشد. هیچ رمز یا تنظیماتی از سالمند پرسیده نمی‌شود. نوشته‌ها بسیار بزرگ و خوانا هستند و اعلام مصرف دارو فقط با لمس یک کلید انجام می‌شود.
+            خیر؛ اصل طراحی سایدا همین است که سالمند نیازی به کار کردن با منوهای پیچیده نداشته باشد. هیچ رمز یا تنظیماتی از سالمند پرسیده نمی‌شود. نوشته‌ها بسیار بزرگ و خوانا هستند و اعلام مصرف دارو فقط با لمس یک کلید انجام می‌شود.
           </p>
         </div>
       </div>
 
       <div class="faq-item">
         <button class="faq-question" type="button" aria-expanded="false">
-          <span>آیا یارا یک دستگاه پزشکی یا اورژانس است؟</span>
+          <span>آیا سایدا یک دستگاه پزشکی یا اورژانس است؟</span>
           <span class="faq-icon" aria-hidden="true">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
           </span>
         </button>
         <div class="faq-answer">
           <p>
-            خیر. یارا یک دستیار کمکی و آرامش‌بخش خانگی برای نظم دارویی و هماهنگی خانواده است. این سامانه جایگزین نظر پزشک متخصص، تجهیزات پایش بیمارستانی یا تماس فوری با اورژانس (۱۱۵) نیست.
+            خیر. سایدا یک دستیار کمکی و آرامش‌بخش خانگی برای نظم دارویی و هماهنگی خانواده است. این سامانه جایگزین نظر پزشک متخصص، تجهیزات پایش بیمارستانی یا تماس فوری با اورژانس (۱۱۵) نیست.
           </p>
         </div>
       </div>
 
       <div class="faq-item">
         <button class="faq-question" type="button" aria-expanded="false">
-          <span>چطور می‌توانم با پشتیبانی یارا گفتگو کنم؟</span>
+          <span>چطور می‌توانم با پشتیبانی سایدا گفتگو کنم؟</span>
           <span class="faq-icon" aria-hidden="true">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
           </span>
@@ -539,4 +835,208 @@
     </div>
   </div>
 </section>
+
+<!-- Consultation & Pre-order Modal -->
+<div class="modal-backdrop" id="orderModal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+  <div class="modal-content">
+    <div class="modal-header">
+      <div>
+        <span class="modal-tag">سفارش و مشاوره تخصصی</span>
+        <h3 class="modal-title" id="modalTitle">ثبت درخواست مشاوره و خرید</h3>
+      </div>
+      <button type="button" class="modal-close-btn" id="closeOrderModal" aria-label="بستن پنجره">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+
+    <form class="modal-form" id="orderForm">
+      <div class="form-group">
+        <label for="orderProduct">محصول انتخابی</label>
+        <input type="text" id="orderProduct" name="product" readonly class="form-input readonly-input">
+      </div>
+
+      <div class="form-group">
+        <label for="orderName">نام و نام خانوادگی <span class="required">*</span></label>
+        <input type="text" id="orderName" name="name" required placeholder="مثال: علی احمدی" class="form-input">
+      </div>
+
+      <div class="form-group">
+        <label for="orderPhone">شماره موبایل جهت هماهنگی <span class="required">*</span></label>
+        <input type="tel" id="orderPhone" name="phone" required placeholder="مثال: ۰۹۱۲۳۴۵۶۷۸۹" dir="ltr" class="form-input">
+      </div>
+
+      <div class="form-group">
+        <label for="orderNotes">توضیحات یا پرسش شما (اختیاری)</label>
+        <textarea id="orderNotes" name="notes" rows="3" placeholder="اگر شرایط یا نیاز خاصی مد نظرتان است بنویسید..." class="form-input"></textarea>
+      </div>
+
+      <div class="modal-actions">
+        <button type="submit" class="btn btn-primary modal-submit-btn">
+          ارسال درخواست و هماهنگی کارشناس
+        </button>
+      </div>
+
+      <div class="modal-status-msg" id="modalStatusMsg" style="display: none;"></div>
+
+      <div class="modal-support-note">
+        یا مستقیماً با پشتیبانی سایدا گفتگو کنید: 
+        <a href="mailto:{{ support.email }}">{{ support.email }}</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const orderModal = document.getElementById('orderModal');
+    const closeBtn = document.getElementById('closeOrderModal');
+    const orderForm = document.getElementById('orderForm');
+    const productInput = document.getElementById('orderProduct');
+    const statusMsg = document.getElementById('modalStatusMsg');
+    const openBtns = document.querySelectorAll('.open-order-modal');
+
+    function openModal(productTitle) {
+      if (productInput) productInput.value = productTitle || 'محصولات سایدا';
+      if (statusMsg) {
+        statusMsg.style.display = 'none';
+        statusMsg.textContent = '';
+      }
+      if (orderForm) orderForm.reset();
+      if (productInput) productInput.value = productTitle || 'محصولات سایدا';
+      if (orderModal) {
+        orderModal.classList.add('active');
+        orderModal.setAttribute('aria-hidden', 'false');
+      }
+    }
+
+    function closeModal() {
+      if (orderModal) {
+        orderModal.classList.remove('active');
+        orderModal.setAttribute('aria-hidden', 'true');
+      }
+    }
+
+    openBtns.forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        const title = this.getAttribute('data-product-title');
+        openModal(title);
+      });
+    });
+
+    if (closeBtn) {
+      closeBtn.addEventListener('click', closeModal);
+    }
+
+    if (orderModal) {
+      orderModal.addEventListener('click', function(e) {
+        if (e.target === orderModal) closeModal();
+      });
+    }
+
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape' && orderModal && orderModal.classList.contains('active')) {
+        closeModal();
+      }
+    });
+
+    if (orderForm) {
+      orderForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        const product = productInput ? productInput.value : '';
+        const name = document.getElementById('orderName')?.value || '';
+        const phone = document.getElementById('orderPhone')?.value || '';
+        const notes = document.getElementById('orderNotes')?.value || '';
+
+        if (statusMsg) {
+          statusMsg.style.display = 'block';
+          statusMsg.textContent = 'درخواست شما برای «' + product + '» با موفقیت ثبت شد. کارشناسان ما به زودی با شماره ' + phone + ' تماس خواهند گرفت.';
+        }
+
+        // Generate prefilled mailto draft fallback in background
+        const subject = encodeURIComponent('درخواست سفارش: ' + product);
+        const body = encodeURIComponent(
+          'نام و نام خانوادگی: ' + name + '\n' +
+          'شماره تماس: ' + phone + '\n' +
+          'محصول: ' + product + '\n' +
+          'توضیحات: ' + notes
+        );
+        window.location.href = 'mailto:{{ support.email }}?subject=' + subject + '&body=' + body;
+
+        setTimeout(function() {
+          closeModal();
+        }, 4000);
+      });
+    }
+
+    // Rental Calculator Logic
+    const daysInput = document.getElementById('rentalDaysInput');
+    const daysSlider = document.getElementById('rentalDaysSlider');
+    const totalEl = document.getElementById('rentalTotalAmount');
+    const dailyRateEl = document.getElementById('rentalDailyRate');
+    const daysLabelEl = document.getElementById('rentalDaysLabel');
+    const rentalOrderBtn = document.getElementById('rentalOrderBtn');
+    const presetPills = document.querySelectorAll('.preset-pill');
+
+    const MONTHLY_SUB = 650000;
+    const DAILY_SUB = MONTHLY_SUB / 30; // 21,666.67
+    const DAILY_RENTAL = DAILY_SUB * 1.6; // 34,666.67
+
+    function toPersianDigits(n) {
+      const farsiDigits = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'];
+      return n.toString().replace(/[0-9]/g, function(w) {
+        return farsiDigits[+w];
+      });
+    }
+
+    function formatToman(num) {
+      const rounded = Math.round(num / 1000) * 1000;
+      return toPersianDigits(rounded.toLocaleString('en-US'));
+    }
+
+    function updateRental(days) {
+      let d = parseInt(days, 10);
+      if (isNaN(d) || d < 1) d = 1;
+      if (d > 365) d = 365;
+
+      if (daysInput && daysInput.value != d) daysInput.value = d;
+      if (daysSlider && daysSlider.value != d && d <= 180) daysSlider.value = d;
+
+      const totalCost = d * DAILY_RENTAL;
+      if (totalEl) totalEl.textContent = formatToman(totalCost);
+      if (dailyRateEl) dailyRateEl.textContent = toPersianDigits(Math.round(DAILY_RENTAL).toLocaleString('en-US')) + ' تومان / روز';
+      if (daysLabelEl) daysLabelEl.textContent = toPersianDigits(d);
+
+      if (rentalOrderBtn) {
+        rentalOrderBtn.setAttribute('data-product-title', 'اجاره هاب سایدا برای ' + toPersianDigits(d) + ' روز (' + formatToman(totalCost) + ' تومان)');
+      }
+
+      presetPills.forEach(function(pill) {
+        if (parseInt(pill.getAttribute('data-days'), 10) === d) {
+          pill.classList.add('active');
+        } else {
+          pill.classList.remove('active');
+        }
+      });
+    }
+
+    if (daysInput) {
+      daysInput.addEventListener('input', function() {
+        updateRental(this.value);
+      });
+    }
+
+    if (daysSlider) {
+      daysSlider.addEventListener('input', function() {
+        updateRental(this.value);
+      });
+    }
+
+    presetPills.forEach(function(pill) {
+      pill.addEventListener('click', function() {
+        const days = this.getAttribute('data-days');
+        updateRental(days);
+      });
+    });
+  });
+</script>
 {% endblock %}

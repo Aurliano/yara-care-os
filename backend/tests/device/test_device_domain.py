@@ -146,6 +146,27 @@ def test_assigned_hub_without_network_state_is_not_listed_online(hub_device, lic
 
 
 @pytest.mark.django_db
+def test_assigned_hub_with_stale_heartbeat_is_listed_offline(hub_device, licensed_elder):
+    from datetime import timedelta
+    from django.utils import timezone
+    from domains.device.models import Device
+
+    assign_device(
+        device_id=hub_device.id,
+        elder_id=licensed_elder.id,
+        assignment_type=AssignmentType.OWNED,
+    )
+    # Set last_seen_at to 20 minutes ago
+    Device.objects.filter(pk=hub_device.id).update(
+        last_seen_at=timezone.now() - timedelta(minutes=20),
+        current_state={"network": "online", "battery_percent": 75},
+    )
+    items = list_elder_assigned_devices(elder_id=licensed_elder.id)
+    assert items[0]["connectivity"] == "offline"
+    assert items[0]["battery_percent"] == 75
+
+
+@pytest.mark.django_db
 def test_pairing_lifecycle(hub_device, peripheral_device):
     pairing = create_pairing(hub_device_id=hub_device.id, peripheral_device_id=peripheral_device.id)
     assert pairing.status == PairingStatus.PAIRING

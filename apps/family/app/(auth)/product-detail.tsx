@@ -1,5 +1,5 @@
 import React from "react";
-import { Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { Alert, Linking, Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { useRouter } from "expo-router";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { colors, elevation, radius, sizes, spacing } from "../../src/theme/tokens";
@@ -51,9 +51,18 @@ export default function ProductDetailScreen() {
     router.back();
   }
 
-  function handleProceedToAuth() {
-    // Navigate to existing authentication without creating fake backend order state
-    router.push("/(auth)/sign-in");
+  async function handleOpenWebsite() {
+    const url = "https://care-app.saydatech.ir/#pricing";
+    try {
+      const supported = await Linking.canOpenURL(url);
+      if (supported) {
+        await Linking.openURL(url);
+      } else {
+        Alert.alert("مشاهده وب‌سایت", "لطفاً به وب‌سایت رسمی سایدا به نشانی care-app.saydatech.ir مراجعه فرمایید.");
+      }
+    } catch {
+      Alert.alert("مشاهده وب‌سایت", "لطفاً به وب‌سایت رسمی سایدا به نشانی care-app.saydatech.ir مراجعه فرمایید.");
+    }
   }
 
   return (
@@ -408,15 +417,15 @@ export default function ProductDetailScreen() {
             </AppText>
           </View>
 
-          {/* Order Notice & Auth Boundary CTA */}
+          {/* Order Notice & Website CTA */}
           <View style={styles.orderCtaBox}>
             <AppText variant="caption" color={colors.textMuted} align="center" style={styles.orderNotice}>
-              برای نهایی‌سازی سفارش و ثبت مشخصات تحویل، ابتدا وارد حساب کاربری شوید یا حساب جدید بسازید.
+              جهت مشاهده جزئیات بسته‌ها، سفارش و خرید یا اجاره، به وب‌سایت رسمی سایدا مراجعه فرمایید.
             </AppText>
             <Button
-              label="ادامه و ثبت سفارش"
+              label="مشاهده و سفارش در وب‌سایت رسمی"
               variant="primary"
-              onPress={handleProceedToAuth}
+              onPress={() => void handleOpenWebsite()}
               style={styles.ctaButton}
             />
           </View>

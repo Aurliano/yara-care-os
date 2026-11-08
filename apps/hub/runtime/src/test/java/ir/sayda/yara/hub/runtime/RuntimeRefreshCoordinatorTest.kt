@@ -5,6 +5,7 @@ import io.mockk.coVerify
 import io.mockk.mockk
 import ir.sayda.yara.hub.core.sync.SyncRefreshScope
 import ir.sayda.yara.hub.runtime.alarm.RuntimeAlarmCoordinator
+import ir.sayda.yara.hub.runtime.bootstrap.HubWorkflowBootstrap
 import ir.sayda.yara.hub.runtime.scheduling.SchedulingCycleResult
 import ir.sayda.yara.hub.runtime.scheduling.SchedulingReplicaRuntime
 import ir.sayda.yara.hub.runtime.workflow.WorkflowReplicaRuntime
@@ -18,7 +19,8 @@ class RuntimeRefreshCoordinatorTest {
         val scheduling = mockk<SchedulingReplicaRuntime>(relaxed = true)
         val workflow = mockk<WorkflowReplicaRuntime>(relaxed = true)
         val alarms = mockk<RuntimeAlarmCoordinator>(relaxed = true)
-        val coordinator = RuntimeRefreshCoordinator(scheduling, workflow, alarms)
+        val bootstrap = mockk<HubWorkflowBootstrap>(relaxed = true)
+        val coordinator = RuntimeRefreshCoordinator(scheduling, workflow, alarms, bootstrap)
 
         coordinator.refreshAfterSync(SyncRefreshScope())
 
@@ -31,12 +33,13 @@ class RuntimeRefreshCoordinatorTest {
         val scheduling = mockk<SchedulingReplicaRuntime>(relaxed = true)
         val workflow = mockk<WorkflowReplicaRuntime>(relaxed = true)
         val alarms = mockk<RuntimeAlarmCoordinator>(relaxed = true)
+        val bootstrap = mockk<HubWorkflowBootstrap>(relaxed = true)
         coEvery { scheduling.hydrateAndEvaluate(any()) } returns SchedulingCycleResult(
             schedulesObserved = 0,
             occurrencesGenerated = 0,
             occurrencesMarkedDue = 0,
         )
-        val coordinator = RuntimeRefreshCoordinator(scheduling, workflow, alarms)
+        val coordinator = RuntimeRefreshCoordinator(scheduling, workflow, alarms, bootstrap)
 
         coordinator.refreshAfterSync(SyncRefreshScope(scheduling = true))
 

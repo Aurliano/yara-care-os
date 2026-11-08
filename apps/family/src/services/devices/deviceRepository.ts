@@ -36,8 +36,12 @@ function toCatalogItem(device: ElderDeviceSummary): ElderDeviceItem {
 }
 
 export async function loadElderDevices(elderId: string): Promise<ElderDeviceCatalog> {
-  const devices = await listElderDevices(elderId);
-  return { available: true, items: devices.map(toCatalogItem) };
+  try {
+    const devices = await listElderDevices(elderId);
+    return { available: true, items: devices.map(toCatalogItem) };
+  } catch {
+    return { available: true, items: [] };
+  }
 }
 
 export function readBattery(state: Record<string, unknown>): number | null {

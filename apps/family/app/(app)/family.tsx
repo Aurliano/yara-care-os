@@ -18,7 +18,7 @@ import {
   TopAppBar,
 } from "../../src/components";
 import { listInvitations, listMembers, revokeInvitation, revokeMember, suspendMember } from "../../src/api/endpoints/identity";
-import { listContacts, updateContact } from "../../src/api/endpoints/communication";
+import { createContact, listContacts, updateContact } from "../../src/api/endpoints/communication";
 import { getMediaDownloadUrl, uploadMedia } from "../../src/api/endpoints/messaging";
 import { queryKeys } from "../../src/api/queryKeys";
 import { useElderStore } from "../../src/stores/elderStore";
@@ -92,6 +92,111 @@ export default function FamilyScreen() {
   const [editPhotoReference, setEditPhotoReference] = useState<string | null>(null);
   const [isPhotoChanged, setIsPhotoChanged] = useState(false);
   const [isSavingContact, setIsSavingContact] = useState(false);
+
+  const [isAddingContact, setIsAddingContact] = useState(false);
+  const [newDisplayName, setNewDisplayName] = useState("");
+  const [newPhone, setNewPhone] = useState("");
+  const [newPhotoUri, setNewPhotoUri] = useState<string | null>(null);
+  const [isSubmittingNewContact, setIsSubmittingNewContact] = useState(false);
+  const [isSyncingCaregivers, setIsSyncingCaregivers] = useState(false);
+
+  async function handlePickNewPhoto() {
+    try {
+      const picker = await getMediaPicker();
+      if (!picker) {
+        Alert.alert("خطا", t.photoPickerError);
+        return;
+      }
+      const perm = await picker.requestMediaLibraryPermissionsAsync();
+      if (!perm.granted) {
+        Alert.alert("دسترسی لازم است", t.mediaGalleryPermissionRequired);
+        return;
+      }
+      const result = await picker.launchImageLibraryAsync({
+        mediaTypes: picker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+        legacy: true,
+      });
+      if (!result.canceled && result.assets && result.assets[0]?.uri) {
+        setNewPhotoUri(result.assets[0].uri);
+      }
+    } catch (_e) {
+      Alert.alert("خطا", t.photoPickerError);
+    }
+  }
+
+  async function handleCreateNewContact() {
+    if (!elderId) return;
+    const trimmedName = newDisplayName.trim();
+    if (!trimmedName) {
+      Alert.alert("خطا", "لطفاً نام مخاطب را وارد کنید.");
+      return;
+    }
+    try {
+      setIsSubmittingNewContact(true);
+      let photoRef: string | null = null;
+      if (newPhotoUri && (newPhotoUri.startsWith("file:") || newPhotoUri.startsWith("content:"))) {
+        const filename = newPhotoUri.split("/").pop() || "contact_photo.jpg";
+        const ext = filename.split(".").pop()?.toLowerCase() || "jpg";
+        const mimeType = ext === "png" ? "image/png" : ext === "webp" ? "image/webp" : "image/jpeg";
+        const formData = new FormData();
+        formData.append("file", {
+          uri: newPhotoUri,
+          name: filename,
+          type: mimeType,
+        } as any);
+        formData.append("media_type", "IMAGE");
+        const uploaded = await uploadMedia(formData);
+        photoRef = uploaded.id;
+      }
+      await createContact(elderId, {
+        display_name: trimmedName,
+        phone: newPhone.trim() || undefined,
+        preferred_channel: "VOICE",
+        photo_reference: photoRef,
+      });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.contacts(elderId) });
+      setIsAddingContact(false);
+      setNewDisplayName("");
+      setNewPhone("");
+      setNewPhotoUri(null);
+      Alert.alert("موفقیت", "مخاطب جدید به تبلت اضافه شد و به زودی همگام خواهد شد.");
+    } catch (err: any) {
+      Alert.alert("خطا در ایجاد مخاطب", err?.message || "امکان افزودن مخاطب وجود ندارد.");
+    } finally {
+      setIsSubmittingNewContact(false);
+    }
+  }
+
+  async function handleSyncCaregiversToContacts() {
+    if (!elderId) return;
+    const existingNames = new Set((contacts.data || []).map((c) => c.display_name.trim()));
+    const activeMembers = (members.data || []).filter((m) => m.status === "ACTIVE");
+    const toAdd = activeMembers.filter((m) => !existingNames.has(m.user_full_name.trim()));
+
+    if (toAdd.length === 0) {
+      Alert.alert("اطلاع", "همه مراقبان در حال حاضر به عنوان مخاطب در تبلت ثبت هستند.");
+      return;
+    }
+
+    try {
+      setIsSyncingCaregivers(true);
+      for (const m of toAdd) {
+        await createContact(elderId, {
+          display_name: m.user_full_name.trim(),
+          preferred_channel: "VOICE",
+        });
+      }
+      await queryClient.invalidateQueries({ queryKey: queryKeys.contacts(elderId) });
+      Alert.alert("موفقیت", `${toAdd.length} مراقب به لیست مخاطبان تبلت افزوده شدند.`);
+    } catch (err: any) {
+      Alert.alert("خطا", err?.message || "همگام‌سازی مراقبان با تبلت انجام نشد.");
+    } finally {
+      setIsSyncingCaregivers(false);
+    }
+  }
 
   async function handlePickContactPhoto() {
     try {
@@ -239,6 +344,90 @@ export default function FamilyScreen() {
       <AppText variant="caption" color={colors.textSecondary}>
         {t.trustedContactsHint}
       </AppText>
+
+      {can(PERMISSIONS.MANAGE_CONTACTS) || can(PERMISSIONS.MANAGE_MEMBERS) ? (
+        <View style={{ gap: spacing.sm, marginVertical: spacing.sm }}>
+          <View style={{ flexDirection: "row", gap: spacing.sm }}>
+            <View style={{ flex: 1 }}>
+              <Button
+                label={isAddingContact ? "بستن فرم" : "+ افزودن مخاطب به تبلت"}
+                variant={isAddingContact ? "secondary" : "primary"}
+                onPress={() => setIsAddingContact(!isAddingContact)}
+              />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Button
+                label={isSyncingCaregivers ? "در حال افزودن..." : "افزودن مراقبان به تبلت"}
+                variant="secondary"
+                disabled={isSyncingCaregivers}
+                onPress={() => void handleSyncCaregiversToContacts()}
+              />
+            </View>
+          </View>
+
+          {isAddingContact ? (
+            <Card style={styles.addContactCard}>
+              <AppText variant="label" color={colors.primary}>
+                مشخصات مخاطب جدید در تبلت
+              </AppText>
+              <View style={styles.editPhotoSection}>
+                <Avatar
+                  name={newDisplayName || "مخاطب جدید"}
+                  photoUrl={newPhotoUri}
+                  size={64}
+                />
+                <View style={{ flex: 1 }}>
+                  <Button
+                    label={newPhotoUri ? t.changePhoto : t.selectPhoto}
+                    variant="secondary"
+                    onPress={() => void handlePickNewPhoto()}
+                  />
+                  {newPhotoUri ? (
+                    <View style={{ marginTop: spacing.xs }}>
+                      <Button
+                        label={t.removePhoto}
+                        variant="secondary"
+                        onPress={() => setNewPhotoUri(null)}
+                      />
+                    </View>
+                  ) : null}
+                </View>
+              </View>
+
+              <TextField
+                label="نام نمایشی در تبلت (مثلاً: پسرم محمد، دخترم زهرا)"
+                value={newDisplayName}
+                onChangeText={setNewDisplayName}
+              />
+              <TextField
+                label="شماره تماس (اختیاری)"
+                value={newPhone}
+                onChangeText={setNewPhone}
+                keyboardType="phone-pad"
+              />
+
+              <View style={{ flexDirection: "row", gap: spacing.sm, marginTop: spacing.sm }}>
+                <View style={{ flex: 1 }}>
+                  <Button
+                    label={isSubmittingNewContact ? t.saving : "ثبت مخاطب"}
+                    variant="primary"
+                    disabled={isSubmittingNewContact}
+                    onPress={() => void handleCreateNewContact()}
+                  />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Button
+                    label="انصراف"
+                    variant="secondary"
+                    disabled={isSubmittingNewContact}
+                    onPress={() => setIsAddingContact(false)}
+                  />
+                </View>
+              </View>
+            </Card>
+          ) : null}
+        </View>
+      ) : null}
       {contacts.data?.length ? (
         contacts.data.map((contact) => (
           <Card key={contact.id}>
@@ -345,5 +534,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: spacing.md,
     paddingVertical: spacing.sm,
+  },
+  addContactCard: {
+    padding: spacing.md,
+    backgroundColor: colors.surface,
+    borderColor: colors.border,
+    borderWidth: 1,
+    gap: spacing.sm,
   },
 });

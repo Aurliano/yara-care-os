@@ -1,2 +1,23 @@
-# Backend local environment — copy env.example to .env and adjust values.
-.env
+# Environment
+.env*
+env.*
+
+# Virtualenv
+.venv/
+venv/
+ENV/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+.ruff_cache/
+.import_linter_cache/
+
+# Local media & duplicate staticfiles
+media/
+staticfiles/
+tests/
+architecture/

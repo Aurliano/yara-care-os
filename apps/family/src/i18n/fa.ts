@@ -338,6 +338,18 @@ export const fa = {
   close: "بستن",
   attachPhotoFailed: "انتخاب تصویر با خطا مواجه شد.",
   attachVideoFailed: "انتخاب ویدیو با خطا مواجه شد.",
+  // Medication Reminder Screen
+  reminderScreenTitle: "یادآوری مصرف دارو",
+  timeToTakeMedication: "زمان مصرف دارو فرا رسیده است",
+  takenConfirmationSuccess: "مصرف دارو با موفقیت در پرونده ثبت شد.",
+  takenAction: "مصرف شد",
+  snoozeAction: "۱۰ دقیقه بعد (یادآوری مجدد)",
+  snoozeSuccess: "یادآوری برای ۱۰ دقیقه بعد به تعویق افتاد.",
+  skipDoseAction: "رد کردن / مصرف نشد",
+  skipDoseSuccess: "عدم مصرف دارو برای این نوبت ثبت شد.",
+  instructionsTitle: "دستور و نحوه مصرف",
+  dosageTitle: "میزان مصرف",
+  elderNamePrefix: "برای عزیزتان",
 } as const;
 
 export type MessageKey = keyof typeof fa;

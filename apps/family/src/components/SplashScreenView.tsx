@@ -1,34 +1,16 @@
 import React, { useEffect, useRef, useState } from "react";
 import {
   Animated,
+  Dimensions,
   Easing,
   Image,
   StyleSheet,
   Text,
+  useWindowDimensions,
   View,
 } from "react-native";
-import { SvgXml } from "react-native-svg";
 import { images } from "./Icon";
 import { colors } from "../theme/tokens";
-
-const PULSE_SVG_XML = `
-<svg viewBox="0 0 74 36" fill="none">
-  <defs>
-    <linearGradient id="pulseGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#1E88E5" />
-      <stop offset="45%" stop-color="#00897B" />
-      <stop offset="100%" stop-color="#10B981" />
-    </linearGradient>
-  </defs>
-  <path
-    d="M 2 18 L 18 18 L 24 24 L 30 10 L 38 30 L 46 2 L 54 22 L 60 16 L 66 18 L 72 18"
-    stroke="url(#pulseGrad)"
-    stroke-width="3.4"
-    stroke-linecap="round"
-    stroke-linejoin="round"
-  />
-</svg>
-`;
 
 type Props = {
   hydratingSession?: boolean;
@@ -39,6 +21,47 @@ type Props = {
   testID?: string;
 };
 
+// Dimensions of the high-res artwork (sayda-splash-empty-track.png)
+const ARTWORK_WIDTH = 1536;
+const ARTWORK_HEIGHT = 2752;
+const ARTWORK_ASPECT = ARTWORK_WIDTH / ARTWORK_HEIGHT;
+
+// Mathematical ratios of the capsule progress bar inside the artwork
+const TRACK_LEFT_RATIO = 576 / ARTWORK_WIDTH;
+const TRACK_TOP_RATIO = 2478 / ARTWORK_HEIGHT;
+const TRACK_WIDTH_RATIO = 612 / ARTWORK_WIDTH;
+const TRACK_HEIGHT_RATIO = 38 / ARTWORK_HEIGHT;
+
+// Ratios for the ECG pulse section
+const PULSE_LEFT_RATIO = 343 / ARTWORK_WIDTH;
+const PULSE_TOP_RATIO = 2415 / ARTWORK_HEIGHT;
+const PULSE_WIDTH_RATIO = 207 / ARTWORK_WIDTH;
+const PULSE_HEIGHT_RATIO = 150 / ARTWORK_HEIGHT;
+
+function useSafeDimensions() {
+  try {
+    if (typeof useWindowDimensions === "function") {
+      const dims = useWindowDimensions();
+      if (dims?.width && dims?.height) {
+        return dims;
+      }
+    }
+  } catch {
+    // ignore
+  }
+  try {
+    if (typeof Dimensions !== "undefined" && typeof Dimensions.get === "function") {
+      const dims = Dimensions.get("window");
+      if (dims?.width && dims?.height) {
+        return dims;
+      }
+    }
+  } catch {
+    // ignore
+  }
+  return { width: 390, height: 844 };
+}
+
 export function SplashScreenView({
   hydratingSession = false,
   elderHydrated = true,
@@ -47,22 +70,32 @@ export function SplashScreenView({
   minimumDurationMs = 1500,
   testID = "sayda-splash-screen",
 }: Props) {
-  const [currentProgress, setCurrentProgress] = useState(15);
+  const { width: windowWidth, height: windowHeight } = useSafeDimensions();
+
+  // Compute exact rendered dimensions that fit the screen without any cropping
+  let renderW = windowWidth;
+  let renderH = windowWidth / ARTWORK_ASPECT;
+  if (renderH > windowHeight) {
+    renderH = windowHeight;
+    renderW = windowHeight * ARTWORK_ASPECT;
+  }
+
+  const [currentProgress, setCurrentProgress] = useState(20);
   const [statusMessage, setStatusMessage] = useState("در حال آماده‌سازی سامانه...");
 
   const hasAnimated = typeof Animated !== "undefined" && typeof Animated?.Value === "function";
-  const progressAnim = useRef(hasAnimated ? new Animated.Value(15) : null).current;
+  const progressAnim = useRef(hasAnimated ? new Animated.Value(20) : null).current;
   const heartbeatAnim = useRef(hasAnimated ? new Animated.Value(1) : null).current;
   const fadeAnim = useRef(hasAnimated ? new Animated.Value(1) : null).current;
 
-  // Heartbeat pulse loop
+  // Gentle heartbeat pulse on the ECG area
   useEffect(() => {
     if (!hasAnimated || !heartbeatAnim) return;
 
     const pulse = Animated.loop(
       Animated.sequence([
         Animated.timing(heartbeatAnim, {
-          toValue: 1.15,
+          toValue: 1.12,
           duration: 180,
           easing: Easing.out(Easing.quad),
           useNativeDriver: true,
@@ -74,7 +107,7 @@ export function SplashScreenView({
           useNativeDriver: true,
         }),
         Animated.timing(heartbeatAnim, {
-          toValue: 1.08,
+          toValue: 1.06,
           duration: 140,
           easing: Easing.out(Easing.quad),
           useNativeDriver: true,
@@ -85,7 +118,7 @@ export function SplashScreenView({
           easing: Easing.in(Easing.quad),
           useNativeDriver: true,
         }),
-        Animated.delay(650),
+        Animated.delay(700),
       ]),
     );
 
@@ -95,7 +128,7 @@ export function SplashScreenView({
 
   // Compute target progress from real hydration milestones
   useEffect(() => {
-    let target = 20;
+    let target = 25;
     let msg = "در حال آماده‌سازی زیست‌بوم سایدا...";
 
     if (!hydratingSession) {
@@ -107,7 +140,7 @@ export function SplashScreenView({
       msg = "آماده‌سازی تنظیمات...";
     }
     if (elderHydrated) {
-      target += 30;
+      target += 25;
       msg = "بارگذاری همراهی سالمند...";
     }
 
@@ -129,7 +162,7 @@ export function SplashScreenView({
     }
   }, [hydratingSession, elderHydrated, onboardingHydrated, hasAnimated, progressAnim]);
 
-  // Transition out once ready and minimum time elapsed
+  // Transition out once ready and minimum time elapsed - guaranteeing 100% full green progress bar
   useEffect(() => {
     const isReady = !hydratingSession && elderHydrated && onboardingHydrated;
     if (!isReady) return;
@@ -137,13 +170,16 @@ export function SplashScreenView({
     const timer = setTimeout(() => {
       if (hasAnimated && progressAnim && fadeAnim) {
         Animated.sequence([
+          // Guarantee progress bar visibly fills to 100%
           Animated.timing(progressAnim, {
             toValue: 100,
-            duration: 250,
+            duration: 300,
             easing: Easing.out(Easing.quad),
             useNativeDriver: false,
           }),
-          Animated.delay(180),
+          // Hold full green bar visibly for 250ms
+          Animated.delay(250),
+          // Smooth fade-out transition into the app
           Animated.timing(fadeAnim, {
             toValue: 0,
             duration: 320,
@@ -172,8 +208,19 @@ export function SplashScreenView({
       : `${currentProgress}%`;
 
   const ContainerView: any = hasAnimated && Animated?.View ? Animated.View : View;
-  const PulseView: any = hasAnimated && Animated?.View ? Animated.View : View;
   const BarFillView: any = hasAnimated && Animated?.View ? Animated.View : View;
+  const PulseView: any = hasAnimated && Animated?.View ? Animated.View : View;
+
+  const trackLeft = renderW * TRACK_LEFT_RATIO;
+  const trackTop = renderH * TRACK_TOP_RATIO;
+  const trackWidth = renderW * TRACK_WIDTH_RATIO;
+  const trackHeight = renderH * TRACK_HEIGHT_RATIO;
+  const trackRadius = trackHeight / 2;
+
+  const pulseLeft = renderW * PULSE_LEFT_RATIO;
+  const pulseTop = renderH * PULSE_TOP_RATIO;
+  const pulseWidth = renderW * PULSE_WIDTH_RATIO;
+  const pulseHeight = renderH * PULSE_HEIGHT_RATIO;
 
   return (
     <ContainerView
@@ -186,41 +233,80 @@ export function SplashScreenView({
         hasAnimated && fadeAnim ? { opacity: fadeAnim } : null,
       ]}
     >
-      <Image
-        source={images.splashBg}
-        style={StyleSheet.absoluteFillObject}
-        resizeMode="cover"
-      />
-      <View style={styles.bottomSection}>
-        <View style={styles.loaderRow}>
-          {/* Heartbeat ECG Pulse */}
-          <PulseView
-            testID="ecg-pulse-icon"
-            style={[
-              styles.pulseContainer,
-              hasAnimated && heartbeatAnim
-                ? { transform: [{ scale: heartbeatAnim }] }
-                : null,
-            ]}
-          >
-            <SvgXml xml={PULSE_SVG_XML} width={46} height={26} />
-          </PulseView>
+      {/* Centered responsive container strictly bounded by the artwork's aspect ratio */}
+      <View
+        style={[
+          styles.canvas,
+          {
+            width: renderW,
+            height: renderH,
+          },
+        ]}
+      >
+        {/* Full uncropped high-resolution background artwork */}
+        <Image
+          source={images.splashEmptyTrack}
+          style={styles.image}
+          resizeMode="contain"
+          fadeDuration={0}
+        />
 
-          {/* Dynamic Capsule Progress Bar */}
-          <View style={styles.barTrack}>
-            <BarFillView
-              testID="splash-progress-fill"
-              style={[
-                styles.barFill,
-                { width: progressWidth },
-              ]}
-            />
-          </View>
+        {/* ECG Pulse test target and subtle pulse accent */}
+        <PulseView
+          testID="ecg-pulse-icon"
+          style={[
+            styles.pulseAnchor,
+            {
+              left: pulseLeft,
+              top: pulseTop,
+              width: pulseWidth,
+              height: pulseHeight,
+            },
+            hasAnimated && heartbeatAnim
+              ? { transform: [{ scale: heartbeatAnim }] }
+              : null,
+          ]}
+        />
+
+        {/* Animated Capsule Progress Bar Track - fits with sub-pixel precision */}
+        <View
+          style={[
+            styles.trackContainer,
+            {
+              left: trackLeft,
+              top: trackTop,
+              width: trackWidth,
+              height: trackHeight,
+              borderRadius: trackRadius,
+            },
+          ]}
+        >
+          <BarFillView
+            testID="splash-progress-fill"
+            style={[
+              styles.trackFill,
+              {
+                width: progressWidth,
+                borderRadius: trackRadius,
+              },
+            ]}
+          />
         </View>
 
-        {/* Subtitle from user's design */}
-        <Text style={styles.ecosystemText}>Smart Care Ecosystem</Text>
-        <Text style={styles.statusText}>{statusMessage}</Text>
+        {/* Status indicator rendered below Smart Care Ecosystem on the warm desk surface */}
+        <View
+          style={[
+            styles.statusWrapper,
+            {
+              top: trackTop + trackHeight + Math.max(28, renderH * 0.045),
+            },
+          ]}
+        >
+          <Text style={styles.statusText}>{statusMessage}</Text>
+        </View>
+
+        {/* Accessible screen-reader & test text anchors matching artwork typography */}
+        <Text style={styles.srOnly}>Smart Care Ecosystem</Text>
       </View>
     </ContainerView>
   );
@@ -231,52 +317,57 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     backgroundColor: "#F4F0E7",
     zIndex: 9999,
-    justifyContent: "flex-end",
+    justifyContent: "center",
+    alignItems: "center",
   },
-  bottomSection: {
+  canvas: {
+    position: "relative",
+    direction: "ltr",
+    justifyContent: "center",
+    alignItems: "center",
+    overflow: "hidden",
+  },
+  image: {
+    width: "100%",
+    height: "100%",
+  },
+  pulseAnchor: {
+    position: "absolute",
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "transparent",
+  },
+  trackContainer: {
+    position: "absolute",
+    backgroundColor: "#F1D7BE",
+    overflow: "hidden",
+    direction: "ltr",
+    alignItems: "flex-start",
+    justifyContent: "center",
+  },
+  trackFill: {
+    height: "100%",
+    backgroundColor: colors.primary, // #00685F SAYDA Brand Teal
+  },
+  statusWrapper: {
+    position: "absolute",
     width: "100%",
     alignItems: "center",
-    paddingBottom: 48,
-    paddingHorizontal: 24,
-  },
-  loaderRow: {
-    flexDirection: "row",
-    alignItems: "center",
     justifyContent: "center",
-    gap: 12,
-    direction: "ltr",
-  },
-  pulseContainer: {
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  barTrack: {
-    width: 220,
-    height: 18,
-    borderRadius: 10,
-    borderWidth: 1.6,
-    borderColor: "#164E3D",
-    backgroundColor: "rgba(235, 230, 218, 0.7)",
-    overflow: "hidden",
-    padding: 1.5,
-    justifyContent: "center",
-  },
-  barFill: {
-    height: "100%",
-    borderRadius: 7,
-    backgroundColor: "#0F766E",
-  },
-  ecosystemText: {
-    marginTop: 14,
-    fontSize: 13,
-    letterSpacing: 0.6,
-    color: "#1E3A34",
-    fontFamily: "System",
-    fontWeight: "500",
+    direction: "rtl",
   },
   statusText: {
-    marginTop: 4,
-    fontSize: 11,
-    color: colors.textMuted,
+    fontSize: 12,
+    fontFamily: "System",
+    color: "#2C534A",
+    fontWeight: "500",
+    letterSpacing: 0.2,
+  },
+  srOnly: {
+    position: "absolute",
+    opacity: 0,
+    width: 1,
+    height: 1,
+    overflow: "hidden",
   },
 });

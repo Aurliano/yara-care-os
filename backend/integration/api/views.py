@@ -205,7 +205,20 @@ class HubSyncStartView(APIView):
             else:
                 session = start_upload_session(ctx, idempotency_key=idempotency_key)
             if ctx.device_id is not None:
-                touch_device_presence(device_id=ctx.device_id, is_online=True)
+                battery_percent = request.data.get("battery_percent")
+                if battery_percent is not None:
+                    try:
+                        battery_val = int(battery_percent)
+                        update_hub_device_state(
+                            ctx,
+                            device_id=ctx.device_id,
+                            current_state={"battery_percent": battery_val, "network": "online"},
+                            is_online=True,
+                        )
+                    except (ValueError, TypeError):
+                        touch_device_presence(device_id=ctx.device_id, is_online=True)
+                else:
+                    touch_device_presence(device_id=ctx.device_id, is_online=True)
         except Exception as exc:  # noqa: BLE001
             return hub_error_response(exc)
         return Response(

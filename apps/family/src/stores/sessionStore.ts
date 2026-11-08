@@ -3,7 +3,7 @@ import { login } from "../api/client";
 import { getCurrentUser } from "../api/endpoints/identity";
 import { getTokenStore } from "../api/tokenStore";
 import type { User } from "../api/types";
-import { normalizePhone, toLatinDigits } from "../i18n/numerals";
+import { normalizePhone } from "../i18n/numerals";
 
 type SessionState = {
   hydrating: boolean;

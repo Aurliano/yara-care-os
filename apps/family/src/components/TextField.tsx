@@ -31,7 +31,7 @@ export function TextField({
   const display = persianValue ? toPersianDigits(value) : value;
   return (
     <View style={styles.wrap}>
-      <AppText variant="caption" color={colors.text}>
+      <AppText variant="caption" color={colors.text} align="right" style={styles.label}>
         {label}
       </AppText>
       <View style={styles.inputWrap}>
@@ -42,7 +42,13 @@ export function TextField({
           placeholderTextColor={colors.textPlaceholder}
           secureTextEntry={hidden}
           keyboardType={keyboardType}
-          style={styles.input}
+          style={[
+            styles.input,
+            {
+              paddingRight: icon ? 44 : 16,
+              paddingLeft: secure ? 44 : 16,
+            },
+          ]}
           textAlign="right"
         />
         {icon ? (
@@ -61,18 +67,20 @@ export function TextField({
 }
 
 const styles = StyleSheet.create({
-  wrap: { gap: spacing.xs, width: "100%" },
-  inputWrap: { position: "relative", justifyContent: "center" },
+  wrap: { gap: spacing.xs, width: "100%", alignItems: "flex-end" },
+  label: { width: "100%", textAlign: "right" },
+  inputWrap: { position: "relative", justifyContent: "center", width: "100%" },
   input: {
     height: 44,
+    width: "100%",
     backgroundColor: colors.background,
     borderWidth: 1,
     borderColor: colors.borderStrong,
     borderRadius: radius.sm,
-    paddingHorizontal: 48,
+    paddingHorizontal: 16,
     ...typography.body,
     color: colors.text,
   },
-  leading: { position: "absolute", right: 16, top: 10 },
-  trailing: { position: "absolute", left: 16, top: 10 },
+  leading: { position: "absolute", right: 16, top: 12 },
+  trailing: { position: "absolute", left: 16, top: 12 },
 });

@@ -222,13 +222,13 @@ def test_reschedule_exception_cancels_active_execution(care_activity_and_occurre
     assert execution.status == ExecutionStatus.ACTIVE
     original_occurrence_id = occurrence.id
 
-    # Reschedule occurrence to tomorrow
-    tomorrow = timezone.now() + timedelta(days=1)
+    # Reschedule occurrence to tomorrow at a non-colliding time
+    rescheduled_time = (timezone.now() + timedelta(days=1, hours=2)).replace(microsecond=0)
     add_schedule_exception(
         schedule_definition_id=activity.schedule_definition_id,
         original_time=occurrence.scheduled_for,
         exception_type=ScheduleExceptionType.RESCHEDULE,
-        replacement_time=tomorrow,
+        replacement_time=rescheduled_time,
     )
 
     # Active execution was cancelled immediately
@@ -238,7 +238,7 @@ def test_reschedule_exception_cancels_active_execution(care_activity_and_occurre
     # Occurrence scheduled_for updated in-place without changing identity (no duplicate)
     occurrence.refresh_from_db()
     assert occurrence.id == original_occurrence_id
-    assert occurrence.scheduled_for == tomorrow
+    assert occurrence.scheduled_for == rescheduled_time
     assert occurrence.status == OccurrenceStatus.SCHEDULED
     # Evidence and execution still link to the same occurrence ID
     assert execution.occurrence_id == occurrence.id

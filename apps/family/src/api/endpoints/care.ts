@@ -32,7 +32,7 @@ export function listPrescriptions(elderId: string): Promise<Prescription[]> {
 export function createPrescription(
   elderId: string,
   body: {
-    workflow_definition_id: string;
+    workflow_definition_id?: string;
     recurrence_definition: Record<string, unknown>;
     timezone_name: string;
     start_at: string;
@@ -57,13 +57,14 @@ export function createCareActivity(
   elderId: string,
   body: {
     activity_type: string;
-    workflow_definition_id: string;
+    workflow_definition_id?: string;
     recurrence_definition: Record<string, unknown>;
     timezone_name: string;
     start_at: string;
     end_at?: string | null;
     display_title: string;
     display_subtitle?: string;
+    display_icon?: string;
   },
   options?: { idempotencyKey?: string },
 ): Promise<CareActivity> {
@@ -73,4 +74,3 @@ export function createCareActivity(
   }
   return apiRequest(`/elders/${elderId}/care-activities/`, { method: "POST", body, headers });
 }
-

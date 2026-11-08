@@ -3,6 +3,7 @@ import expo.modules.splashscreen.SplashScreenManager
 
 import android.os.Build
 import android.os.Bundle
+import android.view.WindowManager
 
 import com.facebook.react.ReactActivity
 import com.facebook.react.ReactActivityDelegate
@@ -20,6 +21,17 @@ class MainActivity : ReactActivity() {
     // @generated begin expo-splashscreen - expo prebuild (DO NOT MODIFY) sync-f3ff59a738c56c9a6119210cb55f0b613eb8b6af
     SplashScreenManager.registerOnActivity(this)
     // @generated end expo-splashscreen
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
+      setShowWhenLocked(true)
+      setTurnScreenOn(true)
+    } else {
+      @Suppress("DEPRECATION")
+      window.addFlags(
+        WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED or
+        WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON
+      )
+    }
+    window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
     super.onCreate(null)
   }
 

@@ -27,10 +27,42 @@ def test_landing_page_renders_successfully(client):
     assert 'id="hero"' in content
     assert 'id="value"' in content
     assert 'id="capabilities"' in content
+    assert 'id="products"' in content
+    assert 'id="pricing"' in content
     assert 'id="how-it-works"' in content
     assert 'id="trust"' in content
     assert 'id="download"' in content
     assert 'id="faq"' in content
+
+    # Check Store Channels & Links
+    assert "https://cafebazaar.ir/app/ir.sayda.yara.family" in content
+    assert "کافه‌بازار" in content
+    assert "مایکت" in content
+    assert "سیب‌اپ" in content
+    assert "بزودی" in content
+
+    # Check Pricing & Calculator
+    assert "۳۸,۹۰۰,۰۰۰" in content
+    assert "۴۲,۰۰۰,۰۰۰" in content
+    assert "۶۵۰,۰۰۰" in content
+    assert "۱,۸۵۰,۰۰۰" in content
+    assert "۶,۵۰۰,۰۰۰" in content
+    assert 'id="rental-calc"' in content
+    assert 'id="rentalDaysInput"' in content
+
+    # Check Empathy Assistance Policy
+    assert "هیچ عزیزی نباید از آرامش مراقبت بازبماند" in content
+    assert "طرح‌های حمایتی" in content
+
+    # Check Products Catalog & Direct Product Anchors
+    assert 'id="product-sayda-hub"' in content
+    assert 'id="product-smart-pillbox"' in content
+    assert 'id="product-health-band"' in content
+    assert "هاب رومیزی سایدا (SAYDA Hub)" in content
+    assert "جعبه داروی هوشمند سایدا" in content
+    assert "دستبند سلامت و پایش آرام" in content
+    assert "استفاده رایگان از یادآور دارو در گوشی خانواده" in content
+    assert 'id="orderModal"' in content
 
     # Check CTAs and Disclaimer
     assert "دانلود اپلیکیشن مراقب" in content

@@ -46,8 +46,8 @@ function isMissed(state: CareCompletion["completion_state"] | undefined): boolea
 export async function composeDashboard(elderId: string): Promise<DashboardModel> {
   const [elder, activities, prescriptions, entitlements, devices] = await Promise.all([
     getElder(elderId),
-    listCareActivities(elderId),
-    listPrescriptions(elderId),
+    listCareActivities(elderId).catch(() => [] as CareActivity[]),
+    listPrescriptions(elderId).catch(() => [] as Prescription[]),
     getEntitlements(elderId).catch(() => ({ entitlements: {} as EntitlementMap })),
     loadElderDevices(elderId),
   ]);

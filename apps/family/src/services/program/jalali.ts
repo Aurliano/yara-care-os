@@ -150,6 +150,16 @@ export function formatJalaliDisplay(isoOrDate: string | Date): string {
   return toPersianDigits(`${jd} ${monthName} ${jy}`);
 }
 
+export function addDaysToJalali(jalaliStr: string, daysToAdd: number): string | null {
+  const parsed = parseJalaliDateString(jalaliStr);
+  if (!parsed) return null;
+  const [gy, gm, gd] = jalaliToGregorian(parsed.year, parsed.month, parsed.day);
+  const d = new Date(gy, gm - 1, gd);
+  d.setDate(d.getDate() + daysToAdd);
+  const [jy, jm, jd] = gregorianToJalali(d.getFullYear(), d.getMonth() + 1, d.getDate());
+  return `${jy}/${pad2(jm)}/${pad2(jd)}`;
+}
+
 export function generateIdempotencyKey(): string {
   if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
     return crypto.randomUUID();

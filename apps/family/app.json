@@ -3,12 +3,11 @@
     "name": "SAYDA",
     "slug": "sayda-family",
     "scheme": "sayda-family",
-    "version": "0.1.0",
+    "version": "0.1.4",
     "orientation": "portrait",
     "icon": "./assets/images/sayda-icon.png",
     "userInterfaceStyle": "light",
     "splash": {
-      "image": "./assets/images/sayda-icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#F4F0E7"
     },

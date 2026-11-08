@@ -10,7 +10,7 @@ import { useQueryClient } from "@tanstack/react-query";
 
 const LINKS = [
   { href: "/(app)/family", label: t.familyLink, icon: "user_plus" as const },
-  { href: "/(app)/subscription", label: t.subscriptionLink, icon: "info" as const },
+  { href: "/(app)/catalog", label: "محصولات و تجهیزات سایدا", icon: "hub" as const },
   { href: "/(app)/settings", label: t.settingsLink, icon: "lock" as const },
 ];
 

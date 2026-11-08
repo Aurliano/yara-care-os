@@ -2,7 +2,7 @@
 
 **Product:** Yara Smart Care  
 **Module:** Android Hub  
-**Version:** MVP v1
+**Version:** 0.1.2
 
 ---
 

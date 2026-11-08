@@ -86,7 +86,7 @@ describe("R1.1 — Pre-Login Marketplace UX Polish & Acquisition Model", () => {
 
     // Price summary displays separate device price, subscription, free gift, and initial payment
     expect(getByText("قیمت دستگاه (مالکیت قطعی):")).toBeTruthy();
-    expect(getAllByText("۸,۹۰۰,۰۰۰ تومان").length).toBeGreaterThanOrEqual(1);
+    expect(getAllByText("۳۸,۹۰۰,۰۰۰ تومان").length).toBeGreaterThanOrEqual(1);
     expect(getByText("۳ ماه اشتراک رایگان")).toBeTruthy();
     expect(getByText("پرداخت اولیه:")).toBeTruthy();
   });
@@ -112,23 +112,23 @@ describe("R1.1 — Pre-Login Marketplace UX Polish & Acquisition Model", () => {
     expect(getAllByText("۶ ماه").length).toBeGreaterThanOrEqual(1);
     expect(getAllByText("۱۲ ماه").length).toBeGreaterThanOrEqual(1);
 
-    // 1 Month default -> 650,000 تومان
-    expect(getByText("۶۵۰,۰۰۰ تومان")).toBeTruthy();
+    // 1 Month default -> 1,040,000 تومان
+    expect(getByText("۱,۰۴۰,۰۰۰ تومان")).toBeTruthy();
 
-    // Select 3 Months -> 1,800,000 تومان
+    // Select 3 Months -> 3,120,000 تومان
     fireEvent.press(getByLabelText("اجاره برای ۳ ماه"));
     expect(useMarketplaceStore.getState().getConfiguration("yara-hub").rentalDurationMonths).toBe(3);
-    expect(getByText("۱,۸۰۰,۰۰۰ تومان")).toBeTruthy();
+    expect(getByText("۳,۱۲۰,۰۰۰ تومان")).toBeTruthy();
 
-    // Select 6 Months -> 3,300,000 تومان
+    // Select 6 Months -> 6,240,000 تومان
     fireEvent.press(getByLabelText("اجاره برای ۶ ماه"));
     expect(useMarketplaceStore.getState().getConfiguration("yara-hub").rentalDurationMonths).toBe(6);
-    expect(getByText("۳,۳۰۰,۰۰۰ تومان")).toBeTruthy();
+    expect(getByText("۶,۲۴۰,۰۰۰ تومان")).toBeTruthy();
 
-    // Select 12 Months -> 6,000,000 تومان
+    // Select 12 Months -> 12,650,000 تومان
     fireEvent.press(getByLabelText("اجاره برای ۱۲ ماه"));
     expect(useMarketplaceStore.getState().getConfiguration("yara-hub").rentalDurationMonths).toBe(12);
-    expect(getByText("۶,۰۰۰,۰۰۰ تومان")).toBeTruthy();
+    expect(getByText("۱۲,۶۵۰,۰۰۰ تومان")).toBeTruthy();
   });
 
   // 10. Annual subscription updates price immediately in BUY flow
@@ -192,15 +192,13 @@ describe("R1.1 — Pre-Login Marketplace UX Polish & Acquisition Model", () => {
     expect(getByText("مشاهده بسته‌ها و تجهیزات سایدا")).toBeTruthy();
   });
 
-  // 15. Checkout boundary navigates to SignIn
-  it("navigates to auth when user continues to order without creating fake state", () => {
+  // 15. Checkout CTA directs to official website
+  it("opens official website when user taps order CTA", () => {
     useMarketplaceStore.getState().setSelectedProductId("yara-hub");
     const { getByText } = render(<ProductDetailScreen />);
 
-    const orderButton = getByText("ادامه و ثبت سفارش");
-    fireEvent.press(orderButton);
-
-    expect(mockPush).toHaveBeenCalledWith("/(auth)/sign-in");
+    const orderButton = getByText("مشاهده و سفارش در وب‌سایت رسمی");
+    expect(orderButton).toBeTruthy();
   });
 
   // 16. Authenticated users bypass Discovery
@@ -226,9 +224,9 @@ describe("R1.1 — Pre-Login Marketplace UX Polish & Acquisition Model", () => {
       rentalDurationMonths: 1,
     });
     expect(hubBuyMonthly.method).toBe("buy");
-    expect(hubBuyMonthly.devicePrice).toBe(8900000);
+    expect(hubBuyMonthly.devicePrice).toBe(38900000);
     expect(hubBuyMonthly.freeSubscriptionMonths).toBe(3);
-    expect(hubBuyMonthly.initialPaymentAmount).toBe(8900000);
+    expect(hubBuyMonthly.initialPaymentAmount).toBe(38900000);
 
     const careRent3Mo = defaultPricingProvider.calculatePrice({
       productId: "yara-care",

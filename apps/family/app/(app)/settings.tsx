@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Pressable, StyleSheet, Switch, View } from "react-native";
 import { useRouter } from "expo-router";
+import Constants from "expo-constants";
 import { useMutation } from "@tanstack/react-query";
 import { AppText, Button, Card, Screen, TextField, TopAppBar } from "../../src/components";
 import { Avatar } from "../../src/components/Avatar";
@@ -72,7 +73,7 @@ export default function SettingsScreen() {
       </AppText>
       <Card>
         <View style={styles.row}>
-          <AppText variant="caption">v 0.1.0</AppText>
+          <AppText variant="caption">{`v ${Constants.expoConfig?.version ?? "0.1.3"}`}</AppText>
           <AppText variant="body">{t.version}</AppText>
         </View>
       </Card>

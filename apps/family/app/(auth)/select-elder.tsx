@@ -15,6 +15,7 @@ import {
 } from "../../src/components";
 import { images } from "../../src/components/Icon";
 import { listElders } from "../../src/api/endpoints/identity";
+import { getAppErrorDisplay } from "../../src/api/errors";
 import { queryKeys } from "../../src/api/queryKeys";
 import { useElderStore } from "../../src/stores/elderStore";
 
@@ -38,9 +39,14 @@ export default function SelectElderScreen() {
     );
   }
   if (query.isError) {
+    const errorDisplay = getAppErrorDisplay(query.error);
     return (
       <Screen>
-        <ErrorState onRetry={() => void query.refetch()} />
+        <ErrorState
+          title={errorDisplay.title}
+          body={errorDisplay.body}
+          onRetry={() => void query.refetch()}
+        />
       </Screen>
     );
   }

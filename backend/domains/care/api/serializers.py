@@ -32,7 +32,7 @@ class CareActivitySerializer(serializers.ModelSerializer):
 
 class CareActivityCreateSerializer(serializers.Serializer):
     activity_type = serializers.CharField(max_length=32)
-    workflow_definition_id = serializers.UUIDField()
+    workflow_definition_id = serializers.UUIDField(required=False, allow_null=True)
     recurrence_definition = serializers.DictField()
     timezone_name = serializers.CharField(max_length=64)
     start_at = serializers.DateTimeField()
@@ -78,7 +78,7 @@ class PrescriptionSerializer(serializers.ModelSerializer):
 
 
 class PrescriptionCreateSerializer(serializers.Serializer):
-    workflow_definition_id = serializers.UUIDField()
+    workflow_definition_id = serializers.UUIDField(required=False, allow_null=True)
     recurrence_definition = serializers.DictField()
     timezone_name = serializers.CharField(max_length=64)
     start_at = serializers.DateTimeField()

@@ -2,6 +2,7 @@ import { Pressable, StyleSheet, View } from "react-native";
 import { useRouter } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
 import { queryKeys } from "../../../src/api/queryKeys";
+import { getAppErrorDisplay } from "../../../src/api/errors";
 import { listCareActivities, listCompletions, listPrescriptions } from "../../../src/api/endpoints/care";
 import { listOccurrences } from "../../../src/api/endpoints/scheduling";
 import { endOfLocalDay, startOfLocalDay } from "../../../src/i18n/dates";
@@ -27,6 +28,7 @@ import {
 import { Icon } from "../../../src/components/Icon";
 import { useElderStore } from "../../../src/stores/elderStore";
 import { usePermissions } from "../../../src/permissions/usePermission";
+import { syncProgramAlarms } from "../../../src/services/medication/alarmScheduler";
 import { PERMISSIONS } from "../../../src/permissions/codes";
 import { visualKindFor } from "../../../src/services/program/activityKind";
 import { shouldShowOnTodayProgram } from "../../../src/services/program/todayProgram";
@@ -41,8 +43,8 @@ export default function ProgramScreen() {
     enabled: Boolean(elderId),
     queryFn: async () => {
       const [activities, prescriptions] = await Promise.all([
-        listCareActivities(elderId as string),
-        listPrescriptions(elderId as string),
+        listCareActivities(elderId as string).catch(() => [] as CareActivity[]),
+        listPrescriptions(elderId as string).catch(() => [] as Prescription[]),
       ]);
       const start = startOfLocalDay().toISOString();
       const end = endOfLocalDay().toISOString();
@@ -80,9 +82,24 @@ export default function ProgramScreen() {
         (a, b) =>
           new Date(a.occurrence.scheduled_for).getTime() - new Date(b.occurrence.scheduled_for).getTime(),
       );
+      void syncProgramAlarms(items);
       return { activities, items };
     },
   });
+
+  if (!elderId) {
+    return (
+      <Screen>
+        <TopAppBar title={t.programTitle} />
+        <EmptyState
+          title={t.noElderTitle}
+          body={t.noElderBody}
+          actionLabel={t.setupElder}
+          onAction={() => router.push("/(auth)/create-elder")}
+        />
+      </Screen>
+    );
+  }
 
   if (query.isPending) {
     return (
@@ -93,10 +110,15 @@ export default function ProgramScreen() {
     );
   }
   if (query.isError) {
+    const errorDisplay = getAppErrorDisplay(query.error);
     return (
       <Screen>
         <TopAppBar title={t.programTitle} />
-        <ErrorState onRetry={() => void query.refetch()} />
+        <ErrorState
+          title={errorDisplay.title}
+          body={errorDisplay.body}
+          onRetry={() => void query.refetch()}
+        />
       </Screen>
     );
   }
@@ -146,7 +168,23 @@ export default function ProgramScreen() {
           return (
             <Pressable
               key={item.occurrence.id}
-              onPress={() => router.push(`/(app)/program/${item.activity.id}`)}
+              onPress={() => {
+                if (kind === "medication" && (item.occurrence.status === "DUE" || !item.completion)) {
+                  router.push({
+                    pathname: "/(app)/program/reminder",
+                    params: {
+                      medicationTitle: item.activity.display_title,
+                      dosage: item.prescription?.dosage_information || item.activity.display_subtitle || "",
+                      timeLabel: formatClock(item.occurrence.scheduled_for),
+                      instructions: item.prescription?.elder_friendly_description || "",
+                      occurrenceId: item.occurrence.id,
+                      activityId: item.activity.id,
+                    },
+                  });
+                } else {
+                  router.push(`/(app)/program/${item.activity.id}`);
+                }
+              }}
             >
               <Card accent={kind === "medication" ? "medication" : kind === "appointment" ? "info" : "none"}>
                 <View style={styles.row}>

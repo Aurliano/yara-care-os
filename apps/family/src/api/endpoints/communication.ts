@@ -11,6 +11,7 @@ export function createContact(
     display_name: string;
     phone?: string;
     preferred_channel: "VOICE" | "VIDEO" | "MESSAGE";
+    photo_reference?: string | null;
   },
 ): Promise<Contact> {
   return apiRequest(`/elders/${elderId}/contacts/`, { method: "POST", body });

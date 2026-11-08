@@ -42,6 +42,7 @@ export const images = {
   icon: require("../../assets/images/sayda-icon.png"),
   splashBg: require("../../assets/images/sayda-splash-bg.png"),
   splashOriginal: require("../../assets/images/sayda-splash-original.png"),
+  splashEmptyTrack: require("../../assets/images/sayda-splash-empty-track.png"),
   noElder: require("../../assets/illustrations/no-elder.png"),
   permissionDenied: require("../../assets/illustrations/permission-denied.png"),
 };

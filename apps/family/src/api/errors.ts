@@ -55,3 +55,39 @@ export function mapMessagingError(error: unknown): string {
   }
   return t.messageSendFailed;
 }
+
+export function getAppErrorDisplay(error: unknown): { title: string; body: string } {
+  if (error instanceof ApiError) {
+    if (error.status === 403) {
+      return {
+        title: "عدم دسترسی",
+        body: "شما مجوز دسترسی به این بخش از پرونده سالمند را ندارید.",
+      };
+    }
+    if (error.status === 404) {
+      return {
+        title: "یافت نشد",
+        body: "اطلاعات مورد نظر در سامانه ثبت نشده یا حذف شده است.",
+      };
+    }
+    if (error.status >= 500) {
+      return {
+        title: "خطای موقت سرور",
+        body: "سامانه برای چند لحظه با اختلال مواجه شده است. لطفاً اندکی بعد دوباره تلاش کنید.",
+      };
+    }
+  }
+
+  const message = error instanceof Error ? error.message.toLowerCase() : "";
+  if (message.includes("network") || message.includes("failed to fetch") || message.includes("timeout")) {
+    return {
+      title: "عدم اتصال به اینترنت",
+      body: "ارتباط با سرور برقرار نشد. لطفاً اتصال اینترنت گوشی خود را بررسی فرمایید.",
+    };
+  }
+
+  return {
+    title: t.errorTitle,
+    body: t.errorBody,
+  };
+}

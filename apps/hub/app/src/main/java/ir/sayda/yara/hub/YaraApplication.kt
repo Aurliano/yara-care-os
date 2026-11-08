@@ -5,6 +5,7 @@ import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
 import dagger.hilt.android.HiltAndroidApp
 import ir.sayda.yara.hub.connectivity.ConnectivitySyncTrigger
+import ir.sayda.yara.hub.data.device.HubDeviceStateReporter
 import ir.sayda.yara.hub.core.domain.usecase.ReconcileRuntimeUseCase
 import ir.sayda.yara.hub.core.domain.usecase.RecoverRuntimeUseCase
 import ir.sayda.yara.hub.core.domain.usecase.RunSynchronizationCycleUseCase
@@ -35,6 +36,7 @@ class YaraApplication : Application(), Configuration.Provider {
     @Inject lateinit var provisioningCoordinator: HubProvisioningCoordinator
     @Inject lateinit var provisioningGate: RuntimeProvisioningGate
     @Inject lateinit var runSynchronizationCycleUseCase: RunSynchronizationCycleUseCase
+    @Inject lateinit var hubDeviceStateReporter: HubDeviceStateReporter
     @Inject lateinit var communicationRuntime: ir.sayda.yara.hub.runtime.communication.CommunicationRuntime
 
     private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -52,6 +54,7 @@ class YaraApplication : Application(), Configuration.Provider {
     }
 
     private suspend fun startRuntimeServices() {
+        runCatching { hubDeviceStateReporter.reportOnline() }
         runCatching { runSynchronizationCycleUseCase("app-start:${System.currentTimeMillis()}") }
         recoverRuntimeUseCase()
         reconcileRuntimeUseCase()
@@ -66,6 +69,9 @@ class YaraApplication : Application(), Configuration.Provider {
         applicationScope.launch {
             while (isActive) {
                 delay(FOREGROUND_SYNC_INTERVAL_MS)
+                runCatching {
+                    hubDeviceStateReporter.reportOnline()
+                }
                 runCatching {
                     runSynchronizationCycleUseCase("foreground-poll:${System.currentTimeMillis()}")
                 }

@@ -43,6 +43,30 @@ def get_workflow_definition_by_code(code: str) -> WorkflowDefinition:
         raise WorkflowNotFoundError("Workflow definition not found.") from exc
 
 
+def get_canonical_medication_workflow_definition() -> WorkflowDefinition:
+    """Return an active canonical medication reminder workflow definition."""
+    from domains.workflow.enums import WorkflowDefinitionStatus
+
+    for code in ("wf-hub-dev-medication", "wf-canonical-medication-reminder"):
+        wf = WorkflowDefinition.objects.filter(
+            code=code, status=WorkflowDefinitionStatus.ACTIVE
+        ).first()
+        if wf is not None:
+            return wf
+
+    wf = WorkflowDefinition.objects.filter(status=WorkflowDefinitionStatus.ACTIVE).first()
+    if wf is not None:
+        return wf
+
+    from domains.workflow.medication_reminder_policy import medication_reminder_definition
+
+    return create_workflow_definition(
+        code="wf-hub-dev-medication",
+        name="Hub Dev Medication Reminder",
+        definition=medication_reminder_definition(),
+    )
+
+
 def get_execution(execution_id: uuid.UUID) -> WorkflowExecution:
     try:
         return WorkflowExecution.objects.select_related(

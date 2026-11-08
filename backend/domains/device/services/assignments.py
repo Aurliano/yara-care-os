@@ -144,13 +144,23 @@ def _device_kind(device_type: str) -> str:
     return "OTHER"
 
 
-def _connectivity(current_state: dict, operational_status: str) -> str:
+def _connectivity(
+    current_state: dict,
+    operational_status: str,
+    last_seen_at: datetime | None = None,
+) -> str:
+    if operational_status != DeviceOperationalStatus.ACTIVE:
+        return "offline"
     network = current_state.get("network")
-    if isinstance(network, str) and network.lower() in {"online", "offline"}:
-        return network.lower()
-    if operational_status == DeviceOperationalStatus.ACTIVE:
-        return "unknown"
-    return "offline"
+    if isinstance(network, str) and network.lower() == "offline":
+        return "offline"
+    if isinstance(network, str) and network.lower() == "online":
+        if last_seen_at is not None:
+            age_seconds = (timezone.now() - last_seen_at).total_seconds()
+            if age_seconds > 600:
+                return "offline"
+        return "online"
+    return "unknown"
 
 
 def _battery_percent(current_state: dict) -> int | None:
@@ -182,7 +192,7 @@ def list_elder_assigned_devices(*, elder_id: uuid.UUID) -> list[dict]:
                 "last_seen_at": device.last_seen_at,
                 "battery_percent": _battery_percent(current_state),
                 "pairing_status": active_pairing.status if active_pairing is not None else None,
-                "connectivity": _connectivity(current_state, device.operational_status),
+                "connectivity": _connectivity(current_state, device.operational_status, device.last_seen_at),
                 "assignment_type": assignment.assignment_type,
             }
         )

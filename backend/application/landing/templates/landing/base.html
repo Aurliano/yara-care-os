@@ -2,6 +2,7 @@
 <!DOCTYPE html>
 <html lang="fa" dir="rtl">
 <head>
+  <meta name="enamad" content="79265399" />
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{{ page_title }}</title>
@@ -59,6 +60,8 @@
         <ul class="nav-links">
           <li><a href="{% url 'landing:home' %}#value">چرا سایدا؟</a></li>
           <li><a href="{% url 'landing:home' %}#capabilities">قابلیت‌ها</a></li>
+          <li><a href="{% url 'landing:home' %}#products">محصولات و تجهیزات</a></li>
+          <li><a href="{% url 'landing:home' %}#pricing">تعرفه‌ها و اجاره</a></li>
           <li><a href="{% url 'landing:home' %}#how-it-works">چگونگی کارکرد</a></li>
           <li><a href="{% url 'landing:home' %}#trust">امنیت و حریم خصوصی</a></li>
           <li><a href="{% url 'landing:home' %}#faq">پرسش‌های متداول</a></li>
@@ -81,15 +84,17 @@
     <div class="container">
       <div class="footer-grid">
         <div class="footer-brand">
-          <h3>سایدا (Yara Care OS)</h3>
+          <h3>سایدا (SAYDA Care)</h3>
           <p>
-            همراهی آرام در روزهای زندگی. یارا سامانه‌ای برای هماهنگی خانواده و حفظ استقلال و آرامش والدین در منزل است؛ با فناوری ساده‌ای که در خدمت انسان است و بی‌دلیل توجه کسی را به خود جلب نمی‌کند.
+            همراهی آرام در روزهای زندگی. سایدا سامانه‌ای برای هماهنگی خانواده و حفظ استقلال و آرامش والدین در منزل است؛ با فناوری ساده‌ای که در خدمت انسان است و بی‌دلیل توجه کسی را به خود جلب نمی‌کند.
           </p>
         </div>
 
         <div class="footer-col">
           <h4>بخش‌های سایت</h4>
           <ul class="footer-links">
+            <li><a href="{% url 'landing:home' %}#products">محصولات و تجهیزات سایدا</a></li>
+            <li><a href="{% url 'landing:home' %}#pricing">تعرفه‌ها و اجاره مدت‌دار</a></li>
             <li><a href="{% url 'landing:home' %}#capabilities">قابلیت‌های سامانه</a></li>
             <li><a href="{% url 'landing:home' %}#how-it-works">نحوه اتصال و استفاده</a></li>
             <li><a href="{% url 'landing:home' %}#download">کانال‌های دریافت اپ</a></li>
