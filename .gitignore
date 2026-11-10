@@ -47,4 +47,5 @@ Thumbs.db
 # Keystores & Release Backups
 *.jks
 release-backups-*/
+env-backups-*/
 !apps/family/android/app/debug.keystore
