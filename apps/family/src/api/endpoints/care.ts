@@ -9,6 +9,21 @@ export function getCareActivity(activityId: string): Promise<CareActivity> {
   return apiRequest(`/care-activities/${activityId}/`);
 }
 
+export function updateCareActivity(
+  activityId: string,
+  body: {
+    display_title?: string;
+    display_subtitle?: string;
+    display_icon?: string;
+    recurrence_definition?: Record<string, unknown>;
+    timezone_name?: string;
+    start_at?: string;
+    end_at?: string | null;
+  },
+): Promise<CareActivity> {
+  return apiRequest(`/care-activities/${activityId}/`, { method: "PATCH", body });
+}
+
 export function pauseCareActivity(activityId: string): Promise<CareActivity> {
   return apiRequest(`/care-activities/${activityId}/pause/`, { method: "POST" });
 }
@@ -27,6 +42,29 @@ export function listCompletions(activityId: string): Promise<CareCompletion[]> {
 
 export function listPrescriptions(elderId: string): Promise<Prescription[]> {
   return apiRequest(`/elders/${elderId}/prescriptions/`);
+}
+
+export function getPrescription(prescriptionId: string): Promise<Prescription> {
+  return apiRequest(`/prescriptions/${prescriptionId}/`);
+}
+
+export function updatePrescription(
+  prescriptionId: string,
+  body: {
+    display_title?: string;
+    display_subtitle?: string;
+    display_icon?: string;
+    medication_reference?: string;
+    dosage_information?: string;
+    elder_friendly_description?: string;
+    personalized_description?: string;
+    recurrence_definition?: Record<string, unknown>;
+    timezone_name?: string;
+    start_at?: string;
+    end_at?: string | null;
+  },
+): Promise<Prescription> {
+  return apiRequest(`/prescriptions/${prescriptionId}/`, { method: "PATCH", body });
 }
 
 export function createPrescription(

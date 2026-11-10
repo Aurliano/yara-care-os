@@ -83,6 +83,32 @@ function pad2(num: number): string {
   return String(num).padStart(2, "0");
 }
 
+export function isJalaliLeapYear(jy: number): boolean {
+  const [gy, gm, gd] = jalaliToGregorian(jy, 12, 30);
+  const [checkJy, checkJm, checkJd] = gregorianToJalali(gy, gm, gd);
+  return checkJy === jy && checkJm === 12 && checkJd === 30;
+}
+
+export function getDaysInJalaliMonth(jy: number, jm: number): number {
+  if (jm < 1 || jm > 12) return 0;
+  if (jm <= 6) return 31;
+  if (jm <= 11) return 30;
+  return isJalaliLeapYear(jy) ? 30 : 29;
+}
+
+export function getPersianWeekdayIndex(date: Date): number {
+  const gDay = date.getDay(); // 0 = Sun, 1 = Mon, ..., 6 = Sat
+  return (gDay + 1) % 7; // 0 = Sat (شنبه), 1 = Sun, ..., 6 = Fri (جمعه)
+}
+
+export function isSameDay(d1: Date, d2: Date): boolean {
+  return (
+    d1.getFullYear() === d2.getFullYear() &&
+    d1.getMonth() === d2.getMonth() &&
+    d1.getDate() === d2.getDate()
+  );
+}
+
 export function getTodayJalali(date = new Date()): { year: number; month: number; day: number; formatted: string } {
   const [jy, jm, jd] = gregorianToJalali(date.getFullYear(), date.getMonth() + 1, date.getDate());
   return {
@@ -150,6 +176,21 @@ export function formatJalaliDisplay(isoOrDate: string | Date): string {
   return toPersianDigits(`${jd} ${monthName} ${jy}`);
 }
 
+export function formatJalaliMonthYear(jy: number, jm: number): string {
+  const monthName = JALALI_MONTH_NAMES[jm - 1] ?? "";
+  return toPersianDigits(`${monthName} ${jy}`);
+}
+
+export function formatJalaliDayMonth(isoOrDate: string | Date): string {
+  const d = typeof isoOrDate === "string" ? new Date(isoOrDate) : isoOrDate;
+  if (Number.isNaN(d.getTime())) {
+    return "—";
+  }
+  const [, jm, jd] = gregorianToJalali(d.getFullYear(), d.getMonth() + 1, d.getDate());
+  const monthName = JALALI_MONTH_NAMES[jm - 1] ?? "";
+  return toPersianDigits(`${jd} ${monthName}`);
+}
+
 export function addDaysToJalali(jalaliStr: string, daysToAdd: number): string | null {
   const parsed = parseJalaliDateString(jalaliStr);
   if (!parsed) return null;
@@ -158,6 +199,116 @@ export function addDaysToJalali(jalaliStr: string, daysToAdd: number): string | 
   d.setDate(d.getDate() + daysToAdd);
   const [jy, jm, jd] = gregorianToJalali(d.getFullYear(), d.getMonth() + 1, d.getDate());
   return `${jy}/${pad2(jm)}/${pad2(jd)}`;
+}
+
+export interface JalaliDayItem {
+  date: Date;
+  jalaliYear: number;
+  jalaliMonth: number;
+  jalaliDay: number;
+  jalaliDateStr: string;
+  weekdayCode: (typeof JALALI_WEEKDAYS)[number]["code"];
+  weekdayLabel: string;
+  isToday: boolean;
+}
+
+export function getJalaliWeekDays(refDate = new Date(), weekOffset = 0): JalaliDayItem[] {
+  const base = new Date(refDate.getFullYear(), refDate.getMonth(), refDate.getDate());
+  const weekdayIndex = getPersianWeekdayIndex(base);
+  const sat = new Date(base);
+  sat.setDate(base.getDate() - weekdayIndex + weekOffset * 7);
+
+  const today = new Date();
+  const days: JalaliDayItem[] = [];
+  for (let i = 0; i < 7; i++) {
+    const cur = new Date(sat);
+    cur.setDate(sat.getDate() + i);
+    const [jy, jm, jd] = gregorianToJalali(cur.getFullYear(), cur.getMonth() + 1, cur.getDate());
+    days.push({
+      date: cur,
+      jalaliYear: jy,
+      jalaliMonth: jm,
+      jalaliDay: jd,
+      jalaliDateStr: `${jy}/${pad2(jm)}/${pad2(jd)}`,
+      weekdayCode: JALALI_WEEKDAYS[i].code,
+      weekdayLabel: JALALI_WEEKDAYS[i].label,
+      isToday: isSameDay(cur, today),
+    });
+  }
+  return days;
+}
+
+export interface JalaliCalendarCell {
+  dayNumber: number;
+  jalaliDateStr: string;
+  date: Date;
+  isCurrentMonth: boolean;
+  isToday: boolean;
+  weekdayIndex: number;
+}
+
+export function getJalaliMonthGrid(jy: number, jm: number): JalaliCalendarCell[][] {
+  const totalDays = getDaysInJalaliMonth(jy, jm);
+  const [firstGy, firstGm, firstGd] = jalaliToGregorian(jy, jm, 1);
+  const firstDate = new Date(firstGy, firstGm - 1, firstGd);
+  const startWeekday = getPersianWeekdayIndex(firstDate);
+
+  const today = new Date();
+  const cells: JalaliCalendarCell[] = [];
+
+  const prevJm = jm === 1 ? 12 : jm - 1;
+  const prevJy = jm === 1 ? jy - 1 : jy;
+  const prevTotalDays = getDaysInJalaliMonth(prevJy, prevJm);
+
+  for (let i = startWeekday - 1; i >= 0; i--) {
+    const dayNum = prevTotalDays - i;
+    const [gy, gm, gd] = jalaliToGregorian(prevJy, prevJm, dayNum);
+    const d = new Date(gy, gm - 1, gd);
+    cells.push({
+      dayNumber: dayNum,
+      jalaliDateStr: `${prevJy}/${pad2(prevJm)}/${pad2(dayNum)}`,
+      date: d,
+      isCurrentMonth: false,
+      isToday: isSameDay(d, today),
+      weekdayIndex: getPersianWeekdayIndex(d),
+    });
+  }
+
+  for (let d = 1; d <= totalDays; d++) {
+    const [gy, gm, gd] = jalaliToGregorian(jy, jm, d);
+    const date = new Date(gy, gm - 1, gd);
+    cells.push({
+      dayNumber: d,
+      jalaliDateStr: `${jy}/${pad2(jm)}/${pad2(d)}`,
+      date,
+      isCurrentMonth: true,
+      isToday: isSameDay(date, today),
+      weekdayIndex: getPersianWeekdayIndex(date),
+    });
+  }
+
+  const remaining = (7 - (cells.length % 7)) % 7;
+  const nextJm = jm === 12 ? 1 : jm + 1;
+  const nextJy = jm === 12 ? jy + 1 : jy;
+
+  for (let d = 1; d <= remaining; d++) {
+    const [gy, gm, gd] = jalaliToGregorian(nextJy, nextJm, d);
+    const date = new Date(gy, gm - 1, gd);
+    cells.push({
+      dayNumber: d,
+      jalaliDateStr: `${nextJy}/${pad2(nextJm)}/${pad2(d)}`,
+      date,
+      isCurrentMonth: false,
+      isToday: isSameDay(date, today),
+      weekdayIndex: getPersianWeekdayIndex(date),
+    });
+  }
+
+  const rows: JalaliCalendarCell[][] = [];
+  for (let i = 0; i < cells.length; i += 7) {
+    rows.push(cells.slice(i, i + 7));
+  }
+  return rows;
 }
 
 export function generateIdempotencyKey(): string {

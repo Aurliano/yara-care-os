@@ -1,4 +1,5 @@
 import { toPersianDigits } from "./numerals";
+import { formatJalaliDisplay } from "../services/program/jalali";
 
 const WEEKDAYS = ["یکشنبه", "دوشنبه", "سه‌شنبه", "چهارشنبه", "پنجشنبه", "جمعه", "شنبه"];
 
@@ -34,16 +35,7 @@ export function formatRelative(iso: string, now = new Date()): string {
 }
 
 export function formatPersianDate(iso: string | Date): string {
-  const date = typeof iso === "string" ? new Date(iso) : iso;
-  if (Number.isNaN(date.getTime())) {
-    return "—";
-  }
-  const formatted = new Intl.DateTimeFormat("fa-IR", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  }).format(date);
-  return toPersianDigits(formatted);
+  return formatJalaliDisplay(iso);
 }
 
 export function weekdayName(iso: string | Date): string {

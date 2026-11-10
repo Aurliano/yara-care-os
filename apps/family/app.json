@@ -3,7 +3,7 @@
     "name": "SAYDA",
     "slug": "sayda-family",
     "scheme": "sayda-family",
-    "version": "0.1.4",
+    "version": "0.1.5",
     "orientation": "portrait",
     "icon": "./assets/images/sayda-icon.png",
     "userInterfaceStyle": "light",
