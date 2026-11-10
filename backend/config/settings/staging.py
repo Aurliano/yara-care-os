@@ -13,6 +13,8 @@ staging_env_file = BASE_DIR / ".env.staging"  # noqa: F405
 if staging_env_file.exists():
     environ.Env.read_env(staging_env_file, overwrite=False)
 
+ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=["*"])
+
 # Explicitly resolve the staging database connection.
 # Default strictly targets yara_staging.
 staging_db_raw = env(  # noqa: F405

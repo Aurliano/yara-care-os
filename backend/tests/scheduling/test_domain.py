@@ -413,3 +413,74 @@ def test_get_next_occurrence():
     nxt = get_next_occurrence(schedule_definition_id=schedule.id, after=timezone.now())
     assert nxt is not None
     assert nxt.status == OccurrenceStatus.SCHEDULED
+
+
+@pytest.mark.django_db
+def test_update_schedule_cancels_obsolete_future_occurrences():
+    now = timezone.now()
+    schedule = create_schedule(
+        owner_reference="owner:test-update",
+        recurrence_definition={"type": "daily", "time": "08:00"},
+        timezone_name="Asia/Tehran",
+        start_at=now,
+    )
+    old_future_count = Occurrence.objects.filter(
+        schedule_definition=schedule,
+        scheduled_for__gte=now,
+        status=OccurrenceStatus.SCHEDULED,
+    ).count()
+    assert old_future_count > 0
+
+    # Update recurrence time from 08:00 to 14:00
+    update_schedule(
+        schedule.id,
+        recurrence_definition={"type": "daily", "time": "14:00"},
+    )
+
+    # Verify old occurrences are CANCELLED
+    cancelled_count = Occurrence.objects.filter(
+        schedule_definition=schedule,
+        status=OccurrenceStatus.CANCELLED,
+    ).count()
+    assert cancelled_count > 0
+
+    # Verify new occurrences are SCHEDULED with updated 14:00 time
+    new_scheduled = Occurrence.objects.filter(
+        schedule_definition=schedule,
+        scheduled_for__gte=now,
+        status=OccurrenceStatus.SCHEDULED,
+    )
+    assert new_scheduled.exists()
+    tehran_zone = ZoneInfo("Asia/Tehran")
+    for occ in new_scheduled:
+        assert occ.scheduled_for.astimezone(tehran_zone).hour == 14
+
+
+@pytest.mark.django_db
+def test_cancel_schedule_cancels_future_occurrences():
+    now = timezone.now()
+    schedule = create_schedule(
+        owner_reference="owner:test-cancel",
+        recurrence_definition={"type": "daily", "time": "09:00"},
+        timezone_name="Asia/Tehran",
+        start_at=now,
+    )
+    assert Occurrence.objects.filter(
+        schedule_definition=schedule,
+        scheduled_for__gte=now,
+        status=OccurrenceStatus.SCHEDULED,
+    ).exists()
+
+    cancel_schedule(schedule.id)
+
+    # Future occurrences must now be CANCELLED
+    assert not Occurrence.objects.filter(
+        schedule_definition=schedule,
+        scheduled_for__gte=now,
+        status=OccurrenceStatus.SCHEDULED,
+    ).exists()
+    assert Occurrence.objects.filter(
+        schedule_definition=schedule,
+        scheduled_for__gte=now,
+        status=OccurrenceStatus.CANCELLED,
+    ).exists()

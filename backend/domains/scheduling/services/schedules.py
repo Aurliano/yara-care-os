@@ -87,8 +87,17 @@ def update_schedule(
     schedule.save()
     emit_schedule_updated(schedule_id=schedule.id, status=schedule.status)
 
+    now = timezone.now()
     if schedule.status == ScheduleStatus.ACTIVE:
-        generate_occurrences_for_schedule(schedule, range_start=timezone.now())
+        future_scheduled = Occurrence.objects.filter(
+            schedule_definition=schedule,
+            scheduled_for__gte=now,
+            status=OccurrenceStatus.SCHEDULED,
+        )
+        for occ in future_scheduled:
+            occ.status = OccurrenceStatus.CANCELLED
+            occ.save(update_fields=["status"])
+        generate_occurrences_for_schedule(schedule, range_start=now)
     return schedule
 
 
@@ -124,6 +133,15 @@ def cancel_schedule(schedule_definition_id: uuid.UUID) -> ScheduleDefinition:
         raise InvalidScheduleStateError("Ended schedules cannot be cancelled.")
     schedule.status = ScheduleStatus.CANCELLED
     schedule.save(update_fields=["status", "updated_at"])
+    now = timezone.now()
+    future_scheduled = Occurrence.objects.filter(
+        schedule_definition=schedule,
+        scheduled_for__gte=now,
+        status=OccurrenceStatus.SCHEDULED,
+    )
+    for occ in future_scheduled:
+        occ.status = OccurrenceStatus.CANCELLED
+        occ.save(update_fields=["status"])
     emit_schedule_cancelled(schedule_id=schedule.id)
     return schedule
 

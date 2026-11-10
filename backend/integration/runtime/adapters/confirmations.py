@@ -13,6 +13,7 @@ from domains.workflow.exceptions import ExecutionNotFoundError
 from domains.workflow.identity import compute_execution_id
 from domains.workflow.services.evidence import submit_direct_interaction_evidence
 from domains.workflow.services.executions import get_execution, start_execution
+from domains.workflow.services.postpone import postpone_execution
 from integration.context import IntegrationContext
 from integration.observability import logging as integration_logging
 
@@ -29,12 +30,18 @@ def submit_hub_confirmation(
     ctx = ctx.with_execution(execution_id)
     if occurrence_id is not None:
         _reconcile_missing_execution(ctx, execution_id=execution_id, occurrence_id=occurrence_id)
-    execution = submit_direct_interaction_evidence(
-        execution_id=execution_id,
-        evidence_type=evidence_type,
-        interaction_reference=interaction_reference,
-        actor_user_id=actor_user_id or ctx.actor_id,
-    )
+    if evidence_type == "POSTPONE":
+        execution = postpone_execution(
+            execution_id=execution_id,
+            postpone_request_id=interaction_reference,
+        )
+    else:
+        execution = submit_direct_interaction_evidence(
+            execution_id=execution_id,
+            evidence_type=evidence_type,
+            interaction_reference=interaction_reference,
+            actor_user_id=actor_user_id or ctx.actor_id,
+        )
     integration_logging.log_orchestration_step(ctx, "hub_confirmation_submitted")
     try:
         from integration.runtime.dispatcher import process_pending_events
