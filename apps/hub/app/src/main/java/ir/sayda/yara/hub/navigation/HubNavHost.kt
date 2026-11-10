@@ -89,6 +89,11 @@ fun HubNavHost(
                         HubRoutes.outgoingCall(contactId, elderId, channel, displayName),
                     )
                 },
+                onOpenReminder = { executionId ->
+                    navController.navigate("${HubRoutes.REMINDER}/$executionId") {
+                        launchSingleTop = true
+                    }
+                },
             )
         }
         composable(HubRoutes.SETTINGS) {

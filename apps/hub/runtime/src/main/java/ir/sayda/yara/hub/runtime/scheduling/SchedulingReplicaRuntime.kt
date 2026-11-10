@@ -36,7 +36,7 @@ class SchedulingReplicaRuntime @Inject constructor(
         }
 
         var markedDue = 0
-        val dueCandidates = schedulingRepository.getScheduledOccurrencesDueBefore(nowEpochMillis)
+        val dueCandidates = schedulingRepository.getScheduledOccurrencesDueBefore(nowEpochMillis + DUE_GRACE_PERIOD_MILLIS)
         for (occurrence in dueCandidates) {
             if (occurrence.status != OccurrenceStatus.SCHEDULED.name) continue
             val updated = occurrence.copy(
@@ -102,6 +102,7 @@ class SchedulingReplicaRuntime @Inject constructor(
 
     companion object {
         private const val DEFAULT_HORIZON_MILLIS = 90L * 24 * 60 * 60 * 1000
+        private const val DUE_GRACE_PERIOD_MILLIS = 60_000L
     }
 }
 

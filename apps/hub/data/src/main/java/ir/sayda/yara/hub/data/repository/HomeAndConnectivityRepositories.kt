@@ -203,7 +203,7 @@ class HomeRepositoryImpl @Inject constructor(
             val confirmedAt = executionByOccurrence[occurrence.id]?.id?.let { confirmedAtByExecutionId[it] }
             TodayReminderItem(
                 occurrenceId = occurrence.id,
-                executionId = executionByOccurrence[occurrence.id]?.id,
+                executionId = executionByOccurrence[occurrence.id]?.id ?: ir.sayda.yara.hub.core.identity.computeExecutionId(occurrence.id),
                 title = activity?.displayTitle ?: "یادآور",
                 friendlyDescription = prescription?.elderFriendlyDescription
                     ?: activity?.displaySubtitle

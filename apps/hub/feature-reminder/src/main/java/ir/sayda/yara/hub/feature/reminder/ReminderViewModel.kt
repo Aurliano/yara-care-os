@@ -8,6 +8,7 @@ import ir.sayda.yara.hub.core.domain.usecase.ConfirmReminderUseCase
 import ir.sayda.yara.hub.core.domain.usecase.ObserveReminderPresentationUseCase
 import ir.sayda.yara.hub.core.domain.usecase.PostponeReminderUseCase
 import ir.sayda.yara.hub.core.result.AppResult
+import ir.sayda.yara.hub.core.runtime.ReminderNotificationGateway
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -19,6 +20,7 @@ class ReminderViewModel @Inject constructor(
     private val observeReminderPresentationUseCase: ObserveReminderPresentationUseCase,
     private val confirmReminderUseCase: ConfirmReminderUseCase,
     private val postponeReminderUseCase: PostponeReminderUseCase,
+    private val reminderNotificationGateway: ReminderNotificationGateway,
 ) : ViewModel() {
 
     private val _presentation = MutableStateFlow<ReminderPresentation?>(null)
@@ -41,6 +43,7 @@ class ReminderViewModel @Inject constructor(
             _confirmationState.value = ConfirmationState.Submitting
             when (val result = confirmReminderUseCase(executionId, interactionReference = "hub_ui_confirm")) {
                 is AppResult.Success -> {
+                    reminderNotificationGateway.cancelReminderNotification(executionId)
                     _presentation.value = observeReminderPresentationUseCase(executionId)
                     _confirmationState.value = ConfirmationState.Completed(result.data)
                 }
@@ -55,7 +58,10 @@ class ReminderViewModel @Inject constructor(
         viewModelScope.launch {
             _postponeState.value = PostponeState.Submitting
             when (val result = postponeReminderUseCase(executionId, interactionReference = "hub_ui_postpone")) {
-                is AppResult.Success -> _postponeState.value = PostponeState.Completed(result.data)
+                is AppResult.Success -> {
+                    reminderNotificationGateway.cancelReminderNotification(executionId)
+                    _postponeState.value = PostponeState.Completed(result.data)
+                }
                 is AppResult.Error -> _postponeState.value = PostponeState.Failed(
                     result.message.ifBlank { result.exception.message.orEmpty() },
                 )

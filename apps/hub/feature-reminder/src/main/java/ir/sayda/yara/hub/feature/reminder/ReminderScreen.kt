@@ -15,7 +15,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AccessTime
 import androidx.compose.material.icons.rounded.CheckCircle
@@ -73,6 +75,26 @@ fun ReminderRoute(
         viewModel.load(executionId)
     }
 
+    val context = androidx.compose.ui.platform.LocalContext.current
+    androidx.compose.runtime.DisposableEffect(executionId) {
+        val uri = android.media.RingtoneManager.getDefaultUri(android.media.RingtoneManager.TYPE_ALARM)
+            ?: android.media.RingtoneManager.getDefaultUri(android.media.RingtoneManager.TYPE_NOTIFICATION)
+        val ringtone = android.media.RingtoneManager.getRingtone(context, uri)
+        try {
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
+                ringtone?.isLooping = true
+            }
+            ringtone?.play()
+        } catch (_: Exception) {
+        }
+        onDispose {
+            try {
+                ringtone?.stop()
+            } catch (_: Exception) {
+            }
+        }
+    }
+
     LaunchedEffect(confirmationState) {
         if (confirmationState is ReminderViewModel.ConfirmationState.Completed) {
             onFinished()
@@ -99,11 +121,13 @@ fun ReminderRoute(
         ) { innerPadding ->
             Box(modifier = Modifier.fillMaxSize()) {
                 TodayBackground(modifier = Modifier.fillMaxSize())
+                val scrollState = rememberScrollState()
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(innerPadding)
-                        .padding(24.dp),
+                        .padding(horizontal = 24.dp, vertical = 12.dp)
+                        .verticalScroll(scrollState),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center,
                 ) {
@@ -134,7 +158,7 @@ fun ReminderRoute(
                                             listOf(CardMedicationBgStart, CardMedicationBgEnd),
                                         ),
                                     )
-                                    .padding(horizontal = 36.dp, vertical = 36.dp),
+                                    .padding(horizontal = 28.dp, vertical = 20.dp),
                             ) {
                                 Column(
                                     modifier = Modifier.fillMaxWidth(),
@@ -145,7 +169,7 @@ fun ReminderRoute(
                                         shape = CircleShape,
                                         color = CardMedicationIconBg,
                                         shadowElevation = 4.dp,
-                                        modifier = Modifier.size(80.dp),
+                                        modifier = Modifier.size(64.dp),
                                     ) {
                                         Box(
                                             contentAlignment = Alignment.Center,
@@ -155,7 +179,7 @@ fun ReminderRoute(
                                                 imageVector = Icons.Rounded.Medication,
                                                 contentDescription = null,
                                                 tint = Color.White,
-                                                modifier = Modifier.size(44.dp),
+                                                modifier = Modifier.size(36.dp),
                                             )
                                         }
                                     }
@@ -210,7 +234,7 @@ fun ReminderRoute(
                                     }
 
                                     if (reminder.friendlyDescription.isNotBlank()) {
-                                        Spacer(modifier = Modifier.height(14.dp))
+                                        Spacer(modifier = Modifier.height(10.dp))
                                         Text(
                                             text = reminder.friendlyDescription,
                                             style = MaterialTheme.typography.bodyLarge,
@@ -259,7 +283,7 @@ fun ReminderRoute(
                                         )
                                     }
 
-                                    Spacer(modifier = Modifier.height(28.dp))
+                                    Spacer(modifier = Modifier.height(14.dp))
 
                                     // Action 1: Confirm Taken (Primary green pill)
                                     Surface(
@@ -270,7 +294,7 @@ fun ReminderRoute(
                                         shadowElevation = if (!locallyConfirmed && !actionBusy) 3.dp else 0.dp,
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .height(64.dp),
+                                            .height(56.dp),
                                     ) {
                                         Row(
                                             modifier = Modifier.fillMaxSize(),
@@ -310,7 +334,7 @@ fun ReminderRoute(
                                             border = BorderStroke(1.5.dp, Color(0xFFE2E8F0)),
                                             modifier = Modifier
                                                 .fillMaxWidth()
-                                                .height(54.dp),
+                                                .height(48.dp),
                                         ) {
                                             Row(
                                                 modifier = Modifier.fillMaxSize(),

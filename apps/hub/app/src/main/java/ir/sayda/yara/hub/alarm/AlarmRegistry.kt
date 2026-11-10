@@ -4,6 +4,7 @@ import android.app.AlarmManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.os.Build
 import dagger.hilt.android.qualifiers.ApplicationContext
 import ir.sayda.yara.hub.core.runtime.OccurrenceAlarmRegistry
 import ir.sayda.yara.hub.core.runtime.OccurrenceAlarmSpec
@@ -30,12 +31,30 @@ class AlarmRegistry @Inject constructor(
         alarmManager.cancel(pendingIntentFor(spec.occurrenceId))
         trackedOccurrenceIds.remove(spec.occurrenceId)
 
-        alarmManager.setExactAndAllowWhileIdle(
-            AlarmManager.RTC_WAKEUP,
-            spec.triggerAtEpochMillis,
-            pendingIntentFor(spec.occurrenceId),
-        )
-        trackedOccurrenceIds.add(spec.occurrenceId)
+        val intent = pendingIntentFor(spec.occurrenceId)
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !alarmManager.canScheduleExactAlarms()) {
+                alarmManager.setAndAllowWhileIdle(
+                    AlarmManager.RTC_WAKEUP,
+                    spec.triggerAtEpochMillis,
+                    intent,
+                )
+            } else {
+                alarmManager.setExactAndAllowWhileIdle(
+                    AlarmManager.RTC_WAKEUP,
+                    spec.triggerAtEpochMillis,
+                    intent,
+                )
+            }
+            trackedOccurrenceIds.add(spec.occurrenceId)
+        } catch (_: SecurityException) {
+            alarmManager.setAndAllowWhileIdle(
+                AlarmManager.RTC_WAKEUP,
+                spec.triggerAtEpochMillis,
+                intent,
+            )
+            trackedOccurrenceIds.add(spec.occurrenceId)
+        }
     }
 
     override suspend fun cancelOccurrenceAlarm(occurrenceId: String) {

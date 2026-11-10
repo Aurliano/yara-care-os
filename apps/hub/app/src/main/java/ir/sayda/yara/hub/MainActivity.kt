@@ -49,7 +49,7 @@ class MainActivity : ComponentActivity() {
         }
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         enableEdgeToEdge()
-        requestCallPermissions()
+        requestAppPermissions()
         setContent {
             HubTheme {
                 HubNavHost(modifier = Modifier.fillMaxSize())
@@ -58,11 +58,14 @@ class MainActivity : ComponentActivity() {
         handleReminderIntent(intent)
     }
 
-    private fun requestCallPermissions() {
-        val permissions = arrayOf(
-            Manifest.permission.CAMERA,
-            Manifest.permission.RECORD_AUDIO,
-        )
+    private fun requestAppPermissions() {
+        val permissions = buildList {
+            add(Manifest.permission.CAMERA)
+            add(Manifest.permission.RECORD_AUDIO)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                add(Manifest.permission.POST_NOTIFICATIONS)
+            }
+        }
         val needed = permissions.filter {
             ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED
         }

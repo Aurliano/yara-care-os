@@ -29,14 +29,14 @@ class RuntimeRefreshCoordinatorTest {
     }
 
     @Test
-    fun schedulingScopeRefreshesSchedulingOnly() = runTest {
+    fun schedulingScopeRefreshesSchedulingOnlyWhenNoneDue() = runTest {
         val scheduling = mockk<SchedulingReplicaRuntime>(relaxed = true)
         val workflow = mockk<WorkflowReplicaRuntime>(relaxed = true)
         val alarms = mockk<RuntimeAlarmCoordinator>(relaxed = true)
         val bootstrap = mockk<HubWorkflowBootstrap>(relaxed = true)
         coEvery { scheduling.hydrateAndEvaluate(any()) } returns SchedulingCycleResult(
-            schedulesObserved = 0,
-            occurrencesGenerated = 0,
+            schedulesObserved = 1,
+            occurrencesGenerated = 1,
             occurrencesMarkedDue = 0,
         )
         val coordinator = RuntimeRefreshCoordinator(scheduling, workflow, alarms, bootstrap)
@@ -45,6 +45,27 @@ class RuntimeRefreshCoordinatorTest {
 
         coVerify(exactly = 1) { scheduling.hydrateAndEvaluate(any()) }
         coVerify(exactly = 0) { workflow.processDueOccurrences(any()) }
+        coVerify(exactly = 1) { alarms.syncAlarmsFromReplicas(any()) }
+    }
+
+    @Test
+    fun schedulingScopeTriggersWorkflowWhenOccurrencesMarkedDue() = runTest {
+        val scheduling = mockk<SchedulingReplicaRuntime>(relaxed = true)
+        val workflow = mockk<WorkflowReplicaRuntime>(relaxed = true)
+        val alarms = mockk<RuntimeAlarmCoordinator>(relaxed = true)
+        val bootstrap = mockk<HubWorkflowBootstrap>(relaxed = true)
+        coEvery { scheduling.hydrateAndEvaluate(any()) } returns SchedulingCycleResult(
+            schedulesObserved = 1,
+            occurrencesGenerated = 1,
+            occurrencesMarkedDue = 1,
+        )
+        val coordinator = RuntimeRefreshCoordinator(scheduling, workflow, alarms, bootstrap)
+
+        coordinator.refreshAfterSync(SyncRefreshScope(scheduling = true))
+
+        coVerify(exactly = 1) { scheduling.hydrateAndEvaluate(any()) }
+        coVerify(exactly = 1) { workflow.processDueOccurrences(any()) }
+        coVerify(exactly = 1) { workflow.dispatchActiveReminders() }
         coVerify(exactly = 1) { alarms.syncAlarmsFromReplicas(any()) }
     }
 }

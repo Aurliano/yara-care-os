@@ -32,7 +32,7 @@ class WorkflowReplicaRuntime @Inject constructor(
     private val timeoutMutex = Mutex()
 
     suspend fun processDueOccurrences(nowEpochMillis: Long = System.currentTimeMillis()): WorkflowCycleResult {
-        val dueOccurrences = schedulingRepository.getOccurrencesDueBefore(nowEpochMillis)
+        val dueOccurrences = schedulingRepository.getOccurrencesDueBefore(nowEpochMillis + DUE_GRACE_PERIOD_MILLIS)
         var started = 0
         for (occurrence in dueOccurrences) {
             if (occurrence.status != OccurrenceStatus.DUE.name) continue
@@ -195,6 +195,7 @@ class WorkflowReplicaRuntime @Inject constructor(
     }
 
     companion object {
+        private const val DUE_GRACE_PERIOD_MILLIS = 60_000L
         private val TERMINAL_OR_ACTIVE = setOf(
             WorkflowExecutionStatus.ACTIVE.name,
             WorkflowExecutionStatus.CONFIRMED.name,

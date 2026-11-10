@@ -22,8 +22,12 @@ class RuntimeRefreshCoordinator @Inject constructor(
         val now = System.currentTimeMillis()
         if (scope.scheduling || scope.care) {
             runCatching { hubWorkflowBootstrap.ensureWorkflowDefinitionsForCareActivities() }
-            schedulingReplicaRuntime.hydrateAndEvaluate(now)
+            val schedulingResult = schedulingReplicaRuntime.hydrateAndEvaluate(now)
             runtimeAlarmCoordinator.syncAlarmsFromReplicas()
+            if (schedulingResult.occurrencesMarkedDue > 0) {
+                workflowReplicaRuntime.processDueOccurrences(now)
+                workflowReplicaRuntime.dispatchActiveReminders()
+            }
         }
         if (scope.workflow) {
             runCatching { hubWorkflowBootstrap.ensureWorkflowDefinitionsForCareActivities() }

@@ -139,6 +139,7 @@ fun HomeRoute(
     onOpenDeveloperSettings: () -> Unit,
     onSettingsLongPress: () -> Unit,
     onCallContact: (contactId: String, elderId: String, channel: String, displayName: String) -> Unit = { _, _, _, _ -> },
+    onOpenReminder: (executionId: String) -> Unit = {},
     modifier: Modifier = Modifier,
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
@@ -501,6 +502,10 @@ fun HomeRoute(
                 nextReminderScheduledTime = nextReminder.scheduledTime,
                 reminderTimeFormatter = reminderTimeFormatter,
                 onDismiss = { showMedicationSheet = false },
+                onOpenReminder = { execId ->
+                    showMedicationSheet = false
+                    onOpenReminder(execId)
+                },
             )
         }
 
@@ -1141,6 +1146,7 @@ private fun MedicationScheduleDialog(
     nextReminderScheduledTime: String?,
     reminderTimeFormatter: SimpleDateFormat,
     onDismiss: () -> Unit,
+    onOpenReminder: (executionId: String) -> Unit = {},
 ) {
     Dialog(
         onDismissRequest = onDismiss,
@@ -1237,7 +1243,7 @@ private fun MedicationScheduleDialog(
                             subtitle = nextReminderSubtitle,
                             description = nextReminderDescription,
                             scheduledTime = nextReminderScheduledTime,
-                            onClick = {},
+                            onClick = { snapshot.todayReminders.firstOrNull()?.executionId?.let { onOpenReminder(it) } },
                         )
                     }
 
@@ -1261,7 +1267,7 @@ private fun MedicationScheduleDialog(
                                 title = reminder.title,
                                 description = description,
                                 scheduledTime = reminderTimeFormatter.format(Date(reminder.scheduledForEpochMillis)),
-                                onClick = {},
+                                onClick = { reminder.executionId?.let { onOpenReminder(it) } },
                             )
                         }
                     }

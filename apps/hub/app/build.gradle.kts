@@ -40,8 +40,8 @@ android {
         applicationId = "ir.sayda.yara.hub"
         minSdk = 24
         targetSdk = 36
-        versionCode = 2
-        versionName = "2.0.0-foundation"
+        versionCode = 3
+        versionName = "2.0.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("String", "HUB_DEVICE_MODEL_CODE", "\"YARA-HUB-TABLET\"")
